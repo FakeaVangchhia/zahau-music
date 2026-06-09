@@ -79,7 +79,7 @@ function Post() {
       </p>
       <h1 className="mt-4 font-display text-5xl md:text-6xl uppercase leading-none">{post.title}</h1>
       <div className="mt-12 space-y-6 text-lg text-foreground/90 leading-relaxed">
-        {post.body.map((p, i) => <p key={i}>{p}</p>)}
+        {post.body.map((p: string, i: number) => <p key={i}>{p}</p>)}
       </div>
     </article>
   );
