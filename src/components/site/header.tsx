@@ -17,7 +17,8 @@ export function Header() {
   const [theme, setTheme] = useState<"light" | "dark">("dark");
 
   useEffect(() => {
-    const isDark = document.documentElement.classList.contains("dark");
+    const localTheme = localStorage.getItem("theme");
+    const isDark = localTheme ? localTheme === "dark" : document.documentElement.classList.contains("dark");
     setTheme(isDark ? "dark" : "light");
   }, []);
 
