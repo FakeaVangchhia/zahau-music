@@ -119,8 +119,12 @@ function RootShell({ children }: { children: ReactNode }) {
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
-                var theme = localStorage.getItem('theme') || 'dark';
-                document.documentElement.className = theme;
+                try {
+                  var theme = localStorage.getItem('theme') || 'dark';
+                  document.documentElement.className = theme;
+                } catch (e) {
+                  document.documentElement.className = 'dark';
+                }
               })();
             `,
           }}

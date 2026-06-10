@@ -17,19 +17,32 @@ export function Header() {
   const [theme, setTheme] = useState<"light" | "dark">("dark");
 
   useEffect(() => {
-    const localTheme = localStorage.getItem("theme");
+    let localTheme = null;
+    try {
+      localTheme = localStorage.getItem("theme");
+    } catch (e) {
+      console.error("[ThemeToggle] Failed to read from localStorage:", e);
+    }
     const isDark = localTheme ? localTheme === "dark" : document.documentElement.classList.contains("dark");
+    console.log("[ThemeToggle] Initial theme setup. isDark:", isDark);
     setTheme(isDark ? "dark" : "light");
   }, []);
 
   const toggleTheme = () => {
     const nextTheme = theme === "dark" ? "light" : "dark";
+    console.log("[ThemeToggle] Toggling theme. Current:", theme, "Next:", nextTheme);
     setTheme(nextTheme);
-    localStorage.setItem("theme", nextTheme);
+    try {
+      localStorage.setItem("theme", nextTheme);
+    } catch (e) {
+      console.error("[ThemeToggle] Failed to write to localStorage:", e);
+    }
     if (nextTheme === "dark") {
       document.documentElement.classList.add("dark");
+      console.log("[ThemeToggle] Added 'dark' class to html element.");
     } else {
       document.documentElement.classList.remove("dark");
+      console.log("[ThemeToggle] Removed 'dark' class from html element.");
     }
   };
 
