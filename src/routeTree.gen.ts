@@ -13,6 +13,7 @@ import { Route as TestimonialsRouteImport } from './routes/testimonials'
 import { Route as OnlineRouteImport } from './routes/online'
 import { Route as LearningLevelsRouteImport } from './routes/learning-levels'
 import { Route as GalleryRouteImport } from './routes/gallery'
+import { Route as FeesRouteImport } from './routes/fees'
 import { Route as EventsRouteImport } from './routes/events'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -43,6 +44,11 @@ const LearningLevelsRoute = LearningLevelsRouteImport.update({
 const GalleryRoute = GalleryRouteImport.update({
   id: '/gallery',
   path: '/gallery',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FeesRoute = FeesRouteImport.update({
+  id: '/fees',
+  path: '/fees',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EventsRoute = EventsRouteImport.update({
@@ -106,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/contact': typeof ContactRoute
   '/events': typeof EventsRoute
+  '/fees': typeof FeesRoute
   '/gallery': typeof GalleryRoute
   '/learning-levels': typeof LearningLevelsRoute
   '/online': typeof OnlineRoute
@@ -122,6 +129,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/contact': typeof ContactRoute
   '/events': typeof EventsRoute
+  '/fees': typeof FeesRoute
   '/gallery': typeof GalleryRoute
   '/learning-levels': typeof LearningLevelsRoute
   '/online': typeof OnlineRoute
@@ -140,6 +148,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/contact': typeof ContactRoute
   '/events': typeof EventsRoute
+  '/fees': typeof FeesRoute
   '/gallery': typeof GalleryRoute
   '/learning-levels': typeof LearningLevelsRoute
   '/online': typeof OnlineRoute
@@ -158,6 +167,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/contact'
     | '/events'
+    | '/fees'
     | '/gallery'
     | '/learning-levels'
     | '/online'
@@ -174,6 +184,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/contact'
     | '/events'
+    | '/fees'
     | '/gallery'
     | '/learning-levels'
     | '/online'
@@ -191,6 +202,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/contact'
     | '/events'
+    | '/fees'
     | '/gallery'
     | '/learning-levels'
     | '/online'
@@ -209,6 +221,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ContactRoute: typeof ContactRoute
   EventsRoute: typeof EventsRoute
+  FeesRoute: typeof FeesRoute
   GalleryRoute: typeof GalleryRoute
   LearningLevelsRoute: typeof LearningLevelsRoute
   OnlineRoute: typeof OnlineRoute
@@ -247,6 +260,13 @@ declare module '@tanstack/react-router' {
       path: '/gallery'
       fullPath: '/gallery'
       preLoaderRoute: typeof GalleryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/fees': {
+      id: '/fees'
+      path: '/fees'
+      fullPath: '/fees'
+      preLoaderRoute: typeof FeesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/events': {
@@ -347,6 +367,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ContactRoute: ContactRoute,
   EventsRoute: EventsRoute,
+  FeesRoute: FeesRoute,
   GalleryRoute: GalleryRoute,
   LearningLevelsRoute: LearningLevelsRoute,
   OnlineRoute: OnlineRoute,
@@ -359,3 +380,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

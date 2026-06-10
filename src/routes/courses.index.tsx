@@ -9,9 +9,16 @@ export const Route = createFileRoute("/courses/")({
   head: () => ({
     meta: [
       { title: "Courses — Zahau Music School" },
-      { name: "description", content: "Piano, keyboard, guitar, bass, drums, violin, voice, and music theory. Beginner to performance certification." },
+      {
+        name: "description",
+        content:
+          "Piano, keyboard, guitar, bass, drums, violin, voice, and music theory. Beginner to performance certification.",
+      },
       { property: "og:title", content: "Courses at Zahau Music School" },
-      { property: "og:description", content: "Eight disciplines, every level, ABRSM and Trinity certifications." },
+      {
+        property: "og:description",
+        content: "Eight disciplines, every level, ABRSM and Trinity certifications.",
+      },
       { property: "og:url", content: "/courses" },
     ],
     links: [{ rel: "canonical", href: "/courses" }],
@@ -21,10 +28,16 @@ export const Route = createFileRoute("/courses/")({
 
 function CoursesIndex() {
   const fetchCourses = useServerFn(getCourses);
-  const { data, isLoading } = useQuery({ queryKey: ["courses-all"], queryFn: () => fetchCourses() });
+  const { data, isLoading } = useQuery({
+    queryKey: ["courses-all"],
+    queryFn: () => fetchCourses(),
+  });
   const [q, setQ] = useState("");
-  const courses = (data ?? []).filter((c) =>
-    !q || c.name.toLowerCase().includes(q.toLowerCase()) || c.tagline?.toLowerCase().includes(q.toLowerCase())
+  const courses = (data ?? []).filter(
+    (c) =>
+      !q ||
+      c.name.toLowerCase().includes(q.toLowerCase()) ||
+      c.tagline?.toLowerCase().includes(q.toLowerCase()),
   );
 
   return (
@@ -32,9 +45,15 @@ function CoursesIndex() {
       <section className="bg-navy text-navy-foreground py-24 px-6">
         <div className="max-w-7xl mx-auto">
           <p className="font-mono text-xs uppercase tracking-[0.3em] text-azure">Curriculum</p>
-          <h1 className="mt-4 font-display text-6xl md:text-8xl uppercase leading-none">Find your<br />instrument.</h1>
+          <h1 className="mt-4 font-display text-6xl md:text-8xl uppercase leading-none">
+            Find your
+            <br />
+            instrument.
+          </h1>
           <p className="mt-8 max-w-2xl text-lg text-white/70 leading-relaxed">
-            Eight disciplines, four levels, one philosophy. Whether you're picking up your first instrument or preparing for international certification, there's a path designed for you.
+            Eight disciplines, four levels, one philosophy. Whether you're picking up your first
+            instrument or preparing for international certification, there's a path designed for
+            you.
           </p>
         </div>
       </section>
@@ -63,14 +82,21 @@ function CoursesIndex() {
               className="group bg-background p-8 hover:bg-navy hover:text-navy-foreground transition-colors min-h-[260px] flex flex-col"
             >
               <div className="flex justify-between">
-                <span className="font-mono text-xs text-muted-foreground group-hover:text-white/40">{String(i + 1).padStart(2, "0")}</span>
+                <span className="font-mono text-xs text-muted-foreground group-hover:text-white/40">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
                 <div className="w-8 h-px bg-border group-hover:bg-azure mt-2" />
               </div>
               <h3 className="mt-10 font-display text-3xl uppercase">{c.name}</h3>
               <p className="mt-3 text-sm opacity-70 flex-1">{c.tagline}</p>
               <div className="mt-6 flex flex-wrap gap-2">
                 {(c.levels ?? []).slice(0, 3).map((l: string) => (
-                  <span key={l} className="text-[10px] font-mono uppercase tracking-widest border border-current/30 px-2 py-1">{l}</span>
+                  <span
+                    key={l}
+                    className="text-[10px] font-mono uppercase tracking-widest border border-current/30 px-2 py-1"
+                  >
+                    {l}
+                  </span>
                 ))}
               </div>
             </Link>

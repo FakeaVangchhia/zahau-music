@@ -1,7 +1,9 @@
 import { MessageCircle } from "lucide-react";
 
 export function WhatsAppFab() {
-  const href = "https://wa.me/919999999999?text=" + encodeURIComponent("Hi Zahau Music School, I'd like to know more about your courses.");
+  const href =
+    "https://wa.me/919999999999?text=" +
+    encodeURIComponent("Hi Zahau Music School, I'd like to know more about your courses.");
   return (
     <a
       href={href}

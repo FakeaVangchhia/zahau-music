@@ -24,7 +24,10 @@ export function NewsletterForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex gap-0 border border-border">
+    <form
+      onSubmit={onSubmit}
+      className="flex gap-0 border border-border/60 bg-card/40 backdrop-blur-sm rounded-lg overflow-hidden focus-within:border-azure focus-within:ring-1 focus-within:ring-azure/30 transition-all duration-200"
+    >
       <input
         type="email"
         required
@@ -32,12 +35,12 @@ export function NewsletterForm() {
         onChange={(e) => setEmail(e.target.value)}
         placeholder="you@email.com"
         aria-label="Email address"
-        className="flex-1 bg-transparent px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground"
+        className="flex-1 bg-transparent px-4 py-3 text-sm outline-none placeholder:text-muted-foreground/40"
       />
       <button
         type="submit"
         disabled={loading}
-        className="bg-navy text-navy-foreground px-4 text-[10px] font-bold uppercase tracking-widest hover:bg-azure hover:text-azure-foreground disabled:opacity-50"
+        className="bg-azure text-azure-foreground px-6 text-xs font-bold uppercase tracking-widest hover:bg-azure/90 active:scale-95 transition-all duration-200 disabled:opacity-50"
       >
         {loading ? "..." : "Join"}
       </button>

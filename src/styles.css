@@ -1,5 +1,4 @@
-@import "tailwindcss" source(none);
-@source "../src";
+@import "tailwindcss";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
@@ -38,14 +37,25 @@
   --font-display: "Anton", "Inter", sans-serif;
   --font-sans: "Inter", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  
+  /* Typography Scaling Up globally */
+  --text-xs: 0.8125rem;
+  --text-sm: 0.9375rem;
+  --text-base: 1.0625rem;
+  --text-lg: 1.1875rem;
+  --text-xl: 1.3125rem;
+  --text-2xl: 1.625rem;
+  --text-3xl: 2.0rem;
+  --text-4xl: 2.5rem;
+  --text-5xl: 3.25rem;
 }
 
 :root {
   --radius: 0.5rem;
-  /* Brand palette — light navy + azure */
+  /* Brand palette — light navy + azure (darker in light mode for accessibility contrast) */
   --navy: oklch(0.21 0.05 257);
   --navy-foreground: oklch(0.985 0.005 250);
-  --azure: oklch(0.62 0.19 256);
+  --azure: oklch(0.48 0.18 256);
   --azure-foreground: oklch(0.99 0.005 250);
   --surface: oklch(0.985 0.005 250);
   --ink: oklch(0.21 0.05 257);
@@ -61,7 +71,7 @@
   --secondary: oklch(0.96 0.01 250);
   --secondary-foreground: var(--ink);
   --muted: oklch(0.96 0.01 250);
-  --muted-foreground: oklch(0.5 0.03 257);
+  --muted-foreground: oklch(0.43 0.03 257);
   --accent: var(--azure);
   --accent-foreground: var(--azure-foreground);
   --destructive: oklch(0.6 0.22 27);
@@ -72,11 +82,11 @@
 }
 
 .dark {
-  --navy: oklch(0.985 0.005 250);
-  --navy-foreground: oklch(0.15 0.04 257);
+  --navy: oklch(0.13 0.03 257);
+  --navy-foreground: oklch(0.985 0.005 250);
   --azure: oklch(0.7 0.17 256);
   --azure-foreground: oklch(0.15 0.04 257);
-  --surface: oklch(0.13 0.03 257);
+  --surface: oklch(0.08 0.03 257);
   --ink: oklch(0.985 0.005 250);
 
   --background: var(--surface);
@@ -85,8 +95,8 @@
   --card-foreground: var(--ink);
   --popover: oklch(0.17 0.035 257);
   --popover-foreground: var(--ink);
-  --primary: oklch(0.985 0.005 250);
-  --primary-foreground: oklch(0.15 0.04 257);
+  --primary: var(--navy);
+  --primary-foreground: var(--navy-foreground);
   --secondary: oklch(0.22 0.04 257);
   --secondary-foreground: var(--ink);
   --muted: oklch(0.22 0.04 257);
@@ -100,20 +110,31 @@
 }
 
 @layer base {
-  * { border-color: var(--color-border); }
-  html { -webkit-font-smoothing: antialiased; }
+  * {
+    border-color: var(--color-border);
+  }
+  html {
+    -webkit-font-smoothing: antialiased;
+  }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
   }
-  ::selection { background: var(--color-azure); color: var(--color-azure-foreground); }
+  ::selection {
+    background: var(--color-azure);
+    color: var(--color-azure-foreground);
+  }
 }
 
 /* Marquee for hero instrument list */
 @keyframes marquee {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
 }
 @utility animate-marquee {
   display: flex;
@@ -123,8 +144,14 @@
 
 /* Reveal */
 @keyframes reveal-up {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 @utility animate-reveal {
   animation: reveal-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -133,9 +160,14 @@
 /* Hide scrollbars on horizontal rails */
 @utility no-scrollbar {
   scrollbar-width: none;
-  &::-webkit-scrollbar { display: none; }
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-marquee, .animate-reveal { animation: none !important; }
+  .animate-marquee,
+  .animate-reveal {
+    animation: none !important;
+  }
 }

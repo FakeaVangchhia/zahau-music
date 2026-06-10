@@ -1,9 +1,10 @@
 import { Link } from "@tanstack/react-router";
-import { Menu, X, Moon, Sun } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Menu, X, Sun, Moon } from "lucide-react";
+import { useState, useEffect } from "react";
 
 const NAV = [
   { to: "/courses", label: "Curriculum" },
+  { to: "/fees", label: "Fees" },
   { to: "/about", label: "About" },
   { to: "/events", label: "Events" },
   { to: "/gallery", label: "Gallery" },
@@ -13,21 +14,23 @@ const NAV = [
 
 export function Header() {
   const [open, setOpen] = useState(false);
-  const [dark, setDark] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark">("dark");
 
   useEffect(() => {
-    const stored = typeof window !== "undefined" ? localStorage.getItem("theme") : null;
-    const prefersDark = stored === "dark" || (!stored && window.matchMedia?.("(prefers-color-scheme: dark)").matches);
-    document.documentElement.classList.toggle("dark", !!prefersDark);
-    setDark(!!prefersDark);
+    const isDark = document.documentElement.classList.contains("dark");
+    setTheme(isDark ? "dark" : "light");
   }, []);
 
-  function toggleTheme() {
-    const next = !dark;
-    setDark(next);
-    document.documentElement.classList.toggle("dark", next);
-    localStorage.setItem("theme", next ? "dark" : "light");
-  }
+  const toggleTheme = () => {
+    const nextTheme = theme === "dark" ? "light" : "dark";
+    setTheme(nextTheme);
+    localStorage.setItem("theme", nextTheme);
+    if (nextTheme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 bg-background/85 backdrop-blur-md border-b border-border">
@@ -37,7 +40,12 @@ export function Header() {
         </Link>
         <nav className="hidden md:flex gap-7 text-[11px] font-bold uppercase tracking-widest">
           {NAV.map((n) => (
-            <Link key={n.to} to={n.to} className="text-foreground/80 hover:text-azure transition-colors" activeProps={{ className: "text-azure" }}>
+            <Link
+              key={n.to}
+              to={n.to}
+              className="text-foreground/80 hover:text-azure transition-colors"
+              activeProps={{ className: "text-azure" }}
+            >
               {n.label}
             </Link>
           ))}
@@ -45,10 +53,14 @@ export function Header() {
         <div className="flex items-center gap-2">
           <button
             onClick={toggleTheme}
-            aria-label="Toggle dark mode"
-            className="size-10 grid place-items-center rounded hover:bg-muted transition-colors"
+            className="size-10 grid place-items-center rounded hover:bg-muted text-foreground/80 hover:text-foreground transition-all duration-200 cursor-pointer"
+            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
           >
-            {dark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+            {theme === "dark" ? (
+              <Sun className="size-5 text-yellow-500 animate-pulse" />
+            ) : (
+              <Moon className="size-5 text-azure" />
+            )}
           </button>
           <Link
             to="/contact"

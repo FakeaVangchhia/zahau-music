@@ -64,7 +64,9 @@ export const Route = createFileRoute("/blog/$slug")({
   notFoundComponent: () => (
     <div className="p-16 text-center">
       <h1 className="font-display text-4xl uppercase">Post not found</h1>
-      <Link to="/blog" className="mt-6 inline-block underline">Back to all posts</Link>
+      <Link to="/blog" className="mt-6 inline-block underline">
+        Back to all posts
+      </Link>
     </div>
   ),
 });
@@ -73,13 +75,19 @@ function Post() {
   const { post } = Route.useLoaderData();
   return (
     <article className="py-24 px-6 max-w-3xl mx-auto">
-      <Link to="/blog" className="font-mono text-[10px] uppercase tracking-widest text-azure">← Journal</Link>
+      <Link to="/blog" className="font-mono text-[10px] uppercase tracking-widest text-azure">
+        ← Journal
+      </Link>
       <p className="mt-8 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
         {new Date(post.date).toLocaleDateString(undefined, { dateStyle: "long" })} · {post.author}
       </p>
-      <h1 className="mt-4 font-display text-5xl md:text-6xl uppercase leading-none">{post.title}</h1>
+      <h1 className="mt-4 font-display text-5xl md:text-6xl uppercase leading-none">
+        {post.title}
+      </h1>
       <div className="mt-12 space-y-6 text-lg text-foreground/90 leading-relaxed">
-        {post.body.map((p: string, i: number) => <p key={i}>{p}</p>)}
+        {post.body.map((p: string, i: number) => (
+          <p key={i}>{p}</p>
+        ))}
       </div>
     </article>
   );

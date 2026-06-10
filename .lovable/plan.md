@@ -1,4 +1,3 @@
-
 # Zahau Music School — Build Plan
 
 A premium, full music academy site built from the selected **Bold Performance** direction (Anton display + Inter + JetBrains Mono, navy `#0F172A` + azure `#3B82F6` on surface `#F8FAFC`). Light theme primary, dark mode secondary. Fully responsive, accessible (WCAG AA), SEO-optimized per-route, with Framer Motion micro-interactions. Backend powered by Lovable Cloud (Supabase under the hood).
