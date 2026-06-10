@@ -11,7 +11,7 @@ const leadSchema = z.object({
 });
 
 export const submitLead = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => leadSchema.parse(data))
+  .validator((data: unknown) => leadSchema.parse(data))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("leads").insert({
@@ -29,7 +29,7 @@ export const submitLead = createServerFn({ method: "POST" })
 const newsletterSchema = z.object({ email: z.string().trim().email().max(255) });
 
 export const subscribeNewsletter = createServerFn({ method: "POST" })
-  .inputValidator((d: unknown) => newsletterSchema.parse(d))
+  .validator((d: unknown) => newsletterSchema.parse(d))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
@@ -50,7 +50,7 @@ export const getCourses = createServerFn({ method: "GET" }).handler(async () => 
 });
 
 export const getCourse = createServerFn({ method: "GET" })
-  .inputValidator((d: { slug: string }) => ({ slug: z.string().min(1).max(80).parse(d.slug) }))
+  .validator((d: { slug: string }) => ({ slug: z.string().min(1).max(80).parse(d.slug) }))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: row, error } = await supabaseAdmin
