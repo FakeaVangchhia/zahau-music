@@ -27,9 +27,22 @@ const CERTS = [{ t: "ABRSM Theory Grade 3", d: "Issued Nov 2025" }];
 function Dashboard() {
   const navigate = useNavigate();
   const [email, setEmail] = useState<string>("");
+  const [role, setRole] = useState<string>("");
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? ""));
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (data.user) {
+        setEmail(data.user.email ?? "");
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", data.user.id)
+          .maybeSingle();
+        if (roleData) {
+          setRole(roleData.role);
+        }
+      }
+    });
   }, []);
 
   async function signOut() {
@@ -43,10 +56,17 @@ function Dashboard() {
         <div className="flex justify-between items-end mb-10 flex-wrap gap-4">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-widest text-azure">
-              Student portal
+              {role ? `${role} portal` : "Student portal"}
             </p>
             <h1 className="mt-2 font-display text-5xl uppercase">Welcome back.</h1>
-            <p className="text-sm text-muted-foreground mt-2">{email}</p>
+            <div className="flex items-center gap-2 mt-2">
+              <p className="text-sm text-muted-foreground">{email}</p>
+              {role && (
+                <span className="bg-azure/10 text-azure border border-azure/20 text-[9px] font-mono uppercase px-2 py-0.5 tracking-wider">
+                  {role}
+                </span>
+              )}
+            </div>
           </div>
           <button
             onClick={signOut}
