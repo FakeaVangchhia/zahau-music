@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Menu, X, Sun, Moon } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import logo from "@/assets/logo.jpg";
 
 const NAV = [
   { to: "/courses", label: "Curriculum" },
@@ -84,8 +85,9 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 bg-background/85 backdrop-blur-md border-b border-border">
       <div className="mx-auto max-w-7xl px-6 py-4 flex items-center justify-between">
-        <Link to="/" className="font-display text-2xl tracking-tighter uppercase text-foreground">
-          Zahau
+        <Link to="/" className="flex items-center gap-2.5 font-display text-2xl tracking-tighter uppercase text-foreground">
+          <img src={logo} alt="Zahau Logo" className="h-9 w-9 object-contain rounded-full border border-purple-500/20 shadow-sm" />
+          <span>Zahau</span>
         </Link>
         <nav className="hidden md:flex gap-7 text-[11px] font-bold uppercase tracking-widest">
           {NAV.map((n) => (
