@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Award, BookOpen, Calendar, ClipboardList, LogOut } from "lucide-react";
+import { AdminDashboard } from "@/components/admin/AdminDashboard";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
@@ -28,6 +29,7 @@ function Dashboard() {
   const navigate = useNavigate();
   const [email, setEmail] = useState<string>("");
   const [role, setRole] = useState<string>("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
@@ -42,6 +44,7 @@ function Dashboard() {
           setRole(roleData.role);
         }
       }
+      setLoading(false);
     });
   }, []);
 
@@ -50,27 +53,36 @@ function Dashboard() {
     navigate({ to: "/", replace: true });
   }
 
+  if (loading) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-azure border-t-transparent" />
+      </div>
+    );
+  }
+
+  // If user is admin, render the professional admin console dashboard
+  if (role === "admin") {
+    return <AdminDashboard email={email} signOut={signOut} />;
+  }
+
+  // Otherwise, render the student portal dashboard
   return (
-    <section className="bg-secondary min-h-[80vh] py-12 px-6">
-      <div className="max-w-7xl mx-auto">
+    <section className="bg-secondary/40 min-h-[80vh] py-12 px-6">
+      <div className="max-w-7xl mx-auto animate-page-transition">
         <div className="flex justify-between items-end mb-10 flex-wrap gap-4">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-widest text-azure">
-              {role ? `${role} portal` : "Student portal"}
+              Student portal
             </p>
-            <h1 className="mt-2 font-display text-5xl uppercase">Welcome back.</h1>
+            <h1 className="mt-2 font-display text-5xl uppercase text-white">Welcome back.</h1>
             <div className="flex items-center gap-2 mt-2">
               <p className="text-sm text-muted-foreground">{email}</p>
-              {role && (
-                <span className="bg-azure/10 text-azure border border-azure/20 text-[9px] font-mono uppercase px-2 py-0.5 tracking-wider">
-                  {role}
-                </span>
-              )}
             </div>
           </div>
           <button
             onClick={signOut}
-            className="flex items-center gap-2 border border-border px-4 py-2 text-[11px] font-bold uppercase tracking-widest hover:bg-background"
+            className="flex items-center gap-2 border border-border px-4 py-2.5 text-[11px] font-bold uppercase tracking-widest hover:bg-background text-foreground transition-all rounded-lg cursor-pointer"
           >
             <LogOut className="size-4" /> Sign out
           </button>
@@ -79,23 +91,27 @@ function Dashboard() {
         <div className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             <Card title="Current courses" icon={<BookOpen className="size-4" />}>
-              <div className="divide-y divide-border">
+              <div className="divide-y divide-border/60">
                 {COURSES.map((c) => (
-                  <div key={c.name} className="py-5">
-                    <div className="flex justify-between items-end">
+                  <div key={c.name} className="py-5 first:pt-0 last:pb-0">
+                    <div className="flex justify-between items-end flex-wrap gap-2">
                       <div>
-                        <div className="font-display text-xl uppercase">{c.name}</div>
-                        <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                        <div className="font-display text-xl uppercase text-white">{c.name}</div>
+                        <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-0.5">
                           {c.level}
                         </div>
                       </div>
-                      <div className="font-mono text-xs text-muted-foreground">{c.next}</div>
+                      <div className="font-mono text-xs text-azure/90">{c.next}</div>
                     </div>
-                    <div className="mt-3 h-1.5 bg-secondary">
-                      <div className="h-full bg-azure" style={{ width: `${c.progress}%` }} />
+                    <div className="mt-3 h-2 bg-secondary rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-azure rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)] transition-all duration-500" 
+                        style={{ width: `${c.progress}%` }} 
+                      />
                     </div>
-                    <div className="mt-1 font-mono text-[10px] text-muted-foreground">
-                      {c.progress}% complete
+                    <div className="mt-1.5 font-mono text-[10px] text-muted-foreground flex justify-between">
+                      <span>{c.progress}% complete</span>
+                      <span>Target Grade: Excellent</span>
                     </div>
                   </div>
                 ))}
@@ -103,16 +119,18 @@ function Dashboard() {
             </Card>
 
             <Card title="Assignments" icon={<ClipboardList className="size-4" />}>
-              <ul className="divide-y divide-border">
+              <ul className="divide-y divide-border/60">
                 {ASSIGNMENTS.map((a, i) => (
-                  <li key={i} className="py-4 flex justify-between items-start">
+                  <li key={i} className="py-4 first:pt-0 last:pb-0 flex justify-between items-center flex-wrap gap-2">
                     <div>
                       <div className="font-mono text-[10px] uppercase tracking-widest text-azure">
                         {a.c}
                       </div>
-                      <div className="font-display text-lg uppercase">{a.t}</div>
+                      <div className="font-display text-lg uppercase text-white mt-0.5">{a.t}</div>
                     </div>
-                    <span className="font-mono text-xs text-muted-foreground">{a.due}</span>
+                    <span className="font-mono text-[10px] uppercase tracking-widest border border-destructive/20 px-2.5 py-1 text-destructive bg-destructive/10 rounded-full font-bold">
+                      {a.due}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -121,11 +139,11 @@ function Dashboard() {
 
           <div className="space-y-6">
             <Card title="Upcoming events" icon={<Calendar className="size-4" />}>
-              <ul className="divide-y divide-border">
+              <ul className="divide-y divide-border/60">
                 {EVENTS.map((e) => (
-                  <li key={e.t} className="py-3">
-                    <div className="font-display text-base uppercase">{e.t}</div>
-                    <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  <li key={e.t} className="py-3.5 first:pt-0 last:pb-0">
+                    <div className="font-display text-base uppercase text-white">{e.t}</div>
+                    <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
                       {e.w}
                     </div>
                   </li>
@@ -136,13 +154,18 @@ function Dashboard() {
               {CERTS.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No certificates yet.</p>
               ) : (
-                <ul className="divide-y divide-border">
+                <ul className="divide-y divide-border/60">
                   {CERTS.map((c) => (
-                    <li key={c.t} className="py-3">
-                      <div className="font-display text-base uppercase">{c.t}</div>
-                      <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                        {c.d}
+                    <li key={c.t} className="py-3.5 first:pt-0 last:pb-0 flex justify-between items-center">
+                      <div>
+                        <div className="font-display text-base uppercase text-white">{c.t}</div>
+                        <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
+                          {c.d}
+                        </div>
                       </div>
+                      <span className="text-[10px] font-mono uppercase tracking-widest text-amber-500 border border-amber-500/20 bg-amber-500/10 px-2.5 py-1 rounded-full font-bold">
+                        Gold Grade
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -165,11 +188,11 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-background border border-border p-6">
-      <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-azure">
+    <div className="glass-card p-6 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.02)]">
+      <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-azure border-b border-border/40 pb-3 mb-4 font-bold">
         {icon} {title}
       </div>
-      <div className="mt-2">{children}</div>
+      <div>{children}</div>
     </div>
   );
 }

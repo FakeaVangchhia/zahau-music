@@ -165,9 +165,66 @@
   }
 }
 
+/* Glassmorphism Preset */
+@utility glass-card {
+  background-color: color-mix(in oklch, var(--color-card) 60%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid color-mix(in oklch, var(--color-border) 40%, transparent);
+}
+
+/* Marquee edge gradient fade overlay */
+@utility marquee-mask {
+  mask-image: linear-gradient(to right, transparent, white 15%, white 85%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, white 15%, white 85%, transparent);
+}
+
+/* Fade In animation */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@utility animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+/* Slide Up animation */
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@utility animate-slide-up {
+  animation: slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Page Transition animation */
+@keyframes pageTransition {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@utility animate-page-transition {
+  animation: pageTransition 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-marquee,
-  .animate-reveal {
+  .animate-reveal,
+  .animate-fade-in,
+  .animate-slide-up,
+  .animate-page-transition {
     animation: none !important;
   }
 }
+

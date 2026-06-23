@@ -1,6 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import campusImg from "@/assets/about-campus.jpg";
 import heroPiano from "@/assets/hero-piano.jpg";
+import { useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/gallery")({
   head: () => ({
@@ -27,6 +30,12 @@ const ITEMS = [
 ];
 
 function Gallery() {
+  const [filter, setFilter] = useState("All");
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+
+  const categories = ["All", "Concert", "Class", "Recital", "Studio", "Performance"];
+  const filteredItems = filter === "All" ? ITEMS : ITEMS.filter((item) => item.cat === filter);
+
   return (
     <>
       <section className="bg-navy text-navy-foreground py-24 px-6">
@@ -39,26 +48,109 @@ function Gallery() {
           </h1>
         </div>
       </section>
-      <section className="py-20 px-6 max-w-7xl mx-auto">
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
-          {ITEMS.map((i, idx) => (
-            <figure key={idx} className="group relative overflow-hidden bg-secondary aspect-[4/3]">
+
+      {/* Filter Tabs */}
+      <section className="py-8 px-6 max-w-7xl mx-auto flex flex-wrap gap-2 justify-center border-b border-border/60">
+        {categories.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => {
+              setFilter(cat);
+              setActiveIndex(null);
+            }}
+            className={`px-4 py-2 font-mono text-[10px] uppercase tracking-widest border transition-all duration-200 cursor-pointer ${
+              filter === cat
+                ? "bg-azure text-azure-foreground border-azure"
+                : "border-border hover:border-azure/50 text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {cat}s
+          </button>
+        ))}
+      </section>
+
+      {/* Grid of Images */}
+      <section className="py-12 px-6 max-w-7xl mx-auto">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredItems.map((item, idx) => (
+            <figure
+              key={idx}
+              onClick={() => setActiveIndex(idx)}
+              className="group relative overflow-hidden bg-secondary aspect-[4/3] rounded-xl cursor-pointer shadow-md hover:shadow-xl transition-all duration-300 animate-slide-up"
+            >
               <img
-                src={i.src}
-                alt={i.label}
+                src={item.src}
+                alt={item.label}
                 loading="lazy"
                 className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
               />
-              <figcaption className="absolute inset-0 bg-navy/70 text-navy-foreground opacity-0 group-hover:opacity-100 transition-opacity p-6 flex flex-col justify-end">
+              <figcaption className="absolute inset-0 bg-navy/80 text-navy-foreground opacity-0 group-hover:opacity-100 transition-opacity p-6 flex flex-col justify-end">
                 <span className="font-mono text-[10px] uppercase tracking-widest text-azure">
-                  {i.cat}
+                  {item.cat}
                 </span>
-                <span className="mt-2 font-display text-xl uppercase">{i.label}</span>
+                <span className="mt-2 font-display text-xl uppercase leading-tight">{item.label}</span>
               </figcaption>
             </figure>
           ))}
         </div>
       </section>
+
+      {/* Image Lightbox Dialog */}
+      <Dialog
+        open={activeIndex !== null}
+        onOpenChange={(open) => {
+          if (!open) setActiveIndex(null);
+        }}
+      >
+        <DialogContent className="max-w-4xl p-0 overflow-hidden bg-black/95 border-0 flex flex-col justify-center items-center h-[75vh] sm:h-[80vh] rounded-2xl shadow-2xl">
+          {activeIndex !== null && filteredItems[activeIndex] && (
+            <div className="relative size-full flex items-center justify-center p-4">
+              <img
+                src={filteredItems[activeIndex].src}
+                alt={filteredItems[activeIndex].label}
+                className="max-h-[85%] max-w-full object-contain rounded-lg animate-fade-in"
+              />
+
+              {/* Title & Caption */}
+              <div className="absolute bottom-6 left-6 text-white text-left z-10 bg-black/60 p-4 rounded-xl backdrop-blur-md max-w-sm border border-white/10 hidden sm:block">
+                <span className="font-mono text-[10px] uppercase tracking-widest text-azure">
+                  {filteredItems[activeIndex].cat}
+                </span>
+                <h4 className="font-display text-xl uppercase mt-1 leading-tight">
+                  {filteredItems[activeIndex].label}
+                </h4>
+              </div>
+
+              {/* Chevron Navigation */}
+              {filteredItems.length > 1 && (
+                <>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveIndex((prev) => (prev !== null && prev > 0 ? prev - 1 : filteredItems.length - 1));
+                    }}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 size-12 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full flex items-center justify-center text-white cursor-pointer hover:scale-105 transition-all duration-200"
+                    aria-label="Previous image"
+                  >
+                    <ChevronLeft className="size-6" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveIndex((prev) => (prev !== null && prev < filteredItems.length - 1 ? prev + 1 : 0));
+                    }}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 size-12 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full flex items-center justify-center text-white cursor-pointer hover:scale-105 transition-all duration-200"
+                    aria-label="Next image"
+                  >
+                    <ChevronRight className="size-6" />
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
+

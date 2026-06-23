@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Clock, BookOpen, Check, Award, Calculator, HelpCircle, ArrowRight, Sparkles } from "lucide-react";
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
+
 
 export const Route = createFileRoute("/fees")({
   head: () => ({
@@ -136,9 +138,15 @@ const FAQS = [
 ];
 
 function FeesPage() {
+  const [showMonthlyRate, setShowMonthlyRate] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(PACKAGES[3]);
   const [selectedInstrument, setSelectedInstrument] = useState("Piano");
   const [learningMode, setLearningMode] = useState<"offline" | "online">("offline");
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const estimatedMonthly = Math.round(selectedPlan.rawFees / parseInt(selectedPlan.duration));
 
@@ -165,69 +173,97 @@ function FeesPage() {
         <div className="text-center max-w-3xl mx-auto mb-16">
           <p className="font-mono text-xs uppercase tracking-widest text-azure">Tuition Options</p>
           <h2 className="mt-3 font-display text-4xl md:text-5xl uppercase">Our Fee Packages</h2>
-          <p className="mt-4 text-muted-foreground">
+          <p className="mt-4 text-muted-foreground mb-8">
             Explore our curriculum paths. Rates apply for online or offline (Delhi branches) study.
           </p>
+          
+          <div className="flex justify-center">
+            <div className="flex bg-muted/40 p-1 rounded-lg border border-border/80">
+              <button
+                onClick={() => setShowMonthlyRate(false)}
+                className={`px-4 py-2 text-xs font-bold uppercase rounded-md cursor-pointer transition-all duration-200 ${
+                  !showMonthlyRate ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Total Course Fee
+              </button>
+              <button
+                onClick={() => setShowMonthlyRate(true)}
+                className={`px-4 py-2 text-xs font-bold uppercase rounded-md cursor-pointer transition-all duration-200 ${
+                  showMonthlyRate ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Estimated Monthly Cost
+              </button>
+            </div>
+          </div>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {PACKAGES.map((pkg) => (
-            <div
-              key={pkg.title}
-              className={`relative flex flex-col p-8 rounded-2xl border transition-all duration-300 ${
-                pkg.popular
-                  ? "border-azure bg-card/60 shadow-[0_15px_40px_-10px_rgba(59,130,246,0.15)] dark:bg-card/40"
-                  : "border-border bg-card/30 dark:bg-card/20 hover:border-border/80"
-              }`}
-            >
-              {pkg.badge && (
-                <span className={`absolute top-4 right-4 font-mono text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full ${
-                  pkg.popular ? "bg-azure text-azure-foreground" : "bg-muted text-muted-foreground"
-                }`}>
-                  {pkg.badge}
-                </span>
-              )}
-              
-              <div className="mb-6">
-                <span className="font-mono text-xs text-muted-foreground">{pkg.duration} Track</span>
-                <h3 className="font-display text-2xl uppercase mt-1 leading-tight">{pkg.title}</h3>
-                <p className="text-xs text-muted-foreground mt-2">{pkg.tagline}</p>
-              </div>
+          {PACKAGES.map((pkg) => {
+            const totalMonths = parseInt(pkg.duration) || 1;
+            const pkgEstimatedMonthly = Math.round(pkg.rawFees / totalMonths);
+            const displayedFee = showMonthlyRate ? `Rs. ${pkgEstimatedMonthly.toLocaleString()}` : pkg.fees;
+            const displayedPeriod = showMonthlyRate ? "/ month" : "/ total";
 
-              <div className="flex items-baseline gap-2 mb-6">
-                <span className="text-4xl font-bold text-foreground font-display">{pkg.fees}</span>
-                <span className="text-xs text-muted-foreground">/ total</span>
-              </div>
-
-              <div className="flex items-center gap-2 mb-6 font-mono text-[10px] uppercase tracking-wider text-muted-foreground/80">
-                <Clock className="size-3.5 text-azure" />
-                <span>{pkg.mode}</span>
-              </div>
-
-              <div className="border-t border-border/60 my-2" />
-
-              <ul className="space-y-3 my-6 flex-1">
-                {pkg.features.map((feat) => (
-                  <li key={feat} className="flex gap-2.5 items-start text-sm">
-                    <Check className="size-4 text-azure shrink-0 mt-0.5" />
-                    <span className="text-muted-foreground/90">{feat}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <Link
-                to="/contact"
-                search={{ course: pkg.title }}
-                className={`w-full py-3.5 font-bold uppercase tracking-wider text-xs text-center rounded-lg transition-all duration-200 cursor-pointer block ${
+            return (
+              <div
+                key={pkg.title}
+                className={`relative flex flex-col p-8 rounded-2xl border transition-all duration-300 ${
                   pkg.popular
-                    ? "bg-azure text-azure-foreground hover:bg-azure/90 hover:shadow-[0_4px_15px_rgba(59,130,246,0.3)]"
-                    : "border border-border hover:border-azure hover:text-azure"
+                    ? "border-azure bg-card/60 shadow-[0_15px_40px_-10px_rgba(59,130,246,0.15)] dark:bg-card/40"
+                    : "border-border bg-card/30 dark:bg-card/20 hover:border-border/80"
                 }`}
               >
-                Inquire & Enroll
-              </Link>
-            </div>
-          ))}
+                {pkg.badge && (
+                  <span className={`absolute top-4 right-4 font-mono text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full ${
+                    pkg.popular ? "bg-azure text-azure-foreground" : "bg-muted text-muted-foreground"
+                  }`}>
+                    {pkg.badge}
+                  </span>
+                )}
+                
+                <div className="mb-6">
+                  <span className="font-mono text-xs text-muted-foreground">{pkg.duration} Track</span>
+                  <h3 className="font-display text-2xl uppercase mt-1 leading-tight">{pkg.title}</h3>
+                  <p className="text-xs text-muted-foreground mt-2">{pkg.tagline}</p>
+                </div>
+
+                <div className="flex items-baseline gap-2 mb-6">
+                  <span className="text-4xl font-bold text-foreground font-display">{displayedFee}</span>
+                  <span className="text-xs text-muted-foreground">{displayedPeriod}</span>
+                </div>
+
+                <div className="flex items-center gap-2 mb-6 font-mono text-[10px] uppercase tracking-wider text-muted-foreground/80">
+                  <Clock className="size-3.5 text-azure" />
+                  <span>{pkg.mode}</span>
+                </div>
+
+                <div className="border-t border-border/60 my-2" />
+
+                <ul className="space-y-3 my-6 flex-1">
+                  {pkg.features.map((feat) => (
+                    <li key={feat} className="flex gap-2.5 items-start text-sm">
+                      <Check className="size-4 text-azure shrink-0 mt-0.5" />
+                      <span className="text-muted-foreground/90">{feat}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <Link
+                  to="/contact"
+                  search={{ course: pkg.title }}
+                  className={`w-full py-3.5 font-bold uppercase tracking-wider text-xs text-center rounded-lg transition-all duration-200 cursor-pointer block ${
+                    pkg.popular
+                      ? "bg-azure text-azure-foreground hover:bg-azure/90 hover:shadow-[0_4px_15px_rgba(59,130,246,0.3)]"
+                      : "border border-border hover:border-azure hover:text-azure"
+                  }`}
+                >
+                  Inquire & Enroll
+                </Link>
+              </div>
+            );
+          })}
         </div>
       </section>
 
@@ -332,9 +368,67 @@ function FeesPage() {
                   Total Course Fee: <strong>{selectedPlan.fees}</strong> (over {selectedPlan.duration})
                 </div>
 
-                <div className="border-t border-border/60 my-6" />
+                {isMounted ? (
+                  <>
+                    <div className="h-44 w-full mt-6 flex items-center justify-center">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={[
+                              { name: "Private Mentorship", value: 50, color: "var(--azure)" },
+                              { name: "Practice Access", value: 20, color: "#10b981" },
+                              { name: "Recitals & Stage", value: 15, color: "#f59e0b" },
+                              { name: "Exams & Materials", value: 15, color: "#a855f7" },
+                            ]}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={45}
+                            outerRadius={65}
+                            paddingAngle={3}
+                            dataKey="value"
+                          >
+                            {[
+                              { name: "Private Mentorship", value: 50, color: "var(--azure)" },
+                              { name: "Practice Access", value: 20, color: "#10b981" },
+                              { name: "Recitals & Stage", value: 15, color: "#f59e0b" },
+                              { name: "Exams & Materials", value: 15, color: "#a855f7" },
+                            ].map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip
+                            contentStyle={{
+                              background: "oklch(var(--card))",
+                              borderColor: "var(--color-border)",
+                              borderRadius: "8px",
+                              fontSize: "11px",
+                            }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    {/* Legend */}
+                    <div className="grid grid-cols-2 gap-2 mt-2 text-[10px] font-mono border-b border-border/60 pb-6">
+                      {[
+                        { name: "Private Mentorship", value: 50, color: "var(--azure)" },
+                        { name: "Practice Access", value: 20, color: "#10b981" },
+                        { name: "Recitals & Stage", value: 15, color: "#f59e0b" },
+                        { name: "Exams & Materials", value: 15, color: "#a855f7" },
+                      ].map((d) => (
+                        <div key={d.name} className="flex items-center gap-1.5 text-muted-foreground">
+                          <span className="size-2 rounded-full shrink-0" style={{ backgroundColor: d.color }} />
+                          <span className="truncate">{d.name} ({d.value}%)</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="h-44 w-full mt-6 border-b border-border/60 pb-6 flex items-center justify-center text-xs text-muted-foreground">
+                    Loading breakdown...
+                  </div>
+                )}
 
-                <div className="space-y-4">
+                <div className="space-y-4 mt-6">
                   <div className="flex gap-3 text-xs">
                     <BookOpen className="size-4 text-azure shrink-0" />
                     <div>
@@ -370,6 +464,7 @@ function FeesPage() {
                   Book Free Trial class <ArrowRight className="size-4" />
                 </Link>
               </div>
+
             </div>
           </div>
         </div>

@@ -23,6 +23,7 @@ export type Database = {
           slug: string;
           summary: string | null;
           tagline: string | null;
+          video_url: string | null;
         };
         Insert: {
           certification?: string | null;
@@ -38,6 +39,7 @@ export type Database = {
           slug: string;
           summary?: string | null;
           tagline?: string | null;
+          video_url?: string | null;
         };
         Update: {
           certification?: string | null;
@@ -53,6 +55,7 @@ export type Database = {
           slug?: string;
           summary?: string | null;
           tagline?: string | null;
+          video_url?: string | null;
         };
         Relationships: [];
       };

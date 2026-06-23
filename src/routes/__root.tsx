@@ -7,8 +7,9 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Toaster } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 import appCss from "../styles.css?url";
 import { Header } from "@/components/site/header";
@@ -141,14 +142,62 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const router = useRouter();
+  const pathname = router.state.location.pathname;
+  const isPending = router.state.status === "pending";
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        const { data } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", session.user.id)
+          .maybeSingle();
+        setIsAdmin(data?.role === "admin");
+      } else {
+        setIsAdmin(false);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        const { data } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", session.user.id)
+          .maybeSingle();
+        setIsAdmin(data?.role === "admin");
+      } else {
+        setIsAdmin(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const isDashboardRoute = pathname.startsWith("/dashboard");
+  const hideLayout = isDashboardRoute && isAdmin;
+
   return (
     <QueryClientProvider client={queryClient}>
-      <Header />
-      <main id="main">
+      {/* Route-switching loader indicator */}
+      {isPending && (
+        <div className="fixed top-0 left-0 right-0 z-[100] h-1 bg-azure/20 overflow-hidden">
+          <div className="h-full bg-azure animate-[pulse_1s_infinite] w-2/3" />
+        </div>
+      )}
+      {!hideLayout && <Header />}
+      <main id="main" key={pathname} className="animate-page-transition">
         <Outlet />
       </main>
-      <Footer />
-      <WhatsAppFab />
+      {!hideLayout && <Footer />}
+      {!hideLayout && <WhatsAppFab />}
       <Toaster position="top-right" />
     </QueryClientProvider>
   );

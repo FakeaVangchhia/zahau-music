@@ -3,7 +3,16 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getCourses } from "@/lib/site.functions";
 import { useState } from "react";
-import { Search } from "lucide-react";
+import { Search, Music, Guitar, Drum, Mic, BookOpen } from "lucide-react";
+
+function getCourseIcon(slug: string) {
+  const s = slug.toLowerCase();
+  if (s.includes("guitar") || s.includes("bass")) return <Guitar className="size-5 text-azure" />;
+  if (s.includes("drum")) return <Drum className="size-5 text-azure" />;
+  if (s.includes("voice") || s.includes("sing")) return <Mic className="size-5 text-azure" />;
+  if (s.includes("theory") || s.includes("composition")) return <BookOpen className="size-5 text-azure" />;
+  return <Music className="size-5 text-azure" />;
+}
 
 export const Route = createFileRoute("/courses/")({
   head: () => ({
@@ -33,12 +42,18 @@ function CoursesIndex() {
     queryFn: () => fetchCourses(),
   });
   const [q, setQ] = useState("");
-  const courses = (data ?? []).filter(
-    (c) =>
+  const [selectedLevel, setSelectedLevel] = useState("All");
+
+  const courses = (data ?? []).filter((c) => {
+    const matchesQ =
       !q ||
       c.name.toLowerCase().includes(q.toLowerCase()) ||
-      c.tagline?.toLowerCase().includes(q.toLowerCase()),
-  );
+      c.tagline?.toLowerCase().includes(q.toLowerCase());
+    const matchesLvl =
+      selectedLevel === "All" ||
+      (c.levels ?? []).some((l: string) => l.toLowerCase() === selectedLevel.toLowerCase());
+    return matchesQ && matchesLvl;
+  });
 
   return (
     <>
@@ -58,8 +73,8 @@ function CoursesIndex() {
         </div>
       </section>
 
-      <section className="py-12 px-6 max-w-7xl mx-auto">
-        <div className="flex items-center gap-3 border border-border bg-card px-4 py-3 max-w-md">
+      <section className="py-8 px-6 max-w-7xl mx-auto flex flex-col md:flex-row md:items-center gap-6 justify-between">
+        <div className="flex items-center gap-3 border border-border bg-card px-4 py-3 max-w-md w-full">
           <Search className="size-4 text-muted-foreground" />
           <input
             value={q}
@@ -69,23 +84,44 @@ function CoursesIndex() {
             className="flex-1 bg-transparent outline-none text-sm"
           />
         </div>
+
+        <div className="flex flex-wrap gap-2">
+          {["All", "Beginner", "Intermediate", "Advanced", "Performance"].map((lvl) => (
+            <button
+              key={lvl}
+              onClick={() => setSelectedLevel(lvl)}
+              className={`px-4 py-2.5 font-mono text-[10px] uppercase tracking-widest border transition-all duration-200 cursor-pointer ${
+                selectedLevel === lvl
+                  ? "bg-azure text-azure-foreground border-azure"
+                  : "border-border hover:border-azure/50 text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {lvl}
+            </button>
+          ))}
+        </div>
       </section>
 
       <section className="px-6 max-w-7xl mx-auto pb-24">
         {isLoading && <p className="text-muted-foreground">Loading courses…</p>}
+        {courses.length === 0 && !isLoading && (
+          <p className="text-muted-foreground py-8">No courses found matching criteria.</p>
+        )}
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-px bg-border border border-border">
           {courses.map((c, i) => (
             <Link
               key={c.id}
               to="/courses/$slug"
               params={{ slug: c.slug }}
-              className="group bg-background p-8 hover:bg-navy hover:text-navy-foreground transition-colors min-h-[260px] flex flex-col"
+              className="group bg-background p-8 hover:bg-navy hover:text-navy-foreground transition-all duration-300 min-h-[260px] flex flex-col hover:scale-[1.01] hover:shadow-xl"
             >
-              <div className="flex justify-between">
+              <div className="flex justify-between items-start">
                 <span className="font-mono text-xs text-muted-foreground group-hover:text-white/40">
                   {String(i + 1).padStart(2, "0")}
                 </span>
-                <div className="w-8 h-px bg-border group-hover:bg-azure mt-2" />
+                <div className="p-2.5 rounded-lg bg-azure/10 group-hover:bg-azure/20 group-hover:text-azure transition-colors">
+                  {getCourseIcon(c.slug)}
+                </div>
               </div>
               <h3 className="mt-10 font-display text-3xl uppercase">{c.name}</h3>
               <p className="mt-3 text-sm opacity-70 flex-1">{c.tagline}</p>

@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Menu, X, Sun, Moon } from "lucide-react";
 import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const NAV = [
   { to: "/courses", label: "Curriculum" },
@@ -15,6 +16,40 @@ const NAV = [
 export function Header() {
   const [open, setOpen] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const [session, setSession] = useState<boolean>(false);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      setSession(!!session);
+      if (session?.user) {
+        const { data } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", session.user.id)
+          .maybeSingle();
+        setIsAdmin(data?.role === "admin");
+      } else {
+        setIsAdmin(false);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      setSession(!!session);
+      if (session?.user) {
+        const { data } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", session.user.id)
+          .maybeSingle();
+        setIsAdmin(data?.role === "admin");
+      } else {
+        setIsAdmin(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     let localTheme = null;
@@ -77,10 +112,14 @@ export function Header() {
             )}
           </button>
           <Link
-            to="/contact"
-            className="hidden sm:inline-flex bg-navy text-navy-foreground px-5 py-2.5 text-[11px] font-bold uppercase tracking-widest hover:bg-azure hover:text-azure-foreground transition-colors"
+            to={session ? "/dashboard" : "/auth"}
+            className={`hidden sm:inline-flex px-5 py-2.5 text-[11px] font-bold uppercase tracking-widest transition-all duration-200 ${
+              session && isAdmin
+                ? "bg-azure text-azure-foreground hover:bg-azure/85 shadow-md shadow-azure/20"
+                : "bg-navy text-navy-foreground hover:bg-azure hover:text-azure-foreground"
+            }`}
           >
-            Apply Now
+            {session ? (isAdmin ? "Admin Console" : "Dashboard") : "Login"}
           </Link>
           <button
             className="md:hidden size-10 grid place-items-center rounded hover:bg-muted"
@@ -105,11 +144,11 @@ export function Header() {
               </Link>
             ))}
             <Link
-              to="/auth"
+              to={session ? "/dashboard" : "/auth"}
               onClick={() => setOpen(false)}
-              className="py-3 text-sm font-bold uppercase tracking-widest text-foreground/80"
+              className="py-3 text-sm font-bold uppercase tracking-widest text-foreground/80 hover:text-azure"
             >
-              Sign in
+              {session ? (isAdmin ? "Admin Console" : "Dashboard") : "Login"}
             </Link>
           </nav>
         </div>

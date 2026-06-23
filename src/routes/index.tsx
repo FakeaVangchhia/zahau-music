@@ -3,8 +3,45 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getCourses } from "@/lib/site.functions";
 import heroPiano from "@/assets/hero-piano.jpg";
-import { ArrowRight, Star } from "lucide-react";
+import { ArrowRight, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import { LeadForm } from "@/components/site/lead-form";
+import { useEffect, useState, useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import useEmblaCarousel from "embla-carousel-react";
+
+function ScrollReveal({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          observer.unobserve(entry.target);
+        }
+      },
+      { threshold: 0.05 }
+    );
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      className={`${className} transition-all duration-700 ease-out ${
+        visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+      }`}
+    >
+      {children}
+    </div>
+  );
+}
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -134,6 +171,41 @@ function Home() {
   const fetchCourses = useServerFn(getCourses);
   const { data: courses } = useQuery({ queryKey: ["courses-home"], queryFn: () => fetchCourses() });
   const featured = (courses ?? []).slice(0, 6);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, align: "start" });
+  const scrollPrev = () => emblaApi && emblaApi.scrollPrev();
+  const scrollNext = () => emblaApi && emblaApi.scrollNext();
+
+  useEffect(() => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        const { data } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", session.user.id)
+          .maybeSingle();
+        setIsAdmin(data?.role === "admin");
+      } else {
+        setIsAdmin(false);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        const { data } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", session.user.id)
+          .maybeSingle();
+        setIsAdmin(data?.role === "admin");
+      } else {
+        setIsAdmin(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   return (
     <>
@@ -147,6 +219,8 @@ function Home() {
           className="absolute inset-0 size-full object-cover opacity-40 mix-blend-luminosity"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-navy via-navy/70 to-transparent" />
+        {/* Subtle grid line backdrop */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:4rem_4rem] pointer-events-none" />
         <div className="relative z-10 px-6 md:px-12 max-w-7xl mx-auto w-full">
           <span className="font-mono text-azure text-xs uppercase tracking-[0.3em] animate-reveal block">
             Delhi · Online · Global
@@ -161,28 +235,39 @@ function Home() {
             of world-class musicians.
           </p>
           <div className="mt-10 flex flex-wrap gap-3 animate-reveal">
-            <Link
-              to="/contact"
-              className="bg-azure text-azure-foreground px-7 py-4 font-bold uppercase tracking-wider text-sm hover:invert transition-all min-h-11"
-            >
-              Book Free Consultation
-            </Link>
-            <Link
-              to="/auth"
-              className="border border-white/30 text-white px-7 py-4 font-bold uppercase tracking-wider text-sm hover:bg-white hover:text-navy transition-all min-h-11"
-            >
-              Enroll Now
-            </Link>
-            <Link
-              to="/courses"
-              className="text-white/70 px-7 py-4 font-bold uppercase tracking-wider text-sm hover:text-white underline underline-offset-8 min-h-11"
-            >
-              Explore Courses
-            </Link>
+            {isAdmin ? (
+              <Link
+                to="/dashboard"
+                className="bg-azure text-azure-foreground px-7 py-4 font-bold uppercase tracking-wider text-sm hover:invert transition-all min-h-11 shadow-lg shadow-azure/20"
+              >
+                Go to Admin Console
+              </Link>
+            ) : (
+              <>
+                <Link
+                  to="/contact"
+                  className="bg-azure text-azure-foreground px-7 py-4 font-bold uppercase tracking-wider text-sm hover:invert transition-all min-h-11"
+                >
+                  Book Free Consultation
+                </Link>
+                <Link
+                  to="/auth"
+                  className="border border-white/30 text-white px-7 py-4 font-bold uppercase tracking-wider text-sm hover:bg-white hover:text-navy transition-all min-h-11"
+                >
+                  Enroll Now
+                </Link>
+                <Link
+                  to="/courses"
+                  className="text-white/70 px-7 py-4 font-bold uppercase tracking-wider text-sm hover:text-white underline underline-offset-8 min-h-11"
+                >
+                  Explore Courses
+                </Link>
+              </>
+            )}
           </div>
         </div>
-        {/* Marquee */}
-        <div className="absolute bottom-0 w-full border-t border-white/10 bg-navy/80 py-4 overflow-hidden">
+        {/* Marquee with fading edge mask */}
+        <div className="absolute bottom-0 w-full border-t border-white/10 bg-navy/80 py-4 overflow-hidden marquee-mask">
           <div className="animate-marquee whitespace-nowrap gap-16">
             {[
               "Piano",
@@ -218,7 +303,7 @@ function Home() {
       <section className="bg-azure text-azure-foreground py-12 px-6">
         <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
           {STATS.map((s) => (
-            <div key={s.l}>
+            <div key={s.l} className="animate-fade-in">
               <div className="font-display text-5xl">{s.k}</div>
               <div className="font-mono opacity-80 text-[10px] uppercase tracking-tighter mt-1">
                 {s.l}
@@ -229,7 +314,7 @@ function Home() {
       </section>
 
       {/* Why */}
-      <section className="py-24 px-6 max-w-7xl mx-auto">
+      <ScrollReveal className="py-24 px-6 max-w-7xl mx-auto">
         <div className="grid md:grid-cols-[1fr_2fr] gap-12 mb-16">
           <h2 className="font-display text-5xl md:text-6xl uppercase leading-none">
             Why
@@ -244,17 +329,17 @@ function Home() {
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border">
           {WHY.map((w, i) => (
-            <div key={w.t} className="bg-background p-8">
+            <div key={w.t} className="bg-background p-8 hover:shadow-[0_10px_30px_rgba(0,0,0,0.03)] dark:hover:shadow-[0_10px_30px_rgba(0,0,0,0.2)] transition-all duration-300">
               <div className="font-mono text-xs text-muted-foreground">0{i + 1}</div>
               <h3 className="mt-8 font-display text-2xl uppercase">{w.t}</h3>
               <p className="mt-3 text-sm text-muted-foreground leading-relaxed">{w.d}</p>
             </div>
           ))}
         </div>
-      </section>
+      </ScrollReveal>
 
       {/* Featured courses */}
-      <section className="py-24 px-6 bg-secondary">
+      <ScrollReveal className="py-24 px-6 bg-secondary">
         <div className="max-w-7xl mx-auto">
           <div className="flex justify-between items-end mb-12 flex-wrap gap-4">
             <h2 className="font-display text-5xl md:text-6xl uppercase leading-none">
@@ -275,7 +360,7 @@ function Home() {
                 key={c.id}
                 to="/courses/$slug"
                 params={{ slug: c.slug }}
-                className="group bg-background p-8 hover:bg-navy hover:text-navy-foreground transition-colors min-h-[220px] flex flex-col"
+                className="group bg-background p-8 hover:bg-navy hover:text-navy-foreground transition-colors min-h-[220px] flex flex-col hover:scale-[1.01] hover:shadow-xl transition-all duration-300"
               >
                 <div className="flex justify-between">
                   <span className="font-mono text-xs text-muted-foreground group-hover:text-white/40">
@@ -289,10 +374,10 @@ function Home() {
             ))}
           </div>
         </div>
-      </section>
+      </ScrollReveal>
 
       {/* Journey */}
-      <section className="bg-navy text-navy-foreground py-24 px-6">
+      <ScrollReveal className="bg-navy text-navy-foreground py-24 px-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-16">
           <div className="md:w-1/3">
             <h2 className="font-display text-5xl md:text-6xl uppercase leading-none text-azure">
@@ -307,7 +392,7 @@ function Home() {
           </div>
           <div className="md:w-2/3 grid sm:grid-cols-2 gap-10">
             {JOURNEY.map(([title, desc], i) => (
-              <div key={title} className="border-l border-white/20 pl-6">
+              <div key={title} className="border-l border-white/20 pl-6 hover:border-azure transition-all duration-300">
                 <span className="font-mono text-azure">{String(i + 1).padStart(2, "0")}</span>
                 <h4 className="font-bold mt-2 uppercase">{title}</h4>
                 <p className="text-sm text-white/50 mt-2 leading-relaxed">{desc}</p>
@@ -315,33 +400,61 @@ function Home() {
             ))}
           </div>
         </div>
-      </section>
+      </ScrollReveal>
 
       {/* Testimonials */}
-      <section className="py-24 px-6 max-w-7xl mx-auto">
-        <h2 className="font-display text-5xl md:text-6xl uppercase leading-none mb-16">
-          Student Voices
-        </h2>
-        <div className="grid md:grid-cols-3 gap-px bg-border border border-border">
-          {TESTIMONIALS.map((t) => (
-            <figure key={t.who} className="bg-background p-8">
-              <div className="flex gap-1 text-azure">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} className="size-3.5 fill-current" />
-                ))}
-              </div>
-              <blockquote className="mt-6 text-lg leading-relaxed">"{t.quote}"</blockquote>
-              <figcaption className="mt-6 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-                <div className="text-foreground font-bold">{t.who}</div>
-                {t.role}
-              </figcaption>
-            </figure>
-          ))}
+      <ScrollReveal className="py-24 px-6 max-w-7xl mx-auto overflow-hidden">
+        <div className="flex justify-between items-end mb-12 flex-wrap gap-4">
+          <h2 className="font-display text-5xl md:text-6xl uppercase leading-none">
+            Student Voices
+          </h2>
+          <div className="flex gap-2">
+            <button
+              onClick={scrollPrev}
+              className="size-11 border border-border flex items-center justify-center hover:bg-azure hover:text-azure-foreground transition-all duration-200 cursor-pointer"
+              aria-label="Previous testimonial"
+            >
+              <ChevronLeft className="size-5" />
+            </button>
+            <button
+              onClick={scrollNext}
+              className="size-11 border border-border flex items-center justify-center hover:bg-azure hover:text-azure-foreground transition-all duration-200 cursor-pointer"
+              aria-label="Next testimonial"
+            >
+              <ChevronRight className="size-5" />
+            </button>
+          </div>
         </div>
-      </section>
+        
+        <div className="overflow-hidden" ref={emblaRef}>
+          <div className="flex gap-6">
+            {TESTIMONIALS.map((t) => (
+              <figure
+                key={t.who}
+                className="flex-[0_0_100%] sm:flex-[0_0_50%] lg:flex-[0_0_33.333%] min-w-0 bg-card border border-border p-8 rounded-xl flex flex-col justify-between shadow-[0_4px_20px_rgba(0,0,0,0.01)]"
+              >
+                <div>
+                  <div className="flex gap-1 text-azure mb-6">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star key={i} className="size-3.5 fill-current" />
+                    ))}
+                  </div>
+                  <blockquote className="text-base sm:text-lg leading-relaxed italic text-foreground/90">
+                    "{t.quote}"
+                  </blockquote>
+                </div>
+                <figcaption className="mt-8 font-mono text-[11px] uppercase tracking-widest text-muted-foreground border-t border-border/40 pt-4">
+                  <div className="text-foreground font-bold">{t.who}</div>
+                  {t.role}
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </div>
+      </ScrollReveal>
 
       {/* Branches */}
-      <section className="border-y border-border grid md:grid-cols-3">
+      <ScrollReveal className="border-y border-border grid md:grid-cols-3">
         {[
           { c: "South Extension II", a: "Main Campus · Concert Hall", p: "+91 11 4050 6070" },
           { c: "Hauz Khas", a: "Production Studios", p: "+91 11 4050 6071" },
@@ -349,7 +462,7 @@ function Home() {
         ].map((b, i) => (
           <div
             key={b.c}
-            className={`p-12 ${i < 2 ? "md:border-r border-border" : ""} ${i < 2 ? "border-b md:border-b-0 border-border" : ""}`}
+            className={`p-12 ${i < 2 ? "md:border-r border-border" : ""} ${i < 2 ? "border-b md:border-b-0 border-border" : ""} hover:bg-muted/30 transition-all duration-300`}
           >
             <p className="font-mono text-[10px] uppercase tracking-widest text-azure">
               Branch {String(i + 1).padStart(2, "0")}
@@ -359,10 +472,10 @@ function Home() {
             <p className="mt-1 text-sm text-muted-foreground font-mono">{b.p}</p>
           </div>
         ))}
-      </section>
+      </ScrollReveal>
 
       {/* FAQ */}
-      <section className="py-24 px-6 max-w-4xl mx-auto">
+      <ScrollReveal className="py-24 px-6 max-w-4xl mx-auto">
         <h2 className="font-display text-5xl md:text-6xl uppercase leading-none mb-12">
           Common Questions
         </h2>
@@ -379,26 +492,28 @@ function Home() {
             </details>
           ))}
         </div>
-      </section>
+      </ScrollReveal>
 
       {/* Contact CTA */}
-      <section className="bg-navy text-navy-foreground py-24 px-6">
-        <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-12 items-start">
-          <div>
-            <p className="font-mono text-[10px] uppercase tracking-widest text-azure">Begin</p>
-            <h2 className="mt-4 font-display text-5xl md:text-6xl uppercase leading-none">
-              Ready to play?
-            </h2>
-            <p className="mt-6 text-white/70 leading-relaxed">
-              Tell us what you'd like to learn. We'll match you with a faculty mentor and design a
-              trial class around your goals — free of charge.
-            </p>
+      {!isAdmin && (
+        <ScrollReveal className="bg-navy text-navy-foreground py-24 px-6">
+          <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-12 items-start">
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-widest text-azure">Begin</p>
+              <h2 className="mt-4 font-display text-5xl md:text-6xl uppercase leading-none">
+                Ready to play?
+              </h2>
+              <p className="mt-6 text-white/70 leading-relaxed">
+                Tell us what you'd like to learn. We'll match you with a faculty mentor and design a
+                trial class around your goals — free of charge.
+              </p>
+            </div>
+            <div className="bg-background text-foreground p-8 rounded-2xl border border-border/40 shadow-[0_20px_50px_rgba(0,0,0,0.04)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.25)] -mx-6 md:mx-0">
+              <LeadForm source="home-cta" />
+            </div>
           </div>
-          <div className="bg-background text-foreground p-8 rounded-2xl border border-border/40 shadow-[0_20px_50px_rgba(0,0,0,0.04)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.25)] -mx-6 md:mx-0">
-            <LeadForm source="home-cta" />
-          </div>
-        </div>
-      </section>
+        </ScrollReveal>
+      )}
     </>
   );
 }
