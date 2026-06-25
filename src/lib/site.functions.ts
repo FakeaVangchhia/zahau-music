@@ -62,12 +62,45 @@ export const getCourse = createServerFn({ method: "GET" })
     return row;
   });
 
-export const getEvents = createServerFn({ method: "GET" }).handler(async () => {
+export const getFees = createServerFn({ method: "GET" }).handler(async () => {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data, error } = await supabaseAdmin
-    .from("events")
+    .from("fees")
     .select("*")
-    .order("starts_at", { ascending: true });
+    .order("display_order", { ascending: true });
   if (error) throw new Error(error.message);
   return data ?? [];
 });
+
+export const getLessons = createServerFn({ method: "GET" }).handler(async () => {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin
+    .from("lessons")
+    .select("*")
+    .order("display_order", { ascending: true });
+  if (error) throw new Error(error.message);
+  return data ?? [];
+});
+
+export const getPosts = createServerFn({ method: "GET" }).handler(async () => {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin
+    .from("posts")
+    .select("id, slug, title, excerpt, author, date, created_at")
+    .order("date", { ascending: false });
+  if (error) throw new Error(error.message);
+  return data ?? [];
+});
+
+export const getPost = createServerFn({ method: "GET" })
+  .validator((d: { slug: string }) => ({ slug: z.string().min(1).max(80).parse(d.slug) }))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row, error } = await supabaseAdmin
+      .from("posts")
+      .select("*")
+      .eq("slug", data.slug)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return row;
+  });

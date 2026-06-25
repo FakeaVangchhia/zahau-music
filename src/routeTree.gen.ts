@@ -10,25 +10,29 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TestimonialsRouteImport } from './routes/testimonials'
+import { Route as ScheduleRouteImport } from './routes/schedule'
 import { Route as OnlineRouteImport } from './routes/online'
 import { Route as LearningLevelsRouteImport } from './routes/learning-levels'
 import { Route as GalleryRouteImport } from './routes/gallery'
 import { Route as FeesRouteImport } from './routes/fees'
-import { Route as EventsRouteImport } from './routes/events'
+import { Route as CoursesRouteImport } from './routes/courses'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as CoursesIndexRouteImport } from './routes/courses.index'
-import { Route as BlogIndexRouteImport } from './routes/blog.index'
-import { Route as CoursesSlugRouteImport } from './routes/courses.$slug'
-import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
+import { Route as CurriculumIndexRouteImport } from './routes/curriculum.index'
+import { Route as CurriculumSlugRouteImport } from './routes/curriculum.$slug'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 
 const TestimonialsRoute = TestimonialsRouteImport.update({
   id: '/testimonials',
   path: '/testimonials',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ScheduleRoute = ScheduleRouteImport.update({
+  id: '/schedule',
+  path: '/schedule',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OnlineRoute = OnlineRouteImport.update({
@@ -51,9 +55,9 @@ const FeesRoute = FeesRouteImport.update({
   path: '/fees',
   getParentRoute: () => rootRouteImport,
 } as any)
-const EventsRoute = EventsRouteImport.update({
-  id: '/events',
-  path: '/events',
+const CoursesRoute = CoursesRouteImport.update({
+  id: '/courses',
+  path: '/courses',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactRoute = ContactRouteImport.update({
@@ -80,24 +84,14 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CoursesIndexRoute = CoursesIndexRouteImport.update({
-  id: '/courses/',
-  path: '/courses/',
+const CurriculumIndexRoute = CurriculumIndexRouteImport.update({
+  id: '/curriculum/',
+  path: '/curriculum/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BlogIndexRoute = BlogIndexRouteImport.update({
-  id: '/blog/',
-  path: '/blog/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CoursesSlugRoute = CoursesSlugRouteImport.update({
-  id: '/courses/$slug',
-  path: '/courses/$slug',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BlogSlugRoute = BlogSlugRouteImport.update({
-  id: '/blog/$slug',
-  path: '/blog/$slug',
+const CurriculumSlugRoute = CurriculumSlugRouteImport.update({
+  id: '/curriculum/$slug',
+  path: '/curriculum/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
@@ -111,34 +105,32 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
   '/contact': typeof ContactRoute
-  '/events': typeof EventsRoute
+  '/courses': typeof CoursesRoute
   '/fees': typeof FeesRoute
   '/gallery': typeof GalleryRoute
   '/learning-levels': typeof LearningLevelsRoute
   '/online': typeof OnlineRoute
+  '/schedule': typeof ScheduleRoute
   '/testimonials': typeof TestimonialsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
-  '/blog/$slug': typeof BlogSlugRoute
-  '/courses/$slug': typeof CoursesSlugRoute
-  '/blog/': typeof BlogIndexRoute
-  '/courses/': typeof CoursesIndexRoute
+  '/curriculum/$slug': typeof CurriculumSlugRoute
+  '/curriculum/': typeof CurriculumIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
   '/contact': typeof ContactRoute
-  '/events': typeof EventsRoute
+  '/courses': typeof CoursesRoute
   '/fees': typeof FeesRoute
   '/gallery': typeof GalleryRoute
   '/learning-levels': typeof LearningLevelsRoute
   '/online': typeof OnlineRoute
+  '/schedule': typeof ScheduleRoute
   '/testimonials': typeof TestimonialsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
-  '/blog/$slug': typeof BlogSlugRoute
-  '/courses/$slug': typeof CoursesSlugRoute
-  '/blog': typeof BlogIndexRoute
-  '/courses': typeof CoursesIndexRoute
+  '/curriculum/$slug': typeof CurriculumSlugRoute
+  '/curriculum': typeof CurriculumIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -147,17 +139,16 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
   '/contact': typeof ContactRoute
-  '/events': typeof EventsRoute
+  '/courses': typeof CoursesRoute
   '/fees': typeof FeesRoute
   '/gallery': typeof GalleryRoute
   '/learning-levels': typeof LearningLevelsRoute
   '/online': typeof OnlineRoute
+  '/schedule': typeof ScheduleRoute
   '/testimonials': typeof TestimonialsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
-  '/blog/$slug': typeof BlogSlugRoute
-  '/courses/$slug': typeof CoursesSlugRoute
-  '/blog/': typeof BlogIndexRoute
-  '/courses/': typeof CoursesIndexRoute
+  '/curriculum/$slug': typeof CurriculumSlugRoute
+  '/curriculum/': typeof CurriculumIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -166,34 +157,32 @@ export interface FileRouteTypes {
     | '/about'
     | '/auth'
     | '/contact'
-    | '/events'
+    | '/courses'
     | '/fees'
     | '/gallery'
     | '/learning-levels'
     | '/online'
+    | '/schedule'
     | '/testimonials'
     | '/dashboard'
-    | '/blog/$slug'
-    | '/courses/$slug'
-    | '/blog/'
-    | '/courses/'
+    | '/curriculum/$slug'
+    | '/curriculum/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/about'
     | '/auth'
     | '/contact'
-    | '/events'
+    | '/courses'
     | '/fees'
     | '/gallery'
     | '/learning-levels'
     | '/online'
+    | '/schedule'
     | '/testimonials'
     | '/dashboard'
-    | '/blog/$slug'
-    | '/courses/$slug'
-    | '/blog'
-    | '/courses'
+    | '/curriculum/$slug'
+    | '/curriculum'
   id:
     | '__root__'
     | '/'
@@ -201,17 +190,16 @@ export interface FileRouteTypes {
     | '/about'
     | '/auth'
     | '/contact'
-    | '/events'
+    | '/courses'
     | '/fees'
     | '/gallery'
     | '/learning-levels'
     | '/online'
+    | '/schedule'
     | '/testimonials'
     | '/_authenticated/dashboard'
-    | '/blog/$slug'
-    | '/courses/$slug'
-    | '/blog/'
-    | '/courses/'
+    | '/curriculum/$slug'
+    | '/curriculum/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -220,16 +208,15 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   AuthRoute: typeof AuthRoute
   ContactRoute: typeof ContactRoute
-  EventsRoute: typeof EventsRoute
+  CoursesRoute: typeof CoursesRoute
   FeesRoute: typeof FeesRoute
   GalleryRoute: typeof GalleryRoute
   LearningLevelsRoute: typeof LearningLevelsRoute
   OnlineRoute: typeof OnlineRoute
+  ScheduleRoute: typeof ScheduleRoute
   TestimonialsRoute: typeof TestimonialsRoute
-  BlogSlugRoute: typeof BlogSlugRoute
-  CoursesSlugRoute: typeof CoursesSlugRoute
-  BlogIndexRoute: typeof BlogIndexRoute
-  CoursesIndexRoute: typeof CoursesIndexRoute
+  CurriculumSlugRoute: typeof CurriculumSlugRoute
+  CurriculumIndexRoute: typeof CurriculumIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -239,6 +226,13 @@ declare module '@tanstack/react-router' {
       path: '/testimonials'
       fullPath: '/testimonials'
       preLoaderRoute: typeof TestimonialsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/schedule': {
+      id: '/schedule'
+      path: '/schedule'
+      fullPath: '/schedule'
+      preLoaderRoute: typeof ScheduleRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/online': {
@@ -269,11 +263,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FeesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/events': {
-      id: '/events'
-      path: '/events'
-      fullPath: '/events'
-      preLoaderRoute: typeof EventsRouteImport
+    '/courses': {
+      id: '/courses'
+      path: '/courses'
+      fullPath: '/courses'
+      preLoaderRoute: typeof CoursesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contact': {
@@ -311,32 +305,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/courses/': {
-      id: '/courses/'
-      path: '/courses'
-      fullPath: '/courses/'
-      preLoaderRoute: typeof CoursesIndexRouteImport
+    '/curriculum/': {
+      id: '/curriculum/'
+      path: '/curriculum'
+      fullPath: '/curriculum/'
+      preLoaderRoute: typeof CurriculumIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/blog/': {
-      id: '/blog/'
-      path: '/blog'
-      fullPath: '/blog/'
-      preLoaderRoute: typeof BlogIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/courses/$slug': {
-      id: '/courses/$slug'
-      path: '/courses/$slug'
-      fullPath: '/courses/$slug'
-      preLoaderRoute: typeof CoursesSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/blog/$slug': {
-      id: '/blog/$slug'
-      path: '/blog/$slug'
-      fullPath: '/blog/$slug'
-      preLoaderRoute: typeof BlogSlugRouteImport
+    '/curriculum/$slug': {
+      id: '/curriculum/$slug'
+      path: '/curriculum/$slug'
+      fullPath: '/curriculum/$slug'
+      preLoaderRoute: typeof CurriculumSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/dashboard': {
@@ -366,16 +346,15 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   AuthRoute: AuthRoute,
   ContactRoute: ContactRoute,
-  EventsRoute: EventsRoute,
+  CoursesRoute: CoursesRoute,
   FeesRoute: FeesRoute,
   GalleryRoute: GalleryRoute,
   LearningLevelsRoute: LearningLevelsRoute,
   OnlineRoute: OnlineRoute,
+  ScheduleRoute: ScheduleRoute,
   TestimonialsRoute: TestimonialsRoute,
-  BlogSlugRoute: BlogSlugRoute,
-  CoursesSlugRoute: CoursesSlugRoute,
-  BlogIndexRoute: BlogIndexRoute,
-  CoursesIndexRoute: CoursesIndexRoute,
+  CurriculumSlugRoute: CurriculumSlugRoute,
+  CurriculumIndexRoute: CurriculumIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
