@@ -1,6 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import campusImg from "@/assets/about-campus.jpg";
-import heroPiano from "@/assets/hero-piano.jpg";
+import acousticConcert from "@/assets/gallery/acoustic-concert.jpg";
+import guitarShowcase from "@/assets/gallery/guitar-showcase.jpg";
+import pianoRecital from "@/assets/gallery/piano-recital.jpg";
+import studioSession from "@/assets/gallery/studio-session.jpg";
+import electricGuitars from "@/assets/gallery/electric-guitars.png";
+import guitarPractice from "@/assets/gallery/guitar-practice.jpg";
+import pianoDuet from "@/assets/gallery/piano-duet.jpg";
+import onlineClass from "@/assets/gallery/online-class.png";
+import republicDayPoster from "@/assets/gallery/republic-day-poster.jpg";
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -21,12 +28,15 @@ export const Route = createFileRoute("/gallery")({
 });
 
 const ITEMS = [
-  { src: heroPiano, label: "Spring Concert, Kamani Auditorium", cat: "Concert" },
-  { src: campusImg, label: "Junior ensemble · Studio A", cat: "Class" },
-  { src: heroPiano, label: "Piano recital · Term 4", cat: "Recital" },
-  { src: campusImg, label: "Production weekend", cat: "Studio" },
-  { src: heroPiano, label: "Faculty showcase", cat: "Concert" },
-  { src: campusImg, label: "Open mic night", cat: "Performance" },
+  { src: acousticConcert, label: "Live Acoustic Concert", cat: "Concert" },
+  { src: guitarShowcase, label: "Guitar Workshop & Training", cat: "Class" },
+  { src: pianoRecital, label: "Classical Piano Recital", cat: "Recital" },
+  { src: studioSession, label: "Music Production & Drum Practice", cat: "Studio" },
+  { src: electricGuitars, label: "Faculty Guitar Showcase", cat: "Performance" },
+  { src: guitarPractice, label: "Classical Guitar Studio Practice", cat: "Studio" },
+  { src: pianoDuet, label: "One-on-One Piano Instruction", cat: "Class" },
+  { src: onlineClass, label: "Interactive Online Keyboard Class", cat: "Class" },
+  { src: republicDayPoster, label: "Republic Day Live Event", cat: "Concert" },
 ];
 
 function Gallery() {
@@ -64,7 +74,7 @@ function Gallery() {
                 : "border-border hover:border-azure/50 text-muted-foreground hover:text-foreground"
             }`}
           >
-            {cat}s
+            {cat === "All" ? "All" : cat === "Class" ? "Classes" : `${cat}s`}
           </button>
         ))}
       </section>

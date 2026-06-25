@@ -85,17 +85,16 @@ zahau-music/
         ├── __root.tsx                # App shell layout containing navigation and query context
         ├── index.tsx                 # Homepage
         ├── auth.tsx                  # Login and account registration page
-        ├── courses.index.tsx         # Curriculum catalog listing courses
-        ├── courses.$slug.tsx         # Course details page (includes intro video & curriculum breakdown)
+        ├── curriculum.index.tsx      # Curriculum catalog listing courses
+        ├── curriculum.$slug.tsx      # Course details page (includes intro video & curriculum breakdown)
         ├── online.tsx                # Online lessons info page
         ├── about.tsx                 # About us page
         ├── gallery.tsx               # Photo gallery page
-        ├── events.tsx                # Event listing page
+        ├── courses.tsx               # Lessons/videos listing page (replaces events.tsx)
         ├── testimonials.tsx          # Testimonials page
         ├── contact.tsx               # Contact page (Lead Form)
-        ├── fees.tsx                  # Fees structure page
-        ├── blog.index.tsx            # Blog index page
-        └── blog.$slug.tsx            # Blog post details page
+        ├── fees.tsx                  # Fees structure page (with dynamic admin management)
+        └── schedule.tsx              # Weekly Schedule page (replaces blog pages)
 ```
 
 ---
@@ -120,7 +119,7 @@ zahau-music/
 - [x] Seed initial 8 courses details into the database
 
 ### 🏁 Phase 3: Site Layout & Basic Routing
-- [x] Create site structure and core pages (Home, About, Curriculum, Gallery, Events, Blog, Contact, Fees)
+- [x] Create site structure and core pages (Home, About, Curriculum, Gallery, Courses, Weekly Schedule, Contact, Fees)
 - [x] Create layout shell (`__root.tsx`) with global Header, Footer, and WhatsApp FAB
 - [x] Build forms for user interaction:
   - `LeadForm` for consultation bookings (submits to `leads` table via Server Function)
@@ -142,16 +141,17 @@ zahau-music/
 - [x] Customize site navigation header to dynamically display "Dashboard" (for students), "Admin Console" (for admins), or "Login" (for visitors) depending on session status.
 
 ### 🏁 Phase 6: Admin Console Features (Management Portal)
-- [x] **Overview Tab**: Show metrics summarizing total courses, consultations/leads, newsletter subscribers, and upcoming events.
+- [x] **Overview Tab**: Show metrics summarizing total courses, consultations/leads, newsletter subscribers, lessons, and active fees.
 - [x] **Courses Management Tab**: Allow admins to view courses, update details (name, duration, tagline, summary, certification, display order), and add/modify YouTube introduction videos.
 - [x] **Leads Tab**: Display lead entries submitted through forms, showing contact info (name, phone, email, source), selected interest, and messages.
 - [x] **Subscribers Tab**: Display email subscriptions.
-- [x] **Events Tab**: Add, edit, and delete school events (concerts, recitals) directly from the console.
+- [x] **Lessons/Videos Tab**: Add, edit, and delete lesson videos and links directly from the console (replaces Events management).
+- [x] **Fees Management Tab**: Add, edit, and delete school tuition fee options directly from the console.
 
 ### 🏁 Phase 7: Video Support & Enhancements
 - [x] Create database migration `20260613194500_add_video_url_to_courses.sql` adding `video_url` column to courses
 - [x] Create YouTube URL parser utility to extract video IDs and generate secure embed URLs (`https://www.youtube.com/embed/...`)
-- [x] Update Course Details page (`/courses/$slug`) to dynamically display YouTube player if a `video_url` is configured for that course
+- [x] Update Course Details page (`/curriculum/$slug`) to dynamically display YouTube player if a `video_url` is configured for that course
 - [x] Hide consultation/enrollment CTA forms on the Course Details page and homepage when the user is logged in as an administrator
 - [x] Resolve theme toggler hydration reset and local storage issues
 - [x] Add CSRF security middleware to TanStack Start instance in `src/start.ts`

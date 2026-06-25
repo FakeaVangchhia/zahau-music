@@ -19,28 +19,35 @@ export const Route = createFileRoute("/online")({
 function Online() {
   return (
     <>
-      <section className="bg-navy text-navy-foreground py-24 px-6">
-        <div className="max-w-7xl mx-auto">
-          <p className="font-mono text-xs uppercase tracking-[0.3em] text-azure">Online</p>
-          <h1 className="mt-4 font-display text-6xl md:text-8xl uppercase leading-none">
+      <section className="bg-navy text-navy-foreground py-32 px-6 relative overflow-hidden">
+        {/* Glowing background blobs */}
+        <div className="glowing-blob top-1/4 left-1/4 w-[500px] h-[500px] -translate-x-1/2 -translate-y-1/2" />
+        <div className="glowing-blob-gold bottom-1/4 right-1/4 w-[400px] h-[400px]" />
+        
+        <div className="max-w-7xl mx-auto relative z-10">
+          <span className="font-mono text-xs uppercase tracking-[0.3em] text-azure font-bold block mb-4">Online Learning</span>
+          <h1 className="font-display text-6xl sm:text-7xl md:text-8xl lg:text-9xl uppercase leading-none font-extrabold tracking-tight">
             Learn from
             <br />
-            anywhere.
+            <span className="font-serif italic text-azure normal-case font-light lowercase">anywhere.</span>
           </h1>
-          <p className="mt-8 max-w-2xl text-white/70 text-lg">
+          <p className="mt-8 max-w-2xl text-white/70 text-lg font-light leading-relaxed">
             The same Zahau curriculum, delivered live one-on-one — with a student dashboard that
             keeps you on track.
           </p>
           <Link
             to="/auth"
-            className="mt-10 inline-block bg-azure text-azure-foreground px-7 py-4 font-bold uppercase tracking-wider text-sm"
+            className="mt-10 inline-block bg-azure text-azure-foreground px-8 py-4 font-mono font-bold uppercase tracking-wider text-xs rounded-xl shadow-lg shadow-azure/20 hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer"
           >
             Start free trial
           </Link>
         </div>
       </section>
-      <section className="py-20 px-6 max-w-7xl mx-auto">
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border">
+      
+      <section className="py-24 px-6 max-w-7xl mx-auto relative">
+        <div className="glowing-blob top-1/2 left-1/2 w-[350px] h-[350px] -translate-x-1/2" />
+        
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
           {[
             ["Live classes", "Real-time video with screen-share and split-camera."],
             ["1-on-1 mentorship", "A single faculty member stays with you across terms."],
@@ -51,10 +58,12 @@ function Online() {
             ["Global recitals", "Quarterly online recitals streamed to family and friends."],
             ["International certification", "Sit ABRSM and Trinity exams from your home city."],
           ].map(([t, d], i) => (
-            <div key={t} className="bg-background p-6">
-              <span className="font-mono text-xs text-azure">{String(i + 1).padStart(2, "0")}</span>
-              <h3 className="mt-6 font-display text-xl uppercase">{t}</h3>
-              <p className="mt-2 text-sm text-muted-foreground">{d}</p>
+            <div key={t} className="glass-panel border border-border/60 hover-glow p-8 rounded-2xl flex flex-col justify-between group">
+              <div>
+                <span className="font-mono text-xs text-azure font-bold">0{i + 1}</span>
+                <h3 className="mt-6 font-display text-xl font-bold uppercase tracking-tight group-hover:text-azure transition-colors">{t}</h3>
+              </div>
+              <p className="mt-3 text-sm text-muted-foreground leading-relaxed font-light">{d}</p>
             </div>
           ))}
         </div>

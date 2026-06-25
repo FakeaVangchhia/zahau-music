@@ -59,6 +59,39 @@ export type Database = {
         };
         Relationships: [];
       };
+      posts: {
+        Row: {
+          author: string;
+          body: string[];
+          created_at: string;
+          date: string;
+          excerpt: string | null;
+          id: string;
+          slug: string;
+          title: string;
+        };
+        Insert: {
+          author?: string;
+          body: string[];
+          created_at?: string;
+          date?: string;
+          excerpt?: string | null;
+          id?: string;
+          slug: string;
+          title: string;
+        };
+        Update: {
+          author?: string;
+          body?: string[];
+          created_at?: string;
+          date?: string;
+          excerpt?: string | null;
+          id?: string;
+          slug?: string;
+          title?: string;
+        };
+        Relationships: [];
+      };
       enrollments: {
         Row: {
           course_id: string;
@@ -97,65 +130,78 @@ export type Database = {
           },
         ];
       };
-      event_registrations: {
+      fees: {
         Row: {
+          badge: string | null;
           created_at: string;
-          event_id: string;
+          display_order: number | null;
+          duration: string;
+          features: string[];
+          fees: string;
           id: string;
-          user_id: string;
+          mode: string;
+          popular: boolean | null;
+          raw_fees: number;
+          tagline: string | null;
+          title: string;
         };
         Insert: {
+          badge?: string | null;
           created_at?: string;
-          event_id: string;
+          display_order?: number | null;
+          duration: string;
+          features?: string[];
+          fees: string;
           id?: string;
-          user_id: string;
+          mode: string;
+          popular?: boolean | null;
+          raw_fees: number;
+          tagline?: string | null;
+          title: string;
         };
         Update: {
+          badge?: string | null;
           created_at?: string;
-          event_id?: string;
+          display_order?: number | null;
+          duration?: string;
+          features?: string[];
+          fees?: string;
           id?: string;
-          user_id?: string;
+          mode?: string;
+          popular?: boolean | null;
+          raw_fees?: number;
+          tagline?: string | null;
+          title?: string;
         };
-        Relationships: [
-          {
-            foreignKeyName: "event_registrations_event_id_fkey";
-            columns: ["event_id"];
-            isOneToOne: false;
-            referencedRelation: "events";
-            referencedColumns: ["id"];
-          },
-        ];
+        Relationships: [];
       };
-      events: {
+      lessons: {
         Row: {
           created_at: string;
           description: string | null;
-          event_type: string;
+          display_order: number | null;
           id: string;
-          image_url: string | null;
-          location: string | null;
-          starts_at: string;
+          link_url: string | null;
           title: string;
+          video_url: string | null;
         };
         Insert: {
           created_at?: string;
           description?: string | null;
-          event_type: string;
+          display_order?: number | null;
           id?: string;
-          image_url?: string | null;
-          location?: string | null;
-          starts_at: string;
+          link_url?: string | null;
           title: string;
+          video_url?: string | null;
         };
         Update: {
           created_at?: string;
           description?: string | null;
-          event_type?: string;
+          display_order?: number | null;
           id?: string;
-          image_url?: string | null;
-          location?: string | null;
-          starts_at?: string;
+          link_url?: string | null;
           title?: string;
+          video_url?: string | null;
         };
         Relationships: [];
       };

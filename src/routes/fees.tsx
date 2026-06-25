@@ -1,7 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Clock, BookOpen, Check, Award, Calculator, HelpCircle, ArrowRight, Sparkles } from "lucide-react";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { getFees } from "@/lib/site.functions";
 
 
 export const Route = createFileRoute("/fees")({
@@ -138,8 +141,24 @@ const FAQS = [
 ];
 
 function FeesPage() {
+  const fetchFees = useServerFn(getFees);
+  const { data } = useQuery({ queryKey: ["fees-all"], queryFn: () => fetchFees() });
+  
+  const packagesList = data && data.length > 0 ? data : PACKAGES;
+  const normalizedPackages = packagesList.map((p: any) => ({
+    title: p.title,
+    fees: p.fees,
+    rawFees: p.raw_fees !== undefined ? p.raw_fees : p.rawFees,
+    duration: p.duration,
+    mode: p.mode,
+    tagline: p.tagline,
+    features: Array.isArray(p.features) ? p.features : [],
+    popular: !!p.popular,
+    badge: p.badge
+  }));
+
   const [showMonthlyRate, setShowMonthlyRate] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState(PACKAGES[3]);
+  const [selectedPlan, setSelectedPlan] = useState(normalizedPackages[3] || normalizedPackages[0]);
   const [selectedInstrument, setSelectedInstrument] = useState("Piano");
   const [learningMode, setLearningMode] = useState<"offline" | "online">("offline");
   const [isMounted, setIsMounted] = useState(false);
@@ -148,49 +167,71 @@ function FeesPage() {
     setIsMounted(true);
   }, []);
 
+  useEffect(() => {
+    if (data && data.length > 0) {
+      const dbPackages = data.map((p: any) => ({
+        title: p.title,
+        fees: p.fees,
+        rawFees: p.raw_fees,
+        duration: p.duration,
+        mode: p.mode,
+        tagline: p.tagline,
+        features: Array.isArray(p.features) ? p.features : [],
+        popular: !!p.popular,
+        badge: p.badge
+      }));
+      setSelectedPlan(dbPackages[3] || dbPackages[0]);
+    }
+  }, [data]);
+
   const estimatedMonthly = Math.round(selectedPlan.rawFees / parseInt(selectedPlan.duration));
 
   return (
     <>
       {/* Header */}
-      <section className="bg-navy text-navy-foreground py-24 px-6 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-azure/10 via-transparent to-transparent opacity-40 pointer-events-none" />
+      <section className="bg-navy text-navy-foreground py-32 px-6 relative overflow-hidden">
+        {/* Glowing background blobs */}
+        <div className="glowing-blob top-1/4 left-1/4 w-[500px] h-[500px] -translate-x-1/2 -translate-y-1/2" />
+        <div className="glowing-blob-gold bottom-1/4 right-1/4 w-[400px] h-[400px]" />
+        
         <div className="max-w-7xl mx-auto relative z-10">
-          <p className="font-mono text-xs uppercase tracking-[0.3em] text-azure">Pricing & Plans</p>
-          <h1 className="mt-4 font-display text-6xl md:text-8xl uppercase leading-none">
+          <span className="font-mono text-xs uppercase tracking-[0.3em] text-azure font-bold block mb-4">Pricing & Plans</span>
+          <h1 className="font-display text-6xl sm:text-7xl md:text-8xl lg:text-9xl uppercase leading-none font-extrabold tracking-tight">
             Courses
             <br />
-            & Tuition.
+            <span className="font-serif italic text-azure normal-case font-light lowercase">& tuition.</span>
           </h1>
-          <p className="mt-8 max-w-2xl text-lg text-white/70 leading-relaxed">
+          <p className="mt-8 max-w-2xl text-lg text-white/70 leading-relaxed font-light">
             Transparent fee structures. No contracts, no hidden costs. Select a program built around your level, scheduling needs, and musical aspirations.
           </p>
         </div>
       </section>
 
       {/* Packages Grid */}
-      <section className="py-24 px-6 max-w-7xl mx-auto">
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <p className="font-mono text-xs uppercase tracking-widest text-azure">Tuition Options</p>
-          <h2 className="mt-3 font-display text-4xl md:text-5xl uppercase">Our Fee Packages</h2>
-          <p className="mt-4 text-muted-foreground mb-8">
+      <section className="py-28 px-6 max-w-7xl mx-auto relative">
+        <div className="glowing-blob top-1/3 right-10 w-[300px] h-[300px]" />
+        
+        <div className="text-center max-w-3xl mx-auto mb-20 relative z-10">
+          <span className="font-mono text-xs text-azure uppercase tracking-widest font-bold">Tuition Options</span>
+          <h2 className="mt-3 font-display text-4xl md:text-5xl font-extrabold uppercase tracking-tight">Our Fee Packages</h2>
+          <p className="mt-4 text-muted-foreground font-light text-sm sm:text-base mb-10">
             Explore our curriculum paths. Rates apply for online or offline (Delhi branches) study.
           </p>
           
           <div className="flex justify-center">
-            <div className="flex bg-muted/40 p-1 rounded-lg border border-border/80">
+            <div className="flex bg-muted/40 p-1 rounded-xl border border-border/80">
               <button
                 onClick={() => setShowMonthlyRate(false)}
-                className={`px-4 py-2 text-xs font-bold uppercase rounded-md cursor-pointer transition-all duration-200 ${
-                  !showMonthlyRate ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                className={`px-4 py-2 text-xs font-bold uppercase rounded-lg cursor-pointer transition-all duration-300 ${
+                  !showMonthlyRate ? "bg-background text-foreground shadow-md" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 Total Course Fee
               </button>
               <button
                 onClick={() => setShowMonthlyRate(true)}
-                className={`px-4 py-2 text-xs font-bold uppercase rounded-md cursor-pointer transition-all duration-200 ${
-                  showMonthlyRate ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                className={`px-4 py-2 text-xs font-bold uppercase rounded-lg cursor-pointer transition-all duration-300 ${
+                  showMonthlyRate ? "bg-background text-foreground shadow-md" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 Estimated Monthly Cost
@@ -199,8 +240,8 @@ function FeesPage() {
           </div>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {PACKAGES.map((pkg) => {
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 relative z-10">
+          {normalizedPackages.map((pkg) => {
             const totalMonths = parseInt(pkg.duration) || 1;
             const pkgEstimatedMonthly = Math.round(pkg.rawFees / totalMonths);
             const displayedFee = showMonthlyRate ? `Rs. ${pkgEstimatedMonthly.toLocaleString()}` : pkg.fees;
@@ -209,14 +250,14 @@ function FeesPage() {
             return (
               <div
                 key={pkg.title}
-                className={`relative flex flex-col p-8 rounded-2xl border transition-all duration-300 ${
+                className={`relative flex flex-col p-8 rounded-3xl border transition-all duration-300 ${
                   pkg.popular
-                    ? "border-azure bg-card/60 shadow-[0_15px_40px_-10px_rgba(59,130,246,0.15)] dark:bg-card/40"
-                    : "border-border bg-card/30 dark:bg-card/20 hover:border-border/80"
+                    ? "border-azure bg-card/75 dark:bg-card/30 shadow-[0_20px_50px_-10px_rgba(59,130,246,0.2)] hover-glow"
+                    : "border-border/85 bg-card/35 dark:bg-card/15 hover-glow"
                 }`}
               >
                 {pkg.badge && (
-                  <span className={`absolute top-4 right-4 font-mono text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full ${
+                  <span className={`absolute top-4 right-4 font-mono text-[8px] font-bold uppercase tracking-widest px-3 py-1 rounded-full ${
                     pkg.popular ? "bg-azure text-azure-foreground" : "bg-muted text-muted-foreground"
                   }`}>
                     {pkg.badge}
@@ -224,28 +265,28 @@ function FeesPage() {
                 )}
                 
                 <div className="mb-6">
-                  <span className="font-mono text-xs text-muted-foreground">{pkg.duration} Track</span>
-                  <h3 className="font-display text-2xl uppercase mt-1 leading-tight">{pkg.title}</h3>
-                  <p className="text-xs text-muted-foreground mt-2">{pkg.tagline}</p>
+                  <span className="font-mono text-xs text-azure font-bold">{pkg.duration} Track</span>
+                  <h3 className="font-display text-2xl font-bold uppercase mt-2 leading-tight group-hover:text-azure transition-colors">{pkg.title}</h3>
+                  <p className="text-xs text-muted-foreground mt-2 font-light">{pkg.tagline}</p>
                 </div>
 
                 <div className="flex items-baseline gap-2 mb-6">
-                  <span className="text-4xl font-bold text-foreground font-display">{displayedFee}</span>
+                  <span className="text-4xl font-bold text-foreground font-display text-gradient-azure">{displayedFee}</span>
                   <span className="text-xs text-muted-foreground">{displayedPeriod}</span>
                 </div>
 
-                <div className="flex items-center gap-2 mb-6 font-mono text-[10px] uppercase tracking-wider text-muted-foreground/80">
+                <div className="flex items-center gap-2 mb-6 font-mono text-[9px] uppercase tracking-wider text-muted-foreground/80 font-semibold">
                   <Clock className="size-3.5 text-azure" />
                   <span>{pkg.mode}</span>
                 </div>
 
                 <div className="border-t border-border/60 my-2" />
 
-                <ul className="space-y-3 my-6 flex-1">
+                <ul className="space-y-4 my-6 flex-1">
                   {pkg.features.map((feat) => (
-                    <li key={feat} className="flex gap-2.5 items-start text-sm">
+                    <li key={feat} className="flex gap-3 items-start text-sm">
                       <Check className="size-4 text-azure shrink-0 mt-0.5" />
-                      <span className="text-muted-foreground/90">{feat}</span>
+                      <span className="text-muted-foreground/90 font-light text-xs sm:text-sm">{feat}</span>
                     </li>
                   ))}
                 </ul>
@@ -253,10 +294,10 @@ function FeesPage() {
                 <Link
                   to="/contact"
                   search={{ course: pkg.title }}
-                  className={`w-full py-3.5 font-bold uppercase tracking-wider text-xs text-center rounded-lg transition-all duration-200 cursor-pointer block ${
+                  className={`w-full py-4 font-mono font-bold uppercase tracking-wider text-[10px] text-center rounded-xl transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer block ${
                     pkg.popular
-                      ? "bg-azure text-azure-foreground hover:bg-azure/90 hover:shadow-[0_4px_15px_rgba(59,130,246,0.3)]"
-                      : "border border-border hover:border-azure hover:text-azure"
+                      ? "bg-azure text-azure-foreground hover:bg-azure/90 shadow-lg shadow-azure/20"
+                      : "border border-border/80 hover:border-azure hover:text-azure"
                   }`}
                 >
                   Inquire & Enroll
@@ -268,16 +309,18 @@ function FeesPage() {
       </section>
 
       {/* Tuition Estimator Widget */}
-      <section className="bg-secondary/40 py-24 px-6 border-y border-border">
-        <div className="max-w-4xl mx-auto bg-background rounded-3xl border border-border/60 shadow-[0_20px_50px_rgba(0,0,0,0.03)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.2)] p-8 md:p-12">
+      <section className="bg-secondary/20 py-28 px-6 border-y border-border/40 relative overflow-hidden">
+        <div className="glowing-blob top-1/4 left-1/4 w-[400px] h-[400px] -translate-x-1/2 -translate-y-1/2" />
+        
+        <div className="max-w-4xl mx-auto glass-panel rounded-3xl border border-border/60 shadow-2xl p-8 md:p-12 relative z-10">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10 pb-8 border-b border-border/60">
             <div>
-              <div className="flex items-center gap-2 font-mono text-xs text-azure uppercase tracking-widest font-semibold">
-                <Calculator className="size-4" /> Tool
+              <div className="flex items-center gap-2 font-mono text-xs text-azure uppercase tracking-widest font-bold">
+                <Calculator className="size-4 animate-bounce" /> Tool
               </div>
-              <h3 className="font-display text-3xl uppercase mt-2">Tuition Estimator</h3>
+              <h3 className="font-display text-3xl font-extrabold uppercase mt-2 tracking-tight">Tuition Estimator</h3>
             </div>
-            <p className="text-sm text-muted-foreground max-w-sm">
+            <p className="text-sm text-muted-foreground max-w-sm font-light leading-relaxed">
               Select your options below to calculate the estimated monthly rate and view plan inclusions.
             </p>
           </div>
@@ -286,25 +329,25 @@ function FeesPage() {
             {/* Inputs */}
             <div className="space-y-6">
               <div>
-                <label className="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground/80 font-bold mb-3">
+                <label className="block font-mono text-[9px] uppercase tracking-wider text-muted-foreground/80 font-bold mb-3">
                   1. Select Study Track
                 </label>
-                <div className="grid grid-cols-1 gap-2">
-                  {PACKAGES.map((pkg) => (
+                <div className="grid grid-cols-1 gap-3">
+                  {normalizedPackages.map((pkg) => (
                     <button
                       key={pkg.title}
                       onClick={() => setSelectedPlan(pkg)}
-                      className={`text-left p-4 border rounded-xl transition-all duration-200 cursor-pointer ${
+                      className={`text-left p-4 border rounded-xl transition-all duration-300 cursor-pointer hover:scale-[1.01] ${
                         selectedPlan.title === pkg.title
-                          ? "border-azure bg-azure/5 text-foreground"
-                          : "border-border hover:border-border/80 text-muted-foreground"
+                          ? "border-azure bg-azure/10 dark:bg-azure/5 text-foreground shadow-sm shadow-azure/5"
+                          : "border-border/80 hover:border-azure/40 text-muted-foreground hover:text-foreground"
                       }`}
                     >
-                      <div className="flex justify-between items-center font-bold text-sm uppercase">
+                      <div className="flex justify-between items-center font-bold text-sm uppercase tracking-wide">
                         <span>{pkg.title}</span>
                         <span className="text-azure">{pkg.fees}</span>
                       </div>
-                      <div className="text-xs text-muted-foreground mt-1">
+                      <div className="text-xs text-muted-foreground mt-1.5 font-light">
                         Duration: {pkg.duration} · Mode: {pkg.mode}
                       </div>
                     </button>
@@ -314,16 +357,16 @@ function FeesPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground/80 font-bold mb-3">
+                  <label className="block font-mono text-[9px] uppercase tracking-wider text-muted-foreground/80 font-bold mb-3">
                     2. Choose Instrument
                   </label>
                   <select
                     value={selectedInstrument}
                     onChange={(e) => setSelectedInstrument(e.target.value)}
-                    className="w-full bg-muted/40 border border-border/80 px-4 py-3 rounded-lg text-sm outline-none focus:border-azure focus:ring-1 focus:ring-azure/30"
+                    className="w-full bg-muted/60 dark:bg-card/30 border border-border/80 px-4 py-3.5 rounded-xl text-sm outline-none focus:border-azure focus:ring-4 focus:ring-azure/10 transition-all duration-200 text-foreground"
                   >
                     {["Piano", "Keyboard", "Guitar", "Bass", "Drums", "Violin", "Voice", "Music Theory"].map((inst) => (
-                      <option key={inst} value={inst} className="bg-background">
+                      <option key={inst} value={inst} className="bg-background text-foreground">
                         {inst}
                       </option>
                     ))}
@@ -331,22 +374,22 @@ function FeesPage() {
                 </div>
 
                 <div>
-                  <label className="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground/80 font-bold mb-3">
+                  <label className="block font-mono text-[9px] uppercase tracking-wider text-muted-foreground/80 font-bold mb-3">
                     3. Choose Mode
                   </label>
-                  <div className="flex bg-muted/40 p-1 rounded-lg border border-border/80">
+                  <div className="flex bg-muted/60 dark:bg-card/20 p-1 rounded-xl border border-border/80">
                     <button
                       onClick={() => setLearningMode("offline")}
-                      className={`flex-1 py-2 text-xs font-bold uppercase rounded-md cursor-pointer ${
-                        learningMode === "offline" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                      className={`flex-1 py-2 text-xs font-mono font-bold uppercase rounded-lg cursor-pointer transition-all duration-300 ${
+                        learningMode === "offline" ? "bg-background text-foreground shadow-md" : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
                       Offline
                     </button>
                     <button
                       onClick={() => setLearningMode("online")}
-                      className={`flex-1 py-2 text-xs font-bold uppercase rounded-md cursor-pointer ${
-                        learningMode === "online" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                      className={`flex-1 py-2 text-xs font-mono font-bold uppercase rounded-lg cursor-pointer transition-all duration-300 ${
+                        learningMode === "online" ? "bg-background text-foreground shadow-md" : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
                       Online
@@ -357,14 +400,14 @@ function FeesPage() {
             </div>
 
             {/* Results Display */}
-            <div className="flex flex-col bg-muted/30 p-8 rounded-2xl border border-border/60 justify-between">
+            <div className="flex flex-col bg-muted/30 dark:bg-card/10 p-8 rounded-3xl border border-border/60 justify-between">
               <div>
-                <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Estimated Breakdown</span>
+                <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground font-bold">Estimated Breakdown</span>
                 <div className="mt-4 flex items-baseline gap-2">
-                  <span className="text-5xl font-bold font-display text-azure">Rs. {estimatedMonthly.toLocaleString()}</span>
+                  <span className="text-5xl font-bold font-display text-azure text-gradient-azure">Rs. {estimatedMonthly.toLocaleString()}</span>
                   <span className="text-xs text-muted-foreground">/ month</span>
                 </div>
-                <div className="text-xs text-muted-foreground mt-2">
+                <div className="text-xs text-muted-foreground mt-2 font-light">
                   Total Course Fee: <strong>{selectedPlan.fees}</strong> (over {selectedPlan.duration})
                 </div>
 
@@ -400,15 +443,16 @@ function FeesPage() {
                             contentStyle={{
                               background: "oklch(var(--card))",
                               borderColor: "var(--color-border)",
-                              borderRadius: "8px",
+                              borderRadius: "12px",
                               fontSize: "11px",
+                              fontFamily: "var(--font-mono)",
                             }}
                           />
                         </PieChart>
                       </ResponsiveContainer>
                     </div>
                     {/* Legend */}
-                    <div className="grid grid-cols-2 gap-2 mt-2 text-[10px] font-mono border-b border-border/60 pb-6">
+                    <div className="grid grid-cols-2 gap-2 mt-2 text-[9px] font-mono border-b border-border/60 pb-6">
                       {[
                         { name: "Private Mentorship", value: 50, color: "var(--azure)" },
                         { name: "Practice Access", value: 20, color: "#10b981" },
@@ -423,7 +467,7 @@ function FeesPage() {
                     </div>
                   </>
                 ) : (
-                  <div className="h-44 w-full mt-6 border-b border-border/60 pb-6 flex items-center justify-center text-xs text-muted-foreground">
+                  <div className="h-44 w-full mt-6 border-b border-border/60 pb-6 flex items-center justify-center text-xs text-muted-foreground font-mono">
                     Loading breakdown...
                   </div>
                 )}
@@ -433,14 +477,14 @@ function FeesPage() {
                     <BookOpen className="size-4 text-azure shrink-0" />
                     <div>
                       <strong className="text-foreground">Selected Track:</strong>
-                      <p className="text-muted-foreground">{selectedPlan.title} ({selectedInstrument})</p>
+                      <p className="text-muted-foreground font-light">{selectedPlan.title} ({selectedInstrument})</p>
                     </div>
                   </div>
                   <div className="flex gap-3 text-xs">
                     <Award className="size-4 text-azure shrink-0" />
                     <div>
                       <strong className="text-foreground">Inclusions & Recitals:</strong>
-                      <p className="text-muted-foreground">Weekly materials, recital eligibility, certification support.</p>
+                      <p className="text-muted-foreground font-light">Weekly materials, recital eligibility, certification support.</p>
                     </div>
                   </div>
                   {learningMode === "offline" && (
@@ -448,7 +492,7 @@ function FeesPage() {
                       <Sparkles className="size-4 text-azure shrink-0" />
                       <div>
                         <strong className="text-foreground">Studio Branch:</strong>
-                        <p className="text-muted-foreground">Classes hosted at South Extension II/Hauz Khas practice rooms.</p>
+                        <p className="text-muted-foreground font-light">Classes hosted at South Extension II/Hauz Khas practice rooms.</p>
                       </div>
                     </div>
                   )}
@@ -459,7 +503,7 @@ function FeesPage() {
                 <Link
                   to="/contact"
                   search={{ course: `${selectedPlan.title} (${selectedInstrument}) - ${learningMode.toUpperCase()}` }}
-                  className="w-full bg-gradient-to-r from-azure to-blue-600 hover:from-azure/95 hover:to-blue-600/95 text-azure-foreground py-3.5 font-bold uppercase tracking-wider text-xs rounded-lg transition-all duration-200 hover:shadow-[0_4px_15px_rgba(59,130,246,0.3)] flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full bg-gradient-to-r from-azure to-blue-600 hover:from-azure/95 hover:to-blue-600/95 text-azure-foreground py-4 font-mono font-bold uppercase tracking-wider text-[10px] rounded-xl transition-all duration-300 hover:shadow-[0_4px_20px_rgba(59,130,246,0.3)] flex items-center justify-center gap-2 cursor-pointer hover:scale-105 active:scale-95"
                 >
                   Book Free Trial class <ArrowRight className="size-4" />
                 </Link>
@@ -471,21 +515,23 @@ function FeesPage() {
       </section>
 
       {/* FAQs */}
-      <section className="py-24 px-6 max-w-4xl mx-auto">
-        <div className="text-center mb-16">
-          <HelpCircle className="size-8 text-azure mx-auto" />
-          <h2 className="mt-3 font-display text-4xl uppercase">Tuition Questions</h2>
-          <p className="text-muted-foreground mt-2">Answers to common billing and registration questions.</p>
+      <section className="py-28 px-6 max-w-4xl mx-auto relative">
+        <div className="glowing-blob-gold bottom-10 left-1/4 w-[250px] h-[250px]" />
+        
+        <div className="text-center mb-16 relative z-10">
+          <HelpCircle className="size-8 text-azure mx-auto animate-pulse" />
+          <h2 className="mt-4 font-display text-4xl sm:text-5xl font-extrabold uppercase tracking-tight">Tuition Questions</h2>
+          <p className="text-muted-foreground mt-2 font-light text-sm sm:text-base">Answers to common billing and registration questions.</p>
         </div>
 
-        <div className="divide-y divide-border border-y border-border">
+        <div className="divide-y divide-border border-y border-border relative z-10">
           {FAQS.map((faq) => (
             <details key={faq.q} className="group py-6">
-              <summary className="flex justify-between items-center cursor-pointer list-none">
-                <span className="font-display text-xl uppercase pr-8">{faq.q}</span>
-                <span className="font-mono text-2xl text-azure group-open:rotate-45 transition-transform">+</span>
+              <summary className="flex justify-between items-center cursor-pointer list-none focus:outline-none">
+                <span className="font-display text-lg sm:text-xl font-bold uppercase tracking-tight group-hover:text-azure transition-colors pr-8">{faq.q}</span>
+                <span className="font-mono text-2xl text-azure group-open:rotate-45 transition-transform duration-300 select-none">+</span>
               </summary>
-              <p className="mt-4 text-muted-foreground leading-relaxed">{faq.a}</p>
+              <p className="mt-4 text-muted-foreground leading-relaxed text-sm font-light max-w-3xl">{faq.a}</p>
             </details>
           ))}
         </div>

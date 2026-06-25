@@ -17,14 +17,19 @@ import {
   MapPin,
   Clock,
   Youtube,
-  Trash
+  Trash,
+  PenTool,
+  Calculator,
+  Download
 } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type Course = Database["public"]["Tables"]["courses"]["Row"];
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
 type Subscriber = Database["public"]["Tables"]["newsletter_subscribers"]["Row"];
-type SchoolEvent = Database["public"]["Tables"]["events"]["Row"];
+type Lesson = Database["public"]["Tables"]["lessons"]["Row"];
+type Fee = Database["public"]["Tables"]["fees"]["Row"];
+type Post = Database["public"]["Tables"]["posts"]["Row"];
 
 function getYouTubeEmbedUrl(url: string | null | undefined): string | null {
   if (!url) return null;
@@ -37,13 +42,15 @@ function getYouTubeEmbedUrl(url: string | null | undefined): string | null {
 }
 
 export function AdminDashboard({ email, signOut }: { email: string; signOut: () => void }) {
-  const [activeTab, setActiveTab] = useState<"overview" | "courses" | "leads" | "subscribers" | "events">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "courses" | "lessons" | "fees" | "leads" | "subscribers" | "posts">("overview");
   
   // Data States
   const [courses, setCourses] = useState<Course[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
-  const [events, setEvents] = useState<SchoolEvent[]>([]);
+  const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [fees, setFees] = useState<Fee[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
   
   // Loading & Search States
   const [loading, setLoading] = useState(true);
@@ -53,8 +60,14 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
   const [courseModalOpen, setCourseModalOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Partial<Course> | null>(null);
   
-  const [eventModalOpen, setEventModalOpen] = useState(false);
-  const [editingEvent, setEditingEvent] = useState<Partial<SchoolEvent> | null>(null);
+  const [lessonModalOpen, setLessonModalOpen] = useState(false);
+  const [editingLesson, setEditingLesson] = useState<Partial<Lesson> | null>(null);
+
+  const [feeModalOpen, setFeeModalOpen] = useState(false);
+  const [editingFee, setEditingFee] = useState<Partial<Fee> | null>(null);
+
+  const [postModalOpen, setPostModalOpen] = useState(false);
+  const [editingPost, setEditingPost] = useState<Partial<Post> | null>(null);
 
   const [leadDetail, setLeadDetail] = useState<Lead | null>(null);
 
@@ -90,13 +103,29 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
       if (subsErr) throw subsErr;
       setSubscribers(subsData || []);
 
-      // Fetch Events
-      const { data: eventsData, error: eventsErr } = await supabase
-        .from("events")
+      // Fetch Lessons
+      const { data: lessonsData, error: lessonsErr } = await supabase
+        .from("lessons")
         .select("*")
-        .order("starts_at", { ascending: true });
-      if (eventsErr) throw eventsErr;
-      setEvents(eventsData || []);
+        .order("display_order", { ascending: true });
+      if (lessonsErr) throw lessonsErr;
+      setLessons(lessonsData || []);
+
+      // Fetch Fees
+      const { data: feesData, error: feesErr } = await supabase
+        .from("fees")
+        .select("*")
+        .order("display_order", { ascending: true });
+      if (feesErr) throw feesErr;
+      setFees(feesData || []);
+
+      // Fetch Posts
+      const { data: postsData, error: postsErr } = await supabase
+        .from("posts")
+        .select("*")
+        .order("date", { ascending: false });
+      if (postsErr) throw postsErr;
+      setPosts(postsData || []);
 
     } catch (err: any) {
       toast.error(err.message || "Failed to load admin data");
@@ -163,56 +192,177 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
     }
   }
 
-  // Event Actions
-  async function saveEvent(e: React.FormEvent) {
+  // Lesson Actions
+  async function saveLesson(e: React.FormEvent) {
     e.preventDefault();
-    if (!editingEvent?.title || !editingEvent?.starts_at || !editingEvent?.event_type) {
-      toast.error("Title, Type, and Date are required");
+    if (!editingLesson?.title) {
+      toast.error("Title is required");
       return;
     }
 
     try {
       const payload = {
-        title: editingEvent.title,
-        event_type: editingEvent.event_type,
-        starts_at: new Date(editingEvent.starts_at).toISOString(),
-        description: editingEvent.description || "",
-        location: editingEvent.location || "",
-        image_url: editingEvent.image_url || "",
+        title: editingLesson.title,
+        description: editingLesson.description || "",
+        video_url: editingLesson.video_url || "",
+        link_url: editingLesson.link_url || "",
+        display_order: Number(editingLesson.display_order || 0),
       };
 
-      if (editingEvent.id) {
+      if (editingLesson.id) {
         const { error } = await supabase
-          .from("events")
+          .from("lessons")
           .update(payload)
-          .eq("id", editingEvent.id);
+          .eq("id", editingLesson.id);
         if (error) throw error;
-        toast.success("Event updated successfully");
+        toast.success("Lesson updated successfully");
       } else {
         const { error } = await supabase
-          .from("events")
+          .from("lessons")
           .insert([payload]);
         if (error) throw error;
-        toast.success("Event created successfully");
+        toast.success("Lesson created successfully");
       }
 
-      setEventModalOpen(false);
-      setEditingEvent(null);
+      setLessonModalOpen(false);
+      setEditingLesson(null);
       fetchData();
     } catch (err: any) {
-      toast.error(err.message || "Failed to save event");
+      toast.error(err.message || "Failed to save lesson");
     }
   }
 
-  async function deleteEvent(id: string) {
-    if (!confirm("Are you sure you want to delete this event?")) return;
+  async function deleteLesson(id: string) {
+    if (!confirm("Are you sure you want to delete this lesson?")) return;
     try {
-      const { error } = await supabase.from("events").delete().eq("id", id);
+      const { error } = await supabase.from("lessons").delete().eq("id", id);
       if (error) throw error;
-      toast.success("Event deleted successfully");
+      toast.success("Lesson deleted successfully");
       fetchData();
     } catch (err: any) {
-      toast.error(err.message || "Failed to delete event");
+      toast.error(err.message || "Failed to delete lesson");
+    }
+  }
+
+  // Fee Actions
+  async function saveFee(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingFee?.title || !editingFee?.fees || editingFee?.raw_fees === undefined || !editingFee?.duration || !editingFee?.mode) {
+      toast.error("Title, Fees, Raw Fees, Duration, and Mode are required");
+      return;
+    }
+
+    try {
+      const featuresArr = Array.isArray(editingFee.features) 
+        ? editingFee.features 
+        : typeof editingFee.features === "string"
+          ? (editingFee.features as string).split("\n").map(f => f.trim()).filter(Boolean)
+          : [];
+
+      const payload = {
+        title: editingFee.title,
+        fees: editingFee.fees,
+        raw_fees: Number(editingFee.raw_fees),
+        duration: editingFee.duration,
+        mode: editingFee.mode,
+        tagline: editingFee.tagline || "",
+        features: featuresArr,
+        popular: !!editingFee.popular,
+        badge: editingFee.badge || null,
+        display_order: Number(editingFee.display_order || 0),
+      };
+
+      if (editingFee.id) {
+        const { error } = await supabase
+          .from("fees")
+          .update(payload)
+          .eq("id", editingFee.id);
+        if (error) throw error;
+        toast.success("Fee package updated successfully");
+      } else {
+        const { error } = await supabase
+          .from("fees")
+          .insert([payload]);
+        if (error) throw error;
+        toast.success("Fee package created successfully");
+      }
+
+      setFeeModalOpen(false);
+      setEditingFee(null);
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save fee package");
+    }
+  }
+
+  async function deleteFee(id: string) {
+    if (!confirm("Are you sure you want to delete this fee package?")) return;
+    try {
+      const { error } = await supabase.from("fees").delete().eq("id", id);
+      if (error) throw error;
+      toast.success("Fee package deleted successfully");
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete fee package");
+    }
+  }
+
+  // Post Actions
+  async function savePost(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingPost?.title || !editingPost?.slug || !editingPost?.body) {
+      toast.error("Title, Slug, and Content are required");
+      return;
+    }
+
+    try {
+      const bodyParagraphs = Array.isArray(editingPost.body) 
+        ? editingPost.body 
+        : typeof editingPost.body === "string"
+          ? (editingPost.body as string).split("\n\n").map(p => p.trim()).filter(Boolean)
+          : [];
+
+      const payload = {
+        title: editingPost.title,
+        slug: editingPost.slug,
+        excerpt: editingPost.excerpt || "",
+        body: bodyParagraphs,
+        author: editingPost.author || "Faculty Desk",
+        date: editingPost.date || new Date().toISOString().split("T")[0],
+      };
+
+      if (editingPost.id) {
+        const { error } = await supabase
+          .from("posts")
+          .update(payload)
+          .eq("id", editingPost.id);
+        if (error) throw error;
+        toast.success("Post updated successfully");
+      } else {
+        const { error } = await supabase
+          .from("posts")
+          .insert([payload]);
+        if (error) throw error;
+        toast.success("Post created successfully");
+      }
+
+      setPostModalOpen(false);
+      setEditingPost(null);
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save post");
+    }
+  }
+
+  async function deletePost(id: string) {
+    if (!confirm("Are you sure you want to delete this post? This action cannot be undone.")) return;
+    try {
+      const { error } = await supabase.from("posts").delete().eq("id", id);
+      if (error) throw error;
+      toast.success("Post deleted successfully");
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete post");
     }
   }
 
@@ -258,10 +408,11 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
         <nav className="w-full md:w-64 border-r border-slate-800 bg-[#0A1124] p-4 flex md:flex-col gap-1 overflow-x-auto md:overflow-x-visible">
           {[
             { id: "overview", label: "Overview", icon: <FileText className="size-4" /> },
-            { id: "courses", label: "Courses", icon: <BookOpen className="size-4" /> },
+            { id: "courses", label: "Curriculum", icon: <BookOpen className="size-4" /> },
+            { id: "lessons", label: "Course Videos", icon: <Video className="size-4" /> },
+            { id: "fees", label: "Tuition Fees", icon: <Calculator className="size-4" /> },
             { id: "leads", label: "Leads", icon: <User className="size-4" /> },
             { id: "subscribers", label: "Subscribers", icon: <Mail className="size-4" /> },
-            { id: "events", label: "Events", icon: <Calendar className="size-4" /> },
           ].map(tab => (
             <button
               key={tab.id}
@@ -299,12 +450,13 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
                   </div>
                   
                   {/* Stats Grid */}
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6">
                     {[
-                      { label: "Active Courses", val: courses.length, color: "from-blue-600/20 to-blue-800/5", icon: <BookOpen className="text-blue-400" /> },
+                      { label: "Active Curriculum", val: courses.length, color: "from-blue-600/20 to-blue-800/5", icon: <BookOpen className="text-blue-400" /> },
                       { label: "Student Leads", val: leads.length, color: "from-emerald-600/20 to-emerald-800/5", icon: <User className="text-emerald-400" /> },
                       { label: "Newsletter Subscribers", val: subscribers.length, color: "from-purple-600/20 to-purple-800/5", icon: <Mail className="text-purple-400" /> },
-                      { label: "Published Events", val: events.length, color: "from-amber-600/20 to-amber-800/5", icon: <Calendar className="text-amber-400" /> },
+                      { label: "Course Videos", val: lessons.length, color: "from-amber-600/20 to-amber-800/5", icon: <Video className="text-amber-400" /> },
+                      { label: "Tuition Packages", val: fees.length, color: "from-indigo-600/20 to-indigo-800/5", icon: <Calculator className="text-indigo-400" /> },
                     ].map((s, idx) => (
                       <div key={idx} className={`bg-gradient-to-br ${s.color} border border-slate-800/80 p-6 rounded-xl relative overflow-hidden flex flex-col justify-between h-32 hover:scale-[1.02] hover:border-azure/30 transition-all duration-300 shadow-[0_4px_20px_rgba(0,0,0,0.15)] group`}>
                         <div className="flex justify-between items-start">
@@ -582,29 +734,28 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
                 </div>
               )}
 
-              {/* TAB CONTENT: EVENTS */}
-              {activeTab === "events" && (
+              {/* TAB CONTENT: LESSONS */}
+              {activeTab === "lessons" && (
                 <div className="space-y-6">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
-                      <h2 className="font-display text-3xl uppercase text-white">Events Console</h2>
-                      <p className="text-slate-400 text-sm mt-1">Create, update, and manage upcoming school recitals, workshops, and concerts.</p>
+                      <h2 className="font-display text-3xl uppercase text-white">Course Videos Console</h2>
+                      <p className="text-slate-400 text-sm mt-1">Upload, update, and manage recorded lessons, tutorials, and class materials.</p>
                     </div>
                     <button
                       onClick={() => {
-                        setEditingEvent({
+                        setEditingLesson({
                           title: "",
-                          event_type: "Recital",
-                          starts_at: new Date().toISOString().substring(0, 16),
                           description: "",
-                          location: "",
-                          image_url: ""
+                          video_url: "",
+                          link_url: "",
+                          display_order: lessons.length + 1
                         });
-                        setEventModalOpen(true);
+                        setLessonModalOpen(true);
                       }}
                       className="bg-azure hover:bg-azure/90 text-white font-bold uppercase tracking-wider text-xs px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all shadow-md shadow-azure/20"
                     >
-                      <Plus className="size-4" /> Create Event
+                      <Plus className="size-4" /> Add Lesson
                     </button>
                   </div>
 
@@ -614,44 +765,46 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
                         <thead>
                           <tr className="bg-slate-900/60 border-b border-slate-800 text-slate-400 font-mono uppercase tracking-wider">
                             <th className="p-4 font-semibold">Title</th>
-                            <th className="p-4 font-semibold">Type</th>
-                            <th className="p-4 font-semibold">Starts At</th>
-                            <th className="p-4 font-semibold">Location</th>
+                            <th className="p-4 font-semibold">Description</th>
+                            <th className="p-4 font-semibold">Video URL</th>
+                            <th className="p-4 font-semibold">Resource Link</th>
+                            <th className="p-4 font-semibold">Order</th>
                             <th className="p-4 font-semibold text-right">Actions</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-800">
-                          {events.map(event => (
-                            <tr key={event.id} className="hover:bg-slate-800/10 text-slate-300">
-                              <td className="p-4 font-semibold text-white">{event.title}</td>
-                              <td className="p-4">
-                                <span className="bg-slate-800 border border-slate-700 text-slate-300 px-2 py-0.5 rounded text-[10px] font-mono uppercase">
-                                  {event.event_type}
-                                </span>
+                          {lessons.map(lesson => (
+                            <tr key={lesson.id} className="hover:bg-slate-800/10 text-slate-300">
+                              <td className="p-4 font-semibold text-white">{lesson.title}</td>
+                              <td className="p-4 text-slate-400 max-w-xs truncate">{lesson.description || "-"}</td>
+                              <td className="p-4 font-mono text-azure truncate max-w-xs">
+                                {lesson.video_url ? (
+                                  <a href={lesson.video_url} target="_blank" rel="noreferrer" className="hover:underline flex items-center gap-1">
+                                    {lesson.video_url} <ExternalLink className="size-3 shrink-0" />
+                                  </a>
+                                ) : "-"}
                               </td>
-                              <td className="p-4 font-mono text-slate-400">
-                                {new Date(event.starts_at).toLocaleString()}
+                              <td className="p-4 font-mono text-emerald-400 truncate max-w-xs">
+                                {lesson.link_url ? (
+                                  <a href={lesson.link_url} target="_blank" rel="noreferrer" className="hover:underline flex items-center gap-1">
+                                    {lesson.link_url} <ExternalLink className="size-3 shrink-0" />
+                                  </a>
+                                ) : "-"}
                               </td>
-                              <td className="p-4 text-slate-400 flex items-center gap-1.5 mt-1.5">
-                                <MapPin className="size-3.5 text-slate-500" />
-                                {event.location || "Online"}
-                              </td>
+                              <td className="p-4 font-mono text-slate-400">{lesson.display_order}</td>
                               <td className="p-4 text-right">
                                 <div className="inline-flex gap-2">
                                   <button
                                     onClick={() => {
-                                      setEditingEvent({
-                                        ...event,
-                                        starts_at: new Date(event.starts_at).toISOString().substring(0, 16)
-                                      });
-                                      setEventModalOpen(true);
+                                      setEditingLesson(lesson);
+                                      setLessonModalOpen(true);
                                     }}
                                     className="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded transition-all"
                                   >
                                     Edit
                                   </button>
                                   <button
-                                    onClick={() => deleteEvent(event.id)}
+                                    onClick={() => deleteLesson(lesson.id)}
                                     className="bg-red-950/20 hover:bg-red-950 border border-red-900/30 text-red-400 hover:text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded transition-all"
                                   >
                                     Delete
@@ -666,6 +819,102 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
                   </div>
                 </div>
               )}
+
+              {/* TAB CONTENT: FEES */}
+              {activeTab === "fees" && (
+                <div className="space-y-6">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                      <h2 className="font-display text-3xl uppercase text-white">Tuition Packages Console</h2>
+                      <p className="text-slate-400 text-sm mt-1">Create and update course packages, costs, features list, and page display order.</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setEditingFee({
+                          title: "",
+                          fees: "Rs. 0",
+                          raw_fees: 0,
+                          duration: "1 Month",
+                          mode: "Hybrid / Offline",
+                          tagline: "",
+                          features: [],
+                          popular: false,
+                          badge: "",
+                          display_order: fees.length + 1
+                        });
+                        setFeeModalOpen(true);
+                      }}
+                      className="bg-azure hover:bg-azure/90 text-white font-bold uppercase tracking-wider text-xs px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all shadow-md shadow-azure/20"
+                    >
+                      <Plus className="size-4" /> Add Fee Package
+                    </button>
+                  </div>
+
+                  <div className="bg-[#0A1124] border border-slate-800 rounded-xl overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse text-xs md:text-sm">
+                        <thead>
+                          <tr className="bg-slate-900/60 border-b border-slate-800 text-slate-400 font-mono uppercase tracking-wider">
+                            <th className="p-4 font-semibold">Title</th>
+                            <th className="p-4 font-semibold">Total Fee</th>
+                            <th className="p-4 font-semibold">Raw Fee</th>
+                            <th className="p-4 font-semibold">Duration</th>
+                            <th className="p-4 font-semibold">Mode</th>
+                            <th className="p-4 font-semibold">Popular</th>
+                            <th className="p-4 font-semibold">Order</th>
+                            <th className="p-4 font-semibold text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800">
+                          {fees.map(fee => (
+                            <tr key={fee.id} className="hover:bg-slate-800/10 text-slate-300">
+                              <td className="p-4 font-semibold text-white">
+                                {fee.title}
+                                {fee.badge && (
+                                  <span className="ml-2 bg-azure/10 text-azure border border-azure/20 text-[8px] px-1.5 py-0.5 rounded font-mono uppercase tracking-wider">
+                                    {fee.badge}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="p-4 text-white font-medium">{fee.fees}</td>
+                              <td className="p-4 font-mono text-slate-400">Rs. {fee.raw_fees.toLocaleString()}</td>
+                              <td className="p-4 text-slate-400">{fee.duration}</td>
+                              <td className="p-4 text-slate-400">{fee.mode}</td>
+                              <td className="p-4">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-mono uppercase font-bold ${fee.popular ? "bg-amber-500/10 text-amber-500 border border-amber-500/20" : "bg-slate-800 text-slate-400 border border-slate-700/50"}`}>
+                                  {fee.popular ? "Yes" : "No"}
+                                </span>
+                              </td>
+                              <td className="p-4 font-mono text-slate-400">{fee.display_order}</td>
+                              <td className="p-4 text-right">
+                                <div className="inline-flex gap-2">
+                                  <button
+                                    onClick={() => {
+                                      setEditingFee(fee);
+                                      setFeeModalOpen(true);
+                                    }}
+                                    className="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded transition-all"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => deleteFee(fee.id)}
+                                    className="bg-red-950/20 hover:bg-red-950 border border-red-900/30 text-red-400 hover:text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded transition-all"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+
             </div>
           )}
         </main>
@@ -952,18 +1201,18 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
         </div>
       )}
 
-      {/* EVENT FORM DIALOG MODAL */}
-      {eventModalOpen && editingEvent && (
+      {/* LESSON FORM DIALOG MODAL */}
+      {lessonModalOpen && editingLesson && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm overflow-y-auto">
           <div className="bg-[#0A1124] border border-slate-800 rounded-xl w-full max-w-lg shadow-2xl overflow-hidden my-8 flex flex-col">
             <div className="bg-slate-900/80 px-6 py-4 border-b border-slate-800 flex justify-between items-center">
               <h3 className="font-display text-lg uppercase text-white">
-                {editingEvent.id ? "Edit Event Detail" : "Create New Event"}
+                {editingLesson.id ? "Edit Lesson Detail" : "Add New Lesson"}
               </h3>
               <button
                 onClick={() => {
-                  setEventModalOpen(false);
-                  setEditingEvent(null);
+                  setLessonModalOpen(false);
+                  setEditingLesson(null);
                 }}
                 className="text-slate-400 hover:text-white font-mono text-lg"
               >
@@ -971,56 +1220,17 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
               </button>
             </div>
             
-            <form onSubmit={saveEvent} className="p-6 space-y-4">
+            <form onSubmit={saveLesson} className="p-6 space-y-4">
               {/* Title */}
               <div className="grid gap-1">
-                <label className="font-mono text-[10px] uppercase tracking-widest text-slate-400">Event Title *</label>
+                <label className="font-mono text-[10px] uppercase tracking-widest text-slate-400">Lesson Title *</label>
                 <input
                   type="text"
                   required
-                  value={editingEvent.title || ""}
-                  onChange={e => setEditingEvent({ ...editingEvent, title: e.target.value })}
+                  value={editingLesson.title || ""}
+                  onChange={e => setEditingLesson({ ...editingLesson, title: e.target.value })}
                   className="w-full bg-[#060B18] border border-slate-800 focus:border-azure rounded p-2.5 text-sm text-white focus:outline-none"
-                  placeholder="e.g. Annual Spring recital 2026"
-                />
-              </div>
-
-              {/* Event Type */}
-              <div className="grid gap-1">
-                <label className="font-mono text-[10px] uppercase tracking-widest text-slate-400">Event Type *</label>
-                <select
-                  value={editingEvent.event_type || "Recital"}
-                  onChange={e => setEditingEvent({ ...editingEvent, event_type: e.target.value })}
-                  className="w-full bg-[#060B18] border border-slate-800 focus:border-azure rounded p-2.5 text-sm text-white focus:outline-none"
-                >
-                  <option value="Recital">Recital</option>
-                  <option value="Workshop">Workshop</option>
-                  <option value="Masterclass">Masterclass</option>
-                  <option value="Concert">Concert</option>
-                </select>
-              </div>
-
-              {/* Starts At */}
-              <div className="grid gap-1">
-                <label className="font-mono text-[10px] uppercase tracking-widest text-slate-400">Date & Time *</label>
-                <input
-                  type="datetime-local"
-                  required
-                  value={editingEvent.starts_at || ""}
-                  onChange={e => setEditingEvent({ ...editingEvent, starts_at: e.target.value })}
-                  className="w-full bg-[#060B18] border border-slate-800 focus:border-azure rounded p-2.5 text-sm text-white focus:outline-none"
-                />
-              </div>
-
-              {/* Location */}
-              <div className="grid gap-1">
-                <label className="font-mono text-[10px] uppercase tracking-widest text-slate-400">Location</label>
-                <input
-                  type="text"
-                  value={editingEvent.location || ""}
-                  onChange={e => setEditingEvent({ ...editingEvent, location: e.target.value })}
-                  className="w-full bg-[#060B18] border border-slate-800 focus:border-azure rounded p-2.5 text-sm text-white focus:outline-none"
-                  placeholder="e.g. Kamani Auditorium / Zoom Link"
+                  placeholder="e.g. Introduction to Scales"
                 />
               </div>
 
@@ -1029,22 +1239,45 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
                 <label className="font-mono text-[10px] uppercase tracking-widest text-slate-400">Description</label>
                 <textarea
                   rows={3}
-                  value={editingEvent.description || ""}
-                  onChange={e => setEditingEvent({ ...editingEvent, description: e.target.value })}
+                  value={editingLesson.description || ""}
+                  onChange={e => setEditingLesson({ ...editingLesson, description: e.target.value })}
                   className="w-full bg-[#060B18] border border-slate-800 focus:border-azure rounded p-2.5 text-sm text-white focus:outline-none"
-                  placeholder="Describe the event contents..."
+                  placeholder="Describe what is covered in this lesson..."
                 />
               </div>
 
-              {/* Image URL */}
+              {/* Video URL */}
               <div className="grid gap-1">
-                <label className="font-mono text-[10px] uppercase tracking-widest text-slate-400">Image URL</label>
+                <label className="font-mono text-[10px] uppercase tracking-widest text-slate-400">YouTube Video URL</label>
                 <input
                   type="text"
-                  value={editingEvent.image_url || ""}
-                  onChange={e => setEditingEvent({ ...editingEvent, image_url: e.target.value })}
+                  value={editingLesson.video_url || ""}
+                  onChange={e => setEditingLesson({ ...editingLesson, video_url: e.target.value })}
                   className="w-full bg-[#060B18] border border-slate-800 focus:border-azure rounded p-2.5 text-sm text-white focus:outline-none"
-                  placeholder="https://example.com/event.jpg"
+                  placeholder="e.g. https://www.youtube.com/watch?v=..."
+                />
+              </div>
+
+              {/* Resource Link URL */}
+              <div className="grid gap-1">
+                <label className="font-mono text-[10px] uppercase tracking-widest text-slate-400">Resource PDF / Sheet Music Link</label>
+                <input
+                  type="text"
+                  value={editingLesson.link_url || ""}
+                  onChange={e => setEditingLesson({ ...editingLesson, link_url: e.target.value })}
+                  className="w-full bg-[#060B18] border border-slate-800 focus:border-azure rounded p-2.5 text-sm text-white focus:outline-none"
+                  placeholder="e.g. Google Drive Link / PDF URL"
+                />
+              </div>
+
+              {/* Display Order */}
+              <div className="grid gap-1">
+                <label className="font-mono text-[10px] uppercase tracking-widest text-slate-400">Display Order</label>
+                <input
+                  type="number"
+                  value={editingLesson.display_order || 0}
+                  onChange={e => setEditingLesson({ ...editingLesson, display_order: Number(e.target.value) })}
+                  className="w-full bg-[#060B18] border border-slate-800 focus:border-azure rounded p-2.5 text-sm text-white focus:outline-none"
                 />
               </div>
 
@@ -1052,8 +1285,8 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
                 <button
                   type="button"
                   onClick={() => {
-                    setEventModalOpen(false);
-                    setEditingEvent(null);
+                    setLessonModalOpen(false);
+                    setEditingLesson(null);
                   }}
                   className="border border-slate-700 hover:bg-slate-800 text-slate-300 font-bold uppercase tracking-wider text-xs px-4 py-2 rounded-lg transition-all"
                 >
@@ -1063,7 +1296,182 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
                   type="submit"
                   className="bg-azure hover:bg-azure/90 text-white font-bold uppercase tracking-wider text-xs px-4 py-2 rounded-lg transition-all shadow-md"
                 >
-                  Save Event
+                  Save Lesson
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* FEE PACKAGE FORM DIALOG MODAL */}
+      {feeModalOpen && editingFee && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-[#0A1124] border border-slate-800 rounded-xl w-full max-w-lg shadow-2xl overflow-hidden my-8 flex flex-col">
+            <div className="bg-slate-900/80 px-6 py-4 border-b border-slate-800 flex justify-between items-center">
+              <h3 className="font-display text-lg uppercase text-white">
+                {editingFee.id ? "Edit Tuition Package" : "Create New Tuition Package"}
+              </h3>
+              <button
+                onClick={() => {
+                  setFeeModalOpen(false);
+                  setEditingFee(null);
+                }}
+                className="text-slate-400 hover:text-white font-mono text-lg"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <form onSubmit={saveFee} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+              {/* Title */}
+              <div className="grid gap-1">
+                <label className="font-mono text-[10px] uppercase tracking-widest text-slate-400">Package Title *</label>
+                <input
+                  type="text"
+                  required
+                  value={editingFee.title || ""}
+                  onChange={e => setEditingFee({ ...editingFee, title: e.target.value })}
+                  className="w-full bg-[#060B18] border border-slate-800 focus:border-azure rounded p-2.5 text-sm text-white focus:outline-none"
+                  placeholder="e.g. Level 1: Basic Three Months"
+                />
+              </div>
+
+              {/* Tagline */}
+              <div className="grid gap-1">
+                <label className="font-mono text-[10px] uppercase tracking-widest text-slate-400">Tagline</label>
+                <input
+                  type="text"
+                  value={editingFee.tagline || ""}
+                  onChange={e => setEditingFee({ ...editingFee, tagline: e.target.value })}
+                  className="w-full bg-[#060B18] border border-slate-800 focus:border-azure rounded p-2.5 text-sm text-white focus:outline-none"
+                  placeholder="e.g. Structured entry-level skill booster"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                {/* Total Fee Label */}
+                <div className="grid gap-1">
+                  <label className="font-mono text-[10px] uppercase tracking-widest text-slate-400">Total Fees (Display) *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingFee.fees || ""}
+                    onChange={e => setEditingFee({ ...editingFee, fees: e.target.value })}
+                    className="w-full bg-[#060B18] border border-slate-800 focus:border-azure rounded p-2.5 text-sm text-white focus:outline-none"
+                    placeholder="e.g. Rs. 12,000"
+                  />
+                </div>
+
+                {/* Raw Fees Number */}
+                <div className="grid gap-1">
+                  <label className="font-mono text-[10px] uppercase tracking-widest text-slate-400">Raw Fees (Number) *</label>
+                  <input
+                    type="number"
+                    required
+                    value={editingFee.raw_fees || 0}
+                    onChange={e => setEditingFee({ ...editingFee, raw_fees: Number(e.target.value) })}
+                    className="w-full bg-[#060B18] border border-slate-800 focus:border-azure rounded p-2.5 text-sm text-white focus:outline-none"
+                    placeholder="e.g. 12000"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                {/* Duration */}
+                <div className="grid gap-1">
+                  <label className="font-mono text-[10px] uppercase tracking-widest text-slate-400">Duration *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingFee.duration || ""}
+                    onChange={e => setEditingFee({ ...editingFee, duration: e.target.value })}
+                    className="w-full bg-[#060B18] border border-slate-800 focus:border-azure rounded p-2.5 text-sm text-white focus:outline-none"
+                    placeholder="e.g. 3 Months"
+                  />
+                </div>
+
+                {/* Mode */}
+                <div className="grid gap-1">
+                  <label className="font-mono text-[10px] uppercase tracking-widest text-slate-400">Study Mode *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingFee.mode || ""}
+                    onChange={e => setEditingFee({ ...editingFee, mode: e.target.value })}
+                    className="w-full bg-[#060B18] border border-slate-800 focus:border-azure rounded p-2.5 text-sm text-white focus:outline-none"
+                    placeholder="e.g. Hybrid / Offline"
+                  />
+                </div>
+              </div>
+
+              {/* Features List */}
+              <div className="grid gap-1">
+                <label className="font-mono text-[10px] uppercase tracking-widest text-slate-400">Package Features (One per line) *</label>
+                <textarea
+                  rows={4}
+                  required
+                  value={Array.isArray(editingFee.features) ? editingFee.features.join("\n") : editingFee.features || ""}
+                  onChange={e => setEditingFee({ ...editingFee, features: e.target.value.split("\n") })}
+                  className="w-full bg-[#060B18] border border-slate-800 focus:border-azure rounded p-2.5 text-sm text-white focus:outline-none font-sans"
+                  placeholder="1 class in a week (12 classes total)&#10;1 hour per class&#10;Classical Piano Beginner syllabus"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                {/* Popular Badge */}
+                <div className="grid gap-1">
+                  <label className="font-mono text-[10px] uppercase tracking-widest text-slate-400">Popular / Highlighted?</label>
+                  <select
+                    value={editingFee.popular ? "true" : "false"}
+                    onChange={e => setEditingFee({ ...editingFee, popular: e.target.value === "true" })}
+                    className="w-full bg-[#060B18] border border-slate-800 focus:border-azure rounded p-2.5 text-sm text-white focus:outline-none"
+                  >
+                    <option value="false">No</option>
+                    <option value="true">Yes</option>
+                  </select>
+                </div>
+
+                {/* Badge text */}
+                <div className="grid gap-1">
+                  <label className="font-mono text-[10px] uppercase tracking-widest text-slate-400">Badge Text</label>
+                  <input
+                    type="text"
+                    value={editingFee.badge || ""}
+                    onChange={e => setEditingFee({ ...editingFee, badge: e.target.value })}
+                    className="w-full bg-[#060B18] border border-slate-800 focus:border-azure rounded p-2.5 text-sm text-white focus:outline-none"
+                    placeholder="e.g. Best Value / Recommended"
+                  />
+                </div>
+              </div>
+
+              {/* Display Order */}
+              <div className="grid gap-1">
+                <label className="font-mono text-[10px] uppercase tracking-widest text-slate-400">Display Order</label>
+                <input
+                  type="number"
+                  value={editingFee.display_order || 0}
+                  onChange={e => setEditingFee({ ...editingFee, display_order: Number(e.target.value) })}
+                  className="w-full bg-[#060B18] border border-slate-800 focus:border-azure rounded p-2.5 text-sm text-white focus:outline-none"
+                />
+              </div>
+
+              <div className="pt-4 border-t border-slate-800 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFeeModalOpen(false);
+                    setEditingFee(null);
+                  }}
+                  className="border border-slate-700 hover:bg-slate-800 text-slate-300 font-bold uppercase tracking-wider text-xs px-4 py-2 rounded-lg transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-azure hover:bg-azure/90 text-white font-bold uppercase tracking-wider text-xs px-4 py-2 rounded-lg transition-all shadow-md"
+                >
+                  Save Fee Package
                 </button>
               </div>
             </form>
@@ -1124,6 +1532,8 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
           </div>
         </div>
       )}
+
+
     </div>
   );
 }

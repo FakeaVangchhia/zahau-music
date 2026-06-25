@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Award, BookOpen, Calendar, ClipboardList, LogOut } from "lucide-react";
+import { Award, BookOpen, Calendar, ClipboardList, LogOut, Video } from "lucide-react";
 import { AdminDashboard } from "@/components/admin/AdminDashboard";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -30,6 +30,7 @@ function Dashboard() {
   const [email, setEmail] = useState<string>("");
   const [role, setRole] = useState<string>("");
   const [loading, setLoading] = useState(true);
+  const [lessons, setLessons] = useState<any[]>([]);
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
@@ -42,6 +43,15 @@ function Dashboard() {
           .maybeSingle();
         if (roleData) {
           setRole(roleData.role);
+        }
+
+        // Fetch lessons dynamically
+        const { data: lessonsData } = await supabase
+          .from("lessons")
+          .select("*")
+          .order("display_order", { ascending: true });
+        if (lessonsData) {
+          setLessons(lessonsData);
         }
       }
       setLoading(false);
@@ -138,17 +148,45 @@ function Dashboard() {
           </div>
 
           <div className="space-y-6">
-            <Card title="Upcoming events" icon={<Calendar className="size-4" />}>
-              <ul className="divide-y divide-border/60">
-                {EVENTS.map((e) => (
-                  <li key={e.t} className="py-3.5 first:pt-0 last:pb-0">
-                    <div className="font-display text-base uppercase text-white">{e.t}</div>
-                    <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
-                      {e.w}
-                    </div>
-                  </li>
-                ))}
-              </ul>
+            <Card title="Course Lessons" icon={<Video className="size-4" />}>
+              {lessons.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-2">No lessons uploaded yet.</p>
+              ) : (
+                <ul className="divide-y divide-border/60">
+                  {lessons.map((lesson) => (
+                    <li key={lesson.id} className="py-4 first:pt-0 last:pb-0">
+                      <div className="font-display text-sm uppercase text-white font-semibold">{lesson.title}</div>
+                      {lesson.description && (
+                        <p className="text-xs text-muted-foreground mt-1 leading-relaxed font-light">{lesson.description}</p>
+                      )}
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {lesson.video_url && (
+                          <a
+                            href={lesson.video_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="bg-azure/10 hover:bg-azure text-azure hover:text-azure-foreground px-3 py-1.5 font-mono text-[9px] uppercase tracking-wider rounded-lg transition-all flex items-center gap-1 font-bold"
+                          >
+                            <span>Watch Video</span>
+                            <Video className="size-3" />
+                          </a>
+                        )}
+                        {lesson.link_url && (
+                          <a
+                            href={lesson.link_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="bg-emerald-500/10 hover:bg-emerald-500 text-emerald-400 hover:text-white px-3 py-1.5 font-mono text-[9px] uppercase tracking-wider rounded-lg transition-all flex items-center gap-1 font-bold"
+                          >
+                            <span>Open Resource</span>
+                            <ClipboardList className="size-3" />
+                          </a>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </Card>
             <Card title="Certificates" icon={<Award className="size-4" />}>
               {CERTS.length === 0 ? (

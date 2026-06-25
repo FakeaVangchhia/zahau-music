@@ -34,7 +34,8 @@
   --color-azure-foreground: var(--azure-foreground);
   --color-surface: var(--surface);
   --color-ink: var(--ink);
-  --font-display: "Anton", "Inter", sans-serif;
+  --font-display: "Outfit", "Inter", sans-serif;
+  --font-serif: "Playfair Display", Georgia, serif;
   --font-sans: "Inter", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
   
@@ -216,6 +217,77 @@
 }
 @utility animate-page-transition {
   animation: pageTransition 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@utility text-gradient-azure {
+  background: linear-gradient(135deg, var(--color-azure) 0%, oklch(0.6 0.2 250) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+@utility text-gradient-gold {
+  background: linear-gradient(135deg, oklch(0.76 0.11 75) 0%, oklch(0.60 0.13 65) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+@utility glowing-blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(120px);
+  opacity: 0.15;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(circle, var(--color-azure) 0%, transparent 70%);
+}
+
+@utility glowing-blob-gold {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(120px);
+  opacity: 0.08;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(circle, oklch(0.76 0.11 75) 0%, transparent 70%);
+}
+
+@utility border-gradient {
+  border: 1px solid transparent;
+  background-image: linear-gradient(var(--color-card), var(--color-card)), 
+                    linear-gradient(135deg, var(--color-border) 0%, var(--color-azure) 50%, var(--color-border) 100%);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+}
+
+@utility border-gradient-gold {
+  border: 1px solid transparent;
+  background-image: linear-gradient(var(--color-card), var(--color-card)), 
+                    linear-gradient(135deg, var(--color-border) 0%, oklch(0.76 0.11 75) 50%, var(--color-border) 100%);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+}
+
+@utility hover-glow {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  &:hover {
+    box-shadow: 0 0 25px -5px oklch(from var(--color-azure) l c h / 0.25);
+    border-color: var(--color-azure);
+  }
+}
+
+@utility hover-glow-gold {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  &:hover {
+    box-shadow: 0 0 25px -5px oklch(0.76 0.11 75 / 0.15);
+    border-color: oklch(0.76 0.11 75);
+  }
+}
+
+@utility glass-panel {
+  background: color-mix(in oklch, var(--color-background) 70%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid color-mix(in oklch, var(--color-border) 40%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {
