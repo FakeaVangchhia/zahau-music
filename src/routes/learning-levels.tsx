@@ -74,7 +74,7 @@ function Levels() {
                   {lv.focus.map((f) => (
                     <span
                       key={f}
-                      className="text-[10px] font-mono uppercase tracking-widest border border-border px-2 py-1"
+                      className="text-[10px] font-mono uppercase tracking-widest border border-border px-2.5 py-1 rounded-md"
                     >
                       {f}
                     </span>

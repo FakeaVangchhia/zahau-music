@@ -152,7 +152,7 @@ function FeesPage() {
     duration: p.duration,
     mode: p.mode,
     tagline: p.tagline,
-    features: Array.isArray(p.features) ? p.features : [],
+    features: (Array.isArray(p.features) ? p.features : []) as string[],
     popular: !!p.popular,
     badge: p.badge
   }));

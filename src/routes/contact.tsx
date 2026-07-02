@@ -60,10 +60,10 @@ function Contact() {
           
           <div className="glass-panel border border-border/60 p-8 rounded-2xl space-y-4 text-sm hover-glow">
             <a
-              href="tel:+911140506070"
+              href="tel:+916360777933"
               className="flex items-center gap-3 text-foreground/80 hover:text-azure transition-colors"
             >
-              <Phone className="size-4 text-azure" /> <span className="font-mono font-medium">+91 11 4050 6070</span>
+              <Phone className="size-4 text-azure" /> <span className="font-mono font-medium">+91 63607 77933</span>
             </a>
             <a
               href="mailto:hello@zahau.school"
@@ -72,12 +72,12 @@ function Contact() {
               <Mail className="size-4 text-azure" /> <span className="font-mono font-medium">hello@zahau.school</span>
             </a>
             <a
-              href="https://wa.me/919999999999"
+              href="https://wa.me/916360777933"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-3 text-foreground/80 hover:text-azure transition-colors"
             >
-              <MessageCircle className="size-4 text-azure" /> <span>WhatsApp</span>
+              <MessageCircle className="size-4 text-azure" /> <span>WhatsApp (+91 63607 77933)</span>
             </a>
             <a
               href="https://maps.google.com/?q=South+Extension+II+New+Delhi"

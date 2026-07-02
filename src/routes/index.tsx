@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getCourses } from "@/lib/site.functions";
 import heroPiano from "@/assets/hero-piano.jpg";
-import { ArrowRight, Star, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowRight, Star, ChevronLeft, ChevronRight, Play, Music, Guitar, Drum, Mic, BookOpen } from "lucide-react";
 import { LeadForm } from "@/components/site/lead-form";
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -42,6 +42,14 @@ function ScrollReveal({ children, className = "" }: { children: React.ReactNode;
   );
 }
 
+function getCourseIcon(slug: string) {
+  const s = slug.toLowerCase();
+  if (s.includes("guitar") || s.includes("bass")) return <Guitar className="size-5 text-azure" />;
+  if (s.includes("drum")) return <Drum className="size-5 text-azure" />;
+  if (s.includes("voice") || s.includes("sing")) return <Mic className="size-5 text-azure" />;
+  if (s.includes("theory") || s.includes("composition")) return <BookOpen className="size-5 text-azure" />;
+  return <Music className="size-5 text-azure" />;
+}
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -172,40 +180,46 @@ function Home() {
   const { data: courses } = useQuery({ queryKey: ["courses-home"], queryFn: () => fetchCourses() });
   const featured = (courses ?? []).slice(0, 6);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [session, setSession] = useState<any>(null);
+  const [playingVideos, setPlayingVideos] = useState<Record<string, boolean>>({});
+
 
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, align: "start" });
   const scrollPrev = () => emblaApi && emblaApi.scrollPrev();
   const scrollNext = () => emblaApi && emblaApi.scrollNext();
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        const { data } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", session.user.id)
-          .maybeSingle();
-        setIsAdmin(data?.role === "admin");
-      } else {
-        setIsAdmin(false);
-      }
-    });
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    }).catch(err => console.error("Supabase auth session fetch failed:", err));
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) {
-        const { data } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", session.user.id)
-          .maybeSingle();
-        setIsAdmin(data?.role === "admin");
-      } else {
-        setIsAdmin(false);
-      }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    async function checkAdmin() {
+      if (session?.user) {
+        try {
+          const { data } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", session.user.id)
+            .maybeSingle();
+          setIsAdmin(data?.role === "admin");
+        } catch (err) {
+          console.error("Failed to fetch user roles:", err);
+          setIsAdmin(false);
+        }
+      } else {
+        setIsAdmin(false);
+      }
+    }
+    checkAdmin();
+  }, [session]);
 
   return (
     <>
@@ -291,21 +305,132 @@ function Home() {
         </div>
       </section>
 
+      {/* Featured Videos / Showcases */}
+      <ScrollReveal className="py-28 px-6 max-w-7xl mx-auto relative">
+        <div className="glowing-blob top-1/2 left-10 w-[300px] h-[300px]" />
+        
+        <div className="flex justify-between items-end mb-16 flex-wrap gap-4 relative z-10">
+          <div>
+            <span className="font-mono text-xs text-azure uppercase tracking-widest font-bold">Featured Video Showcase</span>
+            <h2 className="mt-4 font-display text-5xl md:text-6xl font-extrabold uppercase leading-none tracking-tight">
+              Performances
+              <br />
+              <span className="font-serif italic text-azure normal-case font-light">in action</span>
+            </h2>
+          </div>
+          <p className="max-w-md text-sm text-muted-foreground leading-relaxed font-light">
+            Watch our talented students and world-class faculty bring music to life in recitals, spotlights, and studio sessions.
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-8 relative z-10">
+          {[
+            {
+              id: "xOGsqmNYMX0",
+              title: "Independence Day Recital",
+              category: "Recital Night",
+              duration: "3:45",
+              desc: "A special ensemble performance by our faculty and students celebrating musical heritage.",
+              tags: ["Ensemble", "Independence Day", "Faculty & Students"],
+            },
+            {
+              id: "aLJVYF-dcCk",
+              title: "\"Tum Jo Aaye\" Showcase",
+              category: "Student Spotlight",
+              duration: "4:12",
+              desc: "A beautiful acoustic live cover performed by our students at the Zahau studios.",
+              tags: ["Vocal", "Acoustic Guitar", "Student Spotlight"],
+            },
+            {
+              id: "nHCc4MmmNiQ",
+              title: "Faculty Jam & Improvisation",
+              category: "Faculty Session",
+              duration: "5:20",
+              desc: "Zahau faculty members demonstrating advanced improvisation and live-performance skills.",
+              tags: ["Improvisation", "Faculty Jam", "Jazz & Blues"],
+            },
+          ].map((v) => (
+            <article key={v.id} className="glass-panel border border-border/60 hover-glow p-6 rounded-3xl flex flex-col justify-between group h-full">
+              <div>
+                <div className="flex justify-between items-center mb-3">
+                  <span className="font-mono text-[9px] uppercase tracking-widest text-azure font-bold">
+                    {v.category}
+                  </span>
+                  <span className="font-mono text-[9px] text-slate-500 font-semibold">
+                    {v.duration}
+                  </span>
+                </div>
+                
+                <div className="overflow-hidden rounded-2xl border border-border/40 bg-slate-950 aspect-video shadow-lg relative group/video mb-6 cursor-pointer">
+                  {playingVideos[v.id] ? (
+                    <iframe
+                      src={`https://www.youtube.com/embed/${v.id}?autoplay=1`}
+                      title={v.title}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="w-full h-full border-0 relative z-10"
+                    />
+                  ) : (
+                    <button 
+                      onClick={() => setPlayingVideos(prev => ({ ...prev, [v.id]: true }))}
+                      className="absolute inset-0 size-full block border-none p-0 bg-transparent text-left focus:outline-none z-10 cursor-pointer"
+                    >
+                      <img
+                        src={`https://img.youtube.com/vi/${v.id}/hqdefault.jpg`}
+                        alt={v.title}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover/video:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-black/40 group-hover/video:bg-black/30 transition-colors duration-300" />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="size-14 rounded-full backdrop-blur-md bg-white/10 group-hover/video:bg-white/20 border border-white/25 group-hover/video:border-white/40 shadow-xl flex items-center justify-center transition-all duration-300 transform group-hover/video:scale-110">
+                          <Play className="size-5 fill-white text-white translate-x-0.5" />
+                        </div>
+                      </div>
+                    </button>
+                  )}
+                </div>
+                
+                <h3 className="font-display text-xl font-bold uppercase tracking-tight group-hover:text-azure transition-colors">
+                  {v.title}
+                </h3>
+                
+                <p className="mt-3 text-xs text-muted-foreground leading-relaxed font-light">
+                  {v.desc}
+                </p>
+
+                <div className="mt-4 flex flex-wrap gap-1.5 pt-4 border-t border-border/20">
+                  {v.tags.map((tag) => (
+                    <span key={tag} className="font-mono text-[8px] uppercase tracking-wider text-slate-400 border border-border/40 bg-card/20 px-2 py-0.5 rounded-md">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </ScrollReveal>
+
+
       {/* Stats */}
-      <section className="bg-gradient-to-r from-navy to-slate-900 text-white py-16 px-6 relative border-y border-white/5 overflow-hidden">
+      <section className="bg-gradient-to-b from-[#080d1a] to-navy text-white py-16 px-6 relative border-y border-white/5 overflow-hidden">
         {/* Subtle glow sphere */}
         <div className="glowing-blob-gold top-1/2 left-1/2 w-[300px] h-[300px] -translate-x-1/2 -translate-y-1/2" />
-        <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 relative z-10">
+        <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 relative z-10">
           {STATS.map((s) => (
-            <div key={s.l} className="animate-fade-in text-center md:text-left">
-              <div className="font-display text-5xl md:text-6xl font-black text-gradient-azure">{s.k}</div>
-              <div className="font-mono opacity-60 text-[9px] uppercase tracking-widest mt-2">
+            <div 
+              key={s.l} 
+              className="animate-fade-in text-center p-8 rounded-2xl glass-panel border border-white/5 hover:border-azure/20 hover:scale-[1.03] hover:shadow-2xl hover:shadow-azure/5 transition-all duration-300 group"
+            >
+              <div className="font-display text-5xl md:text-6xl font-black text-gradient-azure group-hover:scale-105 transition-transform duration-300">{s.k}</div>
+              <div className="font-mono opacity-60 text-[9px] uppercase tracking-widest mt-2 block text-white/70">
                 {s.l}
               </div>
             </div>
           ))}
         </div>
       </section>
+
 
       {/* Why */}
       <ScrollReveal className="py-28 px-6 max-w-7xl mx-auto relative">
@@ -368,18 +493,18 @@ function Home() {
                 key={c.id}
                 to="/curriculum/$slug"
                 params={{ slug: c.slug }}
-                className="group bg-card/40 dark:bg-card/25 border border-border/50 p-8 hover-glow rounded-2xl min-h-[240px] flex flex-col justify-between hover:-translate-y-1 transition-all duration-300"
+                className="group bg-card/45 dark:bg-card/20 border border-border/60 hover-glow p-8 rounded-3xl min-h-[260px] flex flex-col justify-between hover:-translate-y-1 transition-all duration-300"
               >
                 <div className="flex justify-between items-start">
-                  <span className="font-mono text-xs text-muted-foreground group-hover:text-azure transition-colors">
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
+                  <div className="p-3 rounded-xl bg-azure/10 text-azure group-hover:bg-azure group-hover:text-azure-foreground transition-all duration-300">
+                    {getCourseIcon(c.slug)}
+                  </div>
                   <div className="size-8 rounded-full border border-border flex items-center justify-center group-hover:border-azure group-hover:bg-azure/5 transition-all duration-300">
                     <ArrowRight className="size-3.5 text-muted-foreground group-hover:text-azure group-hover:translate-x-0.5 transition-all duration-300" />
                   </div>
                 </div>
                 <div>
-                  <h3 className="mt-12 font-display text-2xl font-bold uppercase tracking-tight group-hover:text-azure transition-colors">{c.name}</h3>
+                  <h3 className="mt-8 font-display text-2xl font-bold uppercase tracking-tight group-hover:text-azure transition-colors">{c.name}</h3>
                   <p className="mt-3 text-sm text-muted-foreground leading-relaxed line-clamp-2 font-light">{c.tagline}</p>
                 </div>
               </Link>
@@ -509,16 +634,23 @@ function Home() {
             <br />
             <span className="font-serif italic text-azure normal-case font-light">questions</span>
           </h2>
-          <div className="divide-y divide-border border-y border-border">
+          <div className="space-y-4">
             {FAQS.map(([q, a]) => (
-              <details key={q} className="group py-6">
-                <summary className="flex justify-between items-center cursor-pointer list-none focus:outline-none">
-                  <span className="font-display text-lg sm:text-xl font-bold uppercase tracking-tight group-hover:text-azure transition-colors pr-8">{q}</span>
+              <details 
+                key={q} 
+                className="group glass-panel border border-border/50 rounded-2xl p-6 hover:border-azure/30 transition-all duration-300 [&_summary::-webkit-details-marker]:hidden"
+              >
+                <summary className="flex justify-between items-center cursor-pointer list-none focus:outline-none select-none">
+                  <span className="font-display text-lg sm:text-xl font-bold uppercase tracking-tight group-hover:text-azure transition-colors pr-8 text-foreground">
+                    {q}
+                  </span>
                   <span className="font-mono text-2xl text-azure group-open:rotate-45 transition-transform duration-300 select-none">
                     +
                   </span>
                 </summary>
-                <p className="mt-4 text-muted-foreground leading-relaxed text-sm font-light max-w-3xl">{a}</p>
+                <p className="mt-4 text-muted-foreground leading-relaxed text-sm font-light max-w-3xl animate-slide-up">
+                  {a}
+                </p>
               </details>
             ))}
           </div>

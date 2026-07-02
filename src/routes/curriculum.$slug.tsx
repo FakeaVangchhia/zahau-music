@@ -3,6 +3,7 @@ import { getCourse } from "@/lib/site.functions";
 import { LeadForm } from "@/components/site/lead-form";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getVideoDetails } from "@/lib/utils";
 
 export const Route = createFileRoute("/curriculum/$slug")({
   loader: async ({ params }) => {
@@ -49,54 +50,49 @@ export const Route = createFileRoute("/curriculum/$slug")({
   ),
 });
 
-function getYouTubeEmbedUrl(url: string | null | undefined): string | null {
-  if (!url) return null;
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-  const match = url.match(regExp);
-  if (match && match[2].length === 11) {
-    return `https://www.youtube.com/embed/${match[2]}`;
-  }
-  return url;
-}
-
 function CoursePage() {
   const { course } = Route.useLoaderData();
   const c = course!;
+  const videoDetails = getVideoDetails(c.video_url);
   const curriculum = (Array.isArray(c.curriculum) ? c.curriculum : []) as {
     term: string;
     topics: string[];
   }[];
   const [isAdmin, setIsAdmin] = useState(false);
+  const [session, setSession] = useState<any>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        const { data } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", session.user.id)
-          .maybeSingle();
-        setIsAdmin(data?.role === "admin");
-      } else {
-        setIsAdmin(false);
-      }
-    });
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    }).catch(err => console.error("Supabase auth session fetch failed:", err));
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) {
-        const { data } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", session.user.id)
-          .maybeSingle();
-        setIsAdmin(data?.role === "admin");
-      } else {
-        setIsAdmin(false);
-      }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    async function checkAdmin() {
+      if (session?.user) {
+        try {
+          const { data } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", session.user.id)
+            .maybeSingle();
+          setIsAdmin(data?.role === "admin");
+        } catch (err) {
+          console.error("Failed to fetch user roles:", err);
+          setIsAdmin(false);
+        }
+      } else {
+        setIsAdmin(false);
+      }
+    }
+    checkAdmin();
+  }, [session]);
 
   return (
     <>
@@ -139,13 +135,21 @@ function CoursePage() {
 
           {c.video_url && (
             <div className="mt-10 overflow-hidden rounded-2xl border border-border/80 bg-card shadow-2xl aspect-video max-w-2xl hover:border-azure/60 transition-all duration-300">
-              <iframe
-                src={getYouTubeEmbedUrl(c.video_url) || ""}
-                title={`${c.name} course introduction`}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                className="w-full h-full border-0"
-              />
+              {videoDetails.type === "youtube" || videoDetails.type === "vimeo" ? (
+                <iframe
+                  src={videoDetails.embedUrl || ""}
+                  title={`${c.name} course introduction`}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="w-full h-full border-0"
+                />
+              ) : (
+                <video
+                  src={c.video_url}
+                  controls
+                  className="w-full h-full"
+                />
+              )}
             </div>
           )}
 

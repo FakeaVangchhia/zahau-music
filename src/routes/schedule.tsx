@@ -101,7 +101,7 @@ function WeeklySchedule() {
           {SCHEDULE_ITEMS.map((item) => (
             <div
               key={item.day}
-              className={`bg-[#0A1124]/40 border rounded-3xl p-8 flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 ${item.border} hover:shadow-[0_20px_50px_-10px_rgba(59,130,246,0.15)]`}
+              className="glass-panel border border-border/60 hover-glow rounded-3xl p-8 flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_50px_-10px_rgba(59,130,246,0.15)]"
             >
               <div>
                 <div className="flex justify-between items-start">
@@ -114,32 +114,32 @@ function WeeklySchedule() {
                     </span>
                   )}
                 </div>
-
-                <h3 className="mt-6 font-display text-3xl font-bold uppercase tracking-tight text-white">
+ 
+                <h3 className="mt-6 font-display text-3xl font-bold uppercase tracking-tight text-foreground">
                   {item.day} Class
                 </h3>
                 
                 <div className="mt-6 space-y-4">
                   {/* Time */}
-                  <div className="flex items-center gap-3 text-slate-300">
+                  <div className="flex items-center gap-3 text-foreground/80">
                     <Clock className="size-4 text-azure shrink-0" />
                     <span className="font-mono text-sm font-semibold">{item.time}</span>
                   </div>
-
+ 
                   {/* Instructor */}
-                  <div className="flex items-center gap-3 text-slate-300">
+                  <div className="flex items-center gap-3 text-foreground/80">
                     <User className="size-4 text-azure shrink-0" />
-                    <span className="text-sm font-light">Instructor: <strong className="text-white font-medium">{item.instructor}</strong></span>
+                    <span className="text-sm font-light">Instructor: <strong className="text-foreground font-medium">{item.instructor}</strong></span>
                   </div>
-
+ 
                   {/* Certificate */}
-                  <div className="flex items-center gap-3 text-slate-300">
+                  <div className="flex items-center gap-3 text-muted-foreground">
                     <ShieldAlert className="size-4 text-azure shrink-0" />
                     <span className="text-sm font-light italic">{item.certificate}</span>
                   </div>
                 </div>
               </div>
-
+ 
               <div className="mt-8 pt-6 border-t border-border/40 flex justify-between items-center">
                 <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
                   {item.online ? "Zoom Link Provided" : "Studio A / Campus"}
