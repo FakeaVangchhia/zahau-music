@@ -16,41 +16,55 @@ const NAV = [
 
 export function Header() {
   const [open, setOpen] = useState(false);
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const [theme, setTheme] = useState<"light" | "dark">("light");
   const [session, setSession] = useState<boolean>(false);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [rawSession, setRawSession] = useState<any>(null);
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(!!session);
-      if (session?.user) {
-        const { data } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", session.user.id)
-          .maybeSingle();
-        setIsAdmin(data?.role === "admin");
-      } else {
-        setIsAdmin(false);
-      }
-    });
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setRawSession(session);
       setSession(!!session);
-      if (session?.user) {
-        const { data } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", session.user.id)
-          .maybeSingle();
-        setIsAdmin(data?.role === "admin");
-      } else {
-        setIsAdmin(false);
-      }
+    }).catch(err => console.error("Supabase auth session fetch failed:", err));
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setRawSession(session);
+      setSession(!!session);
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    async function checkAdmin() {
+      if (rawSession?.user) {
+        try {
+          const { data } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", rawSession.user.id)
+            .maybeSingle();
+          setIsAdmin(data?.role === "admin");
+        } catch (err) {
+          console.error("Failed to fetch user roles:", err);
+          setIsAdmin(false);
+        }
+      } else {
+        setIsAdmin(false);
+      }
+    }
+    checkAdmin();
+  }, [rawSession]);
 
   useEffect(() => {
     let localTheme = null;
@@ -83,11 +97,27 @@ export function Header() {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 w-full px-4 sm:px-6 lg:px-8 py-4 pointer-events-none">
-      <div className="mx-auto max-w-7xl w-full glass-panel rounded-2xl px-6 py-3 flex items-center justify-between pointer-events-auto shadow-xl shadow-black/5 dark:shadow-black/30 border border-white/10 dark:border-white/5 transition-all duration-300">
+    <header className={`fixed top-0 left-0 right-0 z-50 w-full px-4 sm:px-6 lg:px-8 pointer-events-none transition-all duration-300 ${
+      scrolled ? "py-2" : "py-4"
+    }`}>
+      <div className={`mx-auto max-w-7xl w-full rounded-2xl flex items-center justify-between pointer-events-auto transition-all duration-300 ${
+        scrolled 
+          ? "glass-panel px-6 py-2 shadow-2xl shadow-black/5 dark:shadow-black/50 border border-border/60 dark:border-white/5 bg-background/80 dark:bg-card/40 backdrop-blur-lg" 
+          : "glass-panel px-6 py-3 shadow-xl shadow-black/5 dark:shadow-black/30 border border-border/40 dark:border-white/5"
+      }`}>
         <Link to="/" className="flex items-center gap-3 text-xl tracking-tighter uppercase text-foreground group">
+
           <img src={logo} alt="Zahau Logo" className="h-9 w-9 object-contain rounded-full border border-azure/20 shadow-md group-hover:rotate-12 group-hover:scale-105 transition-all duration-500" />
-          <span className="font-display font-extrabold tracking-tight">Zahau <span className="font-serif italic text-azure font-light normal-case text-lg tracking-normal">music</span></span>
+          <span className="font-display font-extrabold tracking-tight flex items-center gap-2">
+            Zahau 
+            <span className="font-serif italic text-azure font-light normal-case text-lg tracking-normal">music</span>
+            <span className="flex items-end gap-[3px] h-3 w-4 mb-0.5 opacity-80 shrink-0">
+              <span className="w-[2.5px] bg-azure music-visualizer-bar-1 rounded-full h-full block" />
+              <span className="w-[2.5px] bg-azure music-visualizer-bar-2 rounded-full h-full block" style={{ animationDelay: "0.15s" }} />
+              <span className="w-[2.5px] bg-azure music-visualizer-bar-3 rounded-full h-full block" style={{ animationDelay: "0.3s" }} />
+              <span className="w-[2.5px] bg-azure music-visualizer-bar-4 rounded-full h-full block" style={{ animationDelay: "0.05s" }} />
+            </span>
+          </span>
         </Link>
         <nav className="hidden md:flex gap-7 text-[11px] font-bold uppercase tracking-widest">
           {NAV.map((n) => (

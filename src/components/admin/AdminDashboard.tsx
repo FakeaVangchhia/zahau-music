@@ -23,6 +23,7 @@ import {
   Download
 } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
+import { getVideoDetails } from "@/lib/utils";
 
 type Course = Database["public"]["Tables"]["courses"]["Row"];
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
@@ -30,16 +31,6 @@ type Subscriber = Database["public"]["Tables"]["newsletter_subscribers"]["Row"];
 type Lesson = Database["public"]["Tables"]["lessons"]["Row"];
 type Fee = Database["public"]["Tables"]["fees"]["Row"];
 type Post = Database["public"]["Tables"]["posts"]["Row"];
-
-function getYouTubeEmbedUrl(url: string | null | undefined): string | null {
-  if (!url) return null;
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-  const match = url.match(regExp);
-  if (match && match[2].length === 11) {
-    return `https://www.youtube.com/embed/${match[2]}`;
-  }
-  return url;
-}
 
 export function AdminDashboard({ email, signOut }: { email: string; signOut: () => void }) {
   const [activeTab, setActiveTab] = useState<"overview" | "courses" | "lessons" | "fees" | "leads" | "subscribers" | "posts">("overview");
@@ -70,6 +61,65 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
   const [editingPost, setEditingPost] = useState<Partial<Post> | null>(null);
 
   const [leadDetail, setLeadDetail] = useState<Lead | null>(null);
+
+  // Storage Upload States
+  const [uploadingCourseVideo, setUploadingCourseVideo] = useState(false);
+  const [courseVideoProgress, setCourseVideoProgress] = useState(0);
+  const [uploadingLessonVideo, setUploadingLessonVideo] = useState(false);
+  const [lessonVideoProgress, setLessonVideoProgress] = useState(0);
+
+  // Video Upload Handler
+  async function handleVideoUpload(file: File, type: "course" | "lesson") {
+    if (!file) return;
+
+    const setUploading = type === "course" ? setUploadingCourseVideo : setUploadingLessonVideo;
+    const setProgress = type === "course" ? setCourseVideoProgress : setLessonVideoProgress;
+
+    setUploading(true);
+    setProgress(0);
+
+    try {
+      // Validate file size (e.g. max 100MB)
+      const maxBytes = 100 * 1024 * 1024;
+      if (file.size > maxBytes) {
+        throw new Error("File size exceeds the 100MB limit.");
+      }
+
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${type}-${Math.random().toString(36).substring(2, 15)}-${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { data, error } = await supabase.storage
+        .from("videos")
+        .upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: false,
+          onUploadProgress: (progress: any) => {
+            const percent = (progress.loaded / progress.total) * 100;
+            setProgress(Math.round(percent));
+          },
+        } as any);
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("videos")
+        .getPublicUrl(filePath);
+
+      if (type === "course") {
+        setEditingCourse(prev => prev ? { ...prev, video_url: publicUrl } : null);
+        toast.success("Course intro video uploaded successfully!");
+      } else {
+        setEditingLesson(prev => prev ? { ...prev, video_url: publicUrl } : null);
+        toast.success("Lesson video uploaded successfully!");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to upload video");
+    } finally {
+      setUploading(false);
+      setProgress(0);
+    }
+  }
 
   // Fetch all data on mount
   useEffect(() => {
@@ -584,15 +634,22 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
                             <h3 className="font-display text-xl uppercase mt-3 text-white leading-tight">{course.name}</h3>
                             <p className="text-slate-400 text-xs mt-2 line-clamp-2 leading-relaxed">{course.tagline || course.summary}</p>
                             
-                            {course.video_url && (
-                              <div className="mt-4 p-2 bg-[#060B18] border border-slate-800 rounded flex items-center gap-2 text-xs text-slate-300 font-mono">
-                                <Youtube className="size-4 text-red-500" />
-                                <span className="truncate flex-1">{course.video_url}</span>
-                                <a href={course.video_url} target="_blank" rel="noreferrer" className="text-slate-400 hover:text-white">
-                                  <ExternalLink className="size-3" />
-                                </a>
-                              </div>
-                            )}
+                            {course.video_url && (() => {
+                              const videoDetails = getVideoDetails(course.video_url);
+                              return (
+                                <div className="mt-4 p-2 bg-[#060B18] border border-slate-800 rounded flex items-center gap-2 text-xs text-slate-300 font-mono">
+                                  {videoDetails.type === "youtube" ? (
+                                    <Youtube className="size-4 text-red-500 shrink-0" />
+                                  ) : (
+                                    <Video className="size-4 text-azure shrink-0" />
+                                  )}
+                                  <span className="truncate flex-1">{course.video_url}</span>
+                                  <a href={course.video_url} target="_blank" rel="noreferrer" className="text-slate-400 hover:text-white shrink-0">
+                                    <ExternalLink className="size-3" />
+                                  </a>
+                                </div>
+                              );
+                            })()}
                           </div>
 
                           <div className="mt-6 pt-4 border-t border-slate-800 flex justify-between items-center gap-3">
@@ -1027,20 +1084,73 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
                   />
                 </div>
 
-                {/* Main Video URL (YouTube, Vimeo, etc.) */}
-                <div className="grid gap-2">
-                  <label className="font-mono text-[10px] uppercase tracking-widest text-slate-400 text-azure flex items-center gap-1.5">
-                    <Video className="size-3.5" />
-                    Video Link (YouTube/Vimeo Embed)
+                {/* Main Video URL (YouTube/Vimeo OR Upload) */}
+                <div className="grid gap-2 md:col-span-2 border border-slate-800/80 bg-slate-950/25 p-4 rounded-xl">
+                  <label className="font-mono text-[10px] uppercase tracking-widest text-azure flex items-center gap-1.5 font-bold">
+                    <Video className="size-4" />
+                    Course Intro Video
                   </label>
-                  <input
-                    type="text"
-                    value={editingCourse.video_url || ""}
-                    onChange={e => setEditingCourse({ ...editingCourse, video_url: e.target.value })}
-                    className="w-full bg-[#060B18] border border-slate-800 focus:border-azure rounded p-3 text-sm text-white focus:outline-none"
-                    placeholder="e.g. https://www.youtube.com/watch?v=..."
-                  />
-                  <p className="text-[10px] text-slate-500 font-mono mt-0.5">Supports regular YouTube links or direct embed URLs.</p>
+                  
+                  <div className="grid md:grid-cols-2 gap-4 mt-2">
+                    {/* Option A: Paste URL */}
+                    <div className="space-y-2">
+                      <span className="font-mono text-[9px] text-slate-400 block">OPTION A: PASTE VIDEO URL</span>
+                      <input
+                        type="text"
+                        value={editingCourse.video_url || ""}
+                        onChange={e => setEditingCourse({ ...editingCourse, video_url: e.target.value })}
+                        className="w-full bg-[#060B18] border border-slate-800 focus:border-azure rounded p-3 text-sm text-white focus:outline-none"
+                        placeholder="e.g. https://www.youtube.com/watch?v=..."
+                      />
+                      <p className="text-[9px] text-slate-500 font-mono">YouTube, Vimeo, or direct video file link.</p>
+                    </div>
+
+                    {/* Option B: Upload File */}
+                    <div className="space-y-2">
+                      <span className="font-mono text-[9px] text-slate-400 block">OPTION B: UPLOAD VIDEO FILE (MAX 100MB)</span>
+                      <div className="relative border border-dashed border-slate-800 rounded-lg p-3 flex flex-col items-center justify-center bg-[#060B18]/50 hover:bg-[#060B18] hover:border-azure/40 transition-all duration-300 min-h-[75px]">
+                        {uploadingCourseVideo ? (
+                          <div className="flex flex-col items-center py-2 space-y-2 w-full">
+                            <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                              <div className="bg-azure h-1.5 transition-all duration-300" style={{ width: `${courseVideoProgress}%` }} />
+                            </div>
+                            <span className="text-[10px] font-mono text-azure">Uploading: {courseVideoProgress}%</span>
+                          </div>
+                        ) : (
+                          <>
+                            <input
+                              type="file"
+                              accept="video/*"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (file) await handleVideoUpload(file, "course");
+                              }}
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            />
+                            <Plus className="size-4 text-slate-400 mb-1" />
+                            <span className="text-[11px] font-semibold text-slate-300">Select MP4/MOV Video</span>
+                            <span className="text-[9px] text-slate-500 font-mono mt-0.5">Drag & drop or click</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {editingCourse.video_url && (
+                    <div className="mt-2 text-xs bg-slate-900/50 p-2.5 rounded border border-slate-800 flex items-center justify-between">
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="font-mono text-[9px] text-azure font-bold border border-azure/20 bg-azure/5 px-1.5 py-0.5 rounded">Active URL</span>
+                        <span className="truncate font-mono text-slate-300 text-[11px]">{editingCourse.video_url}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setEditingCourse({ ...editingCourse, video_url: "" })}
+                        className="text-red-455 text-red-400 hover:text-red-300 text-xs px-2 font-mono font-bold"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Display Order */}
@@ -1246,16 +1356,72 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
                 />
               </div>
 
-              {/* Video URL */}
-              <div className="grid gap-1">
-                <label className="font-mono text-[10px] uppercase tracking-widest text-slate-400">YouTube Video URL</label>
-                <input
-                  type="text"
-                  value={editingLesson.video_url || ""}
-                  onChange={e => setEditingLesson({ ...editingLesson, video_url: e.target.value })}
-                  className="w-full bg-[#060B18] border border-slate-800 focus:border-azure rounded p-2.5 text-sm text-white focus:outline-none"
-                  placeholder="e.g. https://www.youtube.com/watch?v=..."
-                />
+              {/* Video URL (YouTube OR Upload) */}
+              <div className="grid gap-2 border border-slate-800/80 bg-slate-950/20 p-4 rounded-xl">
+                <label className="font-mono text-[10px] uppercase tracking-widest text-azure flex items-center gap-1.5 font-bold">
+                  <Video className="size-4" />
+                  Lesson Video
+                </label>
+                
+                <div className="grid gap-4 mt-1">
+                  {/* Option A: Paste URL */}
+                  <div className="space-y-1.5">
+                    <span className="font-mono text-[9px] text-slate-400 block">OPTION A: PASTE VIDEO URL</span>
+                    <input
+                      type="text"
+                      value={editingLesson.video_url || ""}
+                      onChange={e => setEditingLesson({ ...editingLesson, video_url: e.target.value })}
+                      className="w-full bg-[#060B18] border border-slate-800 focus:border-azure rounded p-2.5 text-sm text-white focus:outline-none"
+                      placeholder="e.g. https://www.youtube.com/watch?v=..."
+                    />
+                  </div>
+
+                  {/* Option B: Upload File */}
+                  <div className="space-y-1.5">
+                    <span className="font-mono text-[9px] text-slate-400 block">OPTION B: UPLOAD VIDEO FILE (MAX 100MB)</span>
+                    <div className="relative border border-dashed border-slate-800 rounded-lg p-3 flex flex-col items-center justify-center bg-[#060B18]/50 hover:bg-[#060B18] hover:border-azure/40 transition-all duration-300 min-h-[75px]">
+                      {uploadingLessonVideo ? (
+                        <div className="flex flex-col items-center py-2 space-y-2 w-full">
+                          <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                            <div className="bg-azure h-1.5 transition-all duration-300" style={{ width: `${lessonVideoProgress}%` }} />
+                          </div>
+                          <span className="text-[10px] font-mono text-azure">Uploading: {lessonVideoProgress}%</span>
+                        </div>
+                      ) : (
+                        <>
+                          <input
+                            type="file"
+                            accept="video/*"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (file) await handleVideoUpload(file, "lesson");
+                            }}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          />
+                          <Plus className="size-4 text-slate-400 mb-1" />
+                          <span className="text-[11px] font-semibold text-slate-300">Select MP4/MOV Video</span>
+                          <span className="text-[9px] text-slate-500 font-mono mt-0.5">Drag & drop or click</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                {editingLesson.video_url && (
+                  <div className="mt-2 text-xs bg-slate-900/50 p-2.5 rounded border border-slate-800 flex items-center justify-between">
+                    <div className="flex items-center gap-2 truncate">
+                      <span className="font-mono text-[9px] text-azure font-bold border border-azure/20 bg-azure/5 px-1.5 py-0.5 rounded">Active URL</span>
+                      <span className="truncate font-mono text-slate-300 text-[11px]">{editingLesson.video_url}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setEditingLesson({ ...editingLesson, video_url: "" })}
+                      className="text-red-400 hover:text-red-300 text-xs px-2 font-mono font-bold"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Resource Link URL */}

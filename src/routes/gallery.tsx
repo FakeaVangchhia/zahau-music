@@ -68,7 +68,7 @@ function Gallery() {
               setFilter(cat);
               setActiveIndex(null);
             }}
-            className={`px-4 py-2 font-mono text-[10px] uppercase tracking-widest border transition-all duration-200 cursor-pointer ${
+            className={`px-4 py-2 font-mono text-[10px] uppercase tracking-widest border transition-all duration-200 rounded-xl cursor-pointer ${
               filter === cat
                 ? "bg-azure text-azure-foreground border-azure"
                 : "border-border hover:border-azure/50 text-muted-foreground hover:text-foreground"

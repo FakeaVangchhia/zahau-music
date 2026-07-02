@@ -122,10 +122,10 @@ function RootShell({ children }: { children: ReactNode }) {
             __html: `
               (function() {
                 try {
-                  var theme = localStorage.getItem('theme') || 'dark';
+                  var theme = localStorage.getItem('theme') || 'light';
                   document.documentElement.className = theme;
                 } catch (e) {
-                  document.documentElement.className = 'dark';
+                  document.documentElement.className = 'light';
                 }
               })();
             `,
@@ -144,6 +144,7 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [session, setSession] = useState<any>(null);
   const router = useRouter();
   const pathname = router.state.location.pathname;
   const isPending = router.state.status === "pending";
@@ -153,34 +154,37 @@ function RootComponent() {
   }, [pathname]);
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        const { data } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", session.user.id)
-          .maybeSingle();
-        setIsAdmin(data?.role === "admin");
-      } else {
-        setIsAdmin(false);
-      }
-    });
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    }).catch(err => console.error("Supabase auth session fetch failed:", err));
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) {
-        const { data } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", session.user.id)
-          .maybeSingle();
-        setIsAdmin(data?.role === "admin");
-      } else {
-        setIsAdmin(false);
-      }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    async function checkAdmin() {
+      if (session?.user) {
+        try {
+          const { data } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", session.user.id)
+            .maybeSingle();
+          setIsAdmin(data?.role === "admin");
+        } catch (err) {
+          console.error("Failed to fetch user roles:", err);
+          setIsAdmin(false);
+        }
+      } else {
+        setIsAdmin(false);
+      }
+    }
+    checkAdmin();
+  }, [session]);
 
   const isDashboardRoute = pathname.startsWith("/dashboard");
   const hideLayout = isDashboardRoute && isAdmin;

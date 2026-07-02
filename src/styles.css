@@ -80,6 +80,7 @@
   --border: oklch(0.21 0.05 257 / 0.1);
   --input: oklch(0.21 0.05 257 / 0.15);
   --ring: var(--azure);
+  --grid-color: rgba(0, 0, 0, 0.04);
 }
 
 .dark {
@@ -108,6 +109,7 @@
   --border: oklch(1 0 0 / 0.1);
   --input: oklch(1 0 0 / 0.15);
   --ring: var(--azure);
+  --grid-color: rgba(255, 255, 255, 0.02);
 }
 
 @layer base {
@@ -121,6 +123,9 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
+    background-image: linear-gradient(to right, var(--grid-color) 1px, transparent 1px),
+                      linear-gradient(to bottom, var(--grid-color) 1px, transparent 1px);
+    background-size: 6rem 6rem;
   }
   ::selection {
     background: var(--color-azure);
@@ -136,6 +141,11 @@
   100% {
     transform: translateX(-50%);
   }
+}
+@utility grid-background {
+  background-image: linear-gradient(to right, var(--grid-color) 1px, transparent 1px),
+                    linear-gradient(to bottom, var(--grid-color) 1px, transparent 1px);
+  background-size: 4rem 4rem;
 }
 @utility animate-marquee {
   display: flex;
@@ -290,12 +300,46 @@
   border: 1px solid color-mix(in oklch, var(--color-border) 40%, transparent);
 }
 
+/* Music Visualizer Animations */
+@keyframes bounce-bar-1 {
+  0%, 100% { height: 20%; }
+  50% { height: 80%; }
+}
+@keyframes bounce-bar-2 {
+  0%, 100% { height: 35%; }
+  50% { height: 100%; }
+}
+@keyframes bounce-bar-3 {
+  0%, 100% { height: 15%; }
+  50% { height: 90%; }
+}
+@keyframes bounce-bar-4 {
+  0%, 100% { height: 45%; }
+  50% { height: 70%; }
+}
+@utility music-visualizer-bar-1 {
+  animation: bounce-bar-1 1s ease-in-out infinite;
+}
+@utility music-visualizer-bar-2 {
+  animation: bounce-bar-2 0.7s ease-in-out infinite;
+}
+@utility music-visualizer-bar-3 {
+  animation: bounce-bar-3 1.3s ease-in-out infinite;
+}
+@utility music-visualizer-bar-4 {
+  animation: bounce-bar-4 0.9s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-marquee,
   .animate-reveal,
   .animate-fade-in,
   .animate-slide-up,
-  .animate-page-transition {
+  .animate-page-transition,
+  .music-visualizer-bar-1,
+  .music-visualizer-bar-2,
+  .music-visualizer-bar-3,
+  .music-visualizer-bar-4 {
     animation: none !important;
   }
 }

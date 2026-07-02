@@ -259,3 +259,43 @@ ON CONFLICT (slug) DO NOTHING;
 INSERT INTO public.user_roles (user_id, role)
 SELECT id, 'admin'::app_role FROM auth.users WHERE email = 'henrysui7@gmail.com'
 ON CONFLICT (user_id, role) DO NOTHING;
+
+
+-- 5. STORAGE BUCKET & POLICIES SETUP
+-- Create 'videos' storage bucket if it doesn't exist
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('videos', 'videos', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Allow public read access to videos
+CREATE POLICY "Allow public read access to videos"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'videos');
+
+-- Allow admins to upload videos
+CREATE POLICY "Allow admin insert access to videos"
+ON storage.objects FOR INSERT
+TO authenticated
+WITH CHECK (
+  bucket_id = 'videos' AND
+  public.has_role(auth.uid(), 'admin'::public.app_role)
+);
+
+-- Allow admins to update videos
+CREATE POLICY "Allow admin update access to videos"
+ON storage.objects FOR UPDATE
+TO authenticated
+USING (
+  bucket_id = 'videos' AND
+  public.has_role(auth.uid(), 'admin'::public.app_role)
+);
+
+-- Allow admins to delete videos
+CREATE POLICY "Allow admin delete access to videos"
+ON storage.objects FOR DELETE
+TO authenticated
+USING (
+  bucket_id = 'videos' AND
+  public.has_role(auth.uid(), 'admin'::public.app_role)
+);
+
