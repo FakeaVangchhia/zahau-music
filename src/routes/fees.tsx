@@ -194,6 +194,9 @@ function FeesPage() {
         <div className="glowing-blob top-1/4 left-1/4 w-[500px] h-[500px] -translate-x-1/2 -translate-y-1/2" />
         <div className="glowing-blob-gold bottom-1/4 right-1/4 w-[400px] h-[400px]" />
         
+        {/* Bottom fade transition */}
+        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-background to-transparent pointer-events-none z-1" />
+        
         <div className="max-w-7xl mx-auto relative z-10">
           <span className="font-mono text-xs uppercase tracking-[0.3em] text-azure font-bold block mb-4">Pricing & Plans</span>
           <h1 className="font-display text-6xl sm:text-7xl md:text-8xl lg:text-9xl uppercase leading-none font-extrabold tracking-tight">
@@ -329,7 +332,7 @@ function FeesPage() {
             {/* Inputs */}
             <div className="space-y-6">
               <div>
-                <label className="block font-mono text-[9px] uppercase tracking-wider text-muted-foreground/80 font-bold mb-3">
+                <label className="block font-mono text-[11px] uppercase tracking-widest text-foreground/80 font-bold mb-3">
                   1. Select Study Track
                 </label>
                 <div className="grid grid-cols-1 gap-3">
@@ -357,7 +360,7 @@ function FeesPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block font-mono text-[9px] uppercase tracking-wider text-muted-foreground/80 font-bold mb-3">
+                  <label className="block font-mono text-[11px] uppercase tracking-widest text-foreground/80 font-bold mb-3">
                     2. Choose Instrument
                   </label>
                   <select
@@ -374,7 +377,7 @@ function FeesPage() {
                 </div>
 
                 <div>
-                  <label className="block font-mono text-[9px] uppercase tracking-wider text-muted-foreground/80 font-bold mb-3">
+                  <label className="block font-mono text-[11px] uppercase tracking-widest text-foreground/80 font-bold mb-3">
                     3. Choose Mode
                   </label>
                   <div className="flex bg-muted/60 dark:bg-card/20 p-1 rounded-xl border border-border/80">

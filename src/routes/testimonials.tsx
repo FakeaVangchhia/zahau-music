@@ -58,6 +58,9 @@ function T() {
         <div className="glowing-blob top-1/4 left-1/4 w-[500px] h-[500px] -translate-x-1/2 -translate-y-1/2" />
         <div className="glowing-blob-gold bottom-1/4 right-1/4 w-[400px] h-[400px]" />
         
+        {/* Bottom fade transition */}
+        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-background to-transparent pointer-events-none z-1" />
+        
         <div className="max-w-7xl mx-auto relative z-10">
           <span className="font-mono text-xs uppercase tracking-[0.3em] text-azure font-bold block mb-4">Voices</span>
           <h1 className="font-display text-6xl md:text-8xl uppercase leading-[0.9] font-extrabold tracking-tight">
