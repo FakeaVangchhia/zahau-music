@@ -122,10 +122,10 @@ function RootShell({ children }: { children: ReactNode }) {
             __html: `
               (function() {
                 try {
-                  var theme = localStorage.getItem('theme') || 'light';
+                  var theme = localStorage.getItem('theme') || 'dark';
                   document.documentElement.className = theme;
                 } catch (e) {
-                  document.documentElement.className = 'light';
+                  document.documentElement.className = 'dark';
                 }
               })();
             `,

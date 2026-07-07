@@ -120,7 +120,7 @@ function AuthPage() {
           <form onSubmit={onSubmit} className="grid gap-5">
             {mode === "signup" && (
               <div className="grid gap-1.5">
-                <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                <label className="font-mono text-[11px] uppercase tracking-widest text-foreground/80 font-bold">
                   Full name
                 </label>
                 <input
@@ -133,7 +133,7 @@ function AuthPage() {
               </div>
             )}
             <div className="grid gap-1.5">
-              <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              <label className="font-mono text-[11px] uppercase tracking-widest text-foreground/80 font-bold">
                 Email
               </label>
               <input
@@ -145,7 +145,7 @@ function AuthPage() {
               />
             </div>
             <div className="grid gap-1.5">
-              <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              <label className="font-mono text-[11px] uppercase tracking-widest text-foreground/80 font-bold">
                 Password
               </label>
               <div className="relative">

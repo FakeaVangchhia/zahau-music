@@ -7,11 +7,11 @@ import { Search, Music, Guitar, Drum, Mic, BookOpen } from "lucide-react";
 
 function getCourseIcon(slug: string) {
   const s = slug.toLowerCase();
-  if (s.includes("guitar") || s.includes("bass")) return <Guitar className="size-5 text-azure" />;
-  if (s.includes("drum")) return <Drum className="size-5 text-azure" />;
-  if (s.includes("voice") || s.includes("sing")) return <Mic className="size-5 text-azure" />;
-  if (s.includes("theory") || s.includes("composition")) return <BookOpen className="size-5 text-azure" />;
-  return <Music className="size-5 text-azure" />;
+  if (s.includes("guitar") || s.includes("bass")) return <Guitar className="size-5" />;
+  if (s.includes("drum")) return <Drum className="size-5" />;
+  if (s.includes("voice") || s.includes("sing")) return <Mic className="size-5" />;
+  if (s.includes("theory") || s.includes("composition")) return <BookOpen className="size-5" />;
+  return <Music className="size-5" />;
 }
 
 export const Route = createFileRoute("/curriculum/")({
@@ -62,6 +62,9 @@ function CurriculumIndex() {
         <div className="glowing-blob top-1/4 left-1/4 w-[500px] h-[500px] -translate-x-1/2 -translate-y-1/2" />
         <div className="glowing-blob-gold bottom-1/4 right-1/4 w-[400px] h-[400px]" />
         
+        {/* Bottom fade transition */}
+        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-background to-transparent pointer-events-none z-1" />
+        
         <div className="max-w-7xl mx-auto relative z-10">
           <span className="font-mono text-xs uppercase tracking-[0.3em] text-azure font-bold block mb-4">Curriculum</span>
           <h1 className="font-display text-6xl sm:text-7xl md:text-8xl lg:text-9xl uppercase leading-none font-extrabold tracking-tight">
@@ -95,7 +98,7 @@ function CurriculumIndex() {
             <button
               key={lvl}
               onClick={() => setSelectedLevel(lvl)}
-              className={`px-4 py-2.5 font-mono text-[9px] uppercase tracking-widest border transition-all duration-300 rounded-xl cursor-pointer ${
+              className={`px-4 py-2.5 font-mono text-[11px] uppercase tracking-widest border transition-all duration-300 rounded-xl cursor-pointer ${
                 selectedLevel === lvl
                   ? "bg-azure text-azure-foreground border-azure shadow-md shadow-azure/10"
                   : "border-border/80 hover:border-azure/50 text-muted-foreground hover:text-foreground"
@@ -138,7 +141,7 @@ function CurriculumIndex() {
                 {(c.levels ?? []).slice(0, 3).map((l: string) => (
                   <span
                     key={l}
-                    className="text-[8px] font-mono uppercase tracking-widest border border-border/80 text-muted-foreground px-2.5 py-1 rounded-md"
+                    className="text-[10px] font-mono uppercase tracking-widest border border-border text-muted-foreground px-2.5 py-1.5 rounded-md"
                   >
                     {l}
                   </span>

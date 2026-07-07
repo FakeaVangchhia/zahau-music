@@ -37,18 +37,18 @@ export function LeadForm({ source, courseInterest }: { source?: string; courseIn
       <div className="grid gap-2">
         <label
           htmlFor="name"
-          className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/80 font-semibold"
+          className="font-mono text-[11px] uppercase tracking-widest text-foreground/80 font-bold"
         >
           Full name
         </label>
         <div className="relative">
-          <User className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/70" />
+          <User className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/60" />
           <input
             id="name"
             name="name"
             required
             maxLength={120}
-            className="w-full border border-muted-foreground/30 bg-muted/70 focus:bg-background px-4 py-3 pl-10 text-sm rounded-lg focus:outline-none focus:border-azure focus:ring-4 focus:ring-azure/10 transition-all duration-200 placeholder:text-muted-foreground/60 text-foreground"
+            className="w-full border border-border bg-transparent focus:bg-card/25 px-4 py-3 pl-10 text-sm rounded-xl focus:outline-none focus:border-azure focus:ring-4 focus:ring-azure/10 transition-all duration-300 placeholder:text-muted-foreground/40 text-foreground"
             placeholder="John Doe"
           />
         </div>
@@ -57,19 +57,19 @@ export function LeadForm({ source, courseInterest }: { source?: string; courseIn
         <div className="flex-1 grid gap-2">
           <label
             htmlFor="email"
-            className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/80 font-semibold"
+            className="font-mono text-[11px] uppercase tracking-widest text-foreground/80 font-bold"
           >
             Email
           </label>
           <div className="relative">
-            <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/70" />
+            <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/60" />
             <input
               id="email"
               name="email"
               type="email"
               required
               maxLength={255}
-              className="w-full border border-muted-foreground/30 bg-muted/70 focus:bg-background px-4 py-3 pl-10 text-sm rounded-lg focus:outline-none focus:border-azure focus:ring-4 focus:ring-azure/10 transition-all duration-200 placeholder:text-muted-foreground/60 text-foreground"
+              className="w-full border border-border bg-transparent focus:bg-card/25 px-4 py-3 pl-10 text-sm rounded-xl focus:outline-none focus:border-azure focus:ring-4 focus:ring-azure/10 transition-all duration-300 placeholder:text-muted-foreground/40 text-foreground"
               placeholder="john@example.com"
             />
           </div>
@@ -77,18 +77,18 @@ export function LeadForm({ source, courseInterest }: { source?: string; courseIn
         <div className="flex-1 grid gap-2">
           <label
             htmlFor="phone"
-            className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/80 font-semibold"
+            className="font-mono text-[11px] uppercase tracking-widest text-foreground/80 font-bold"
           >
             Phone
           </label>
           <div className="relative">
-            <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/70" />
+            <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/60" />
             <input
               id="phone"
               name="phone"
               type="tel"
               maxLength={40}
-              className="w-full border border-muted-foreground/30 bg-muted/70 focus:bg-background px-4 py-3 pl-10 text-sm rounded-lg focus:outline-none focus:border-azure focus:ring-4 focus:ring-azure/10 transition-all duration-200 placeholder:text-muted-foreground/60 text-foreground"
+              className="w-full border border-border bg-transparent focus:bg-card/25 px-4 py-3 pl-10 text-sm rounded-xl focus:outline-none focus:border-azure focus:ring-4 focus:ring-azure/10 transition-all duration-300 placeholder:text-muted-foreground/40 text-foreground"
               placeholder="+91 99999 99999"
             />
           </div>
@@ -97,37 +97,37 @@ export function LeadForm({ source, courseInterest }: { source?: string; courseIn
       <div className="grid gap-2">
         <label
           htmlFor="course_interest"
-          className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/80 font-semibold"
+          className="font-mono text-[11px] uppercase tracking-widest text-foreground/80 font-bold"
         >
           Course of interest
         </label>
         <div className="relative">
-          <Music className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/70" />
+          <Music className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/60" />
           <input
             id="course_interest"
             name="course_interest"
             defaultValue={courseInterest}
             maxLength={80}
             placeholder="Piano, Guitar, Voice…"
-            className="w-full border border-muted-foreground/30 bg-muted/70 focus:bg-background px-4 py-3 pl-10 text-sm rounded-lg focus:outline-none focus:border-azure focus:ring-4 focus:ring-azure/10 transition-all duration-200 placeholder:text-muted-foreground/60 text-foreground"
+            className="w-full border border-border bg-transparent focus:bg-card/25 px-4 py-3 pl-10 text-sm rounded-xl focus:outline-none focus:border-azure focus:ring-4 focus:ring-azure/10 transition-all duration-300 placeholder:text-muted-foreground/40 text-foreground"
           />
         </div>
       </div>
       <div className="grid gap-2">
         <label
           htmlFor="message"
-          className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/80 font-semibold"
+          className="font-mono text-[11px] uppercase tracking-widest text-foreground/80 font-bold"
         >
           Message
         </label>
         <div className="relative">
-          <MessageSquare className="absolute left-3.5 top-4.5 size-4 text-muted-foreground/70" />
+          <MessageSquare className="absolute left-3.5 top-4.5 size-4 text-muted-foreground/60" />
           <textarea
             id="message"
             name="message"
             rows={4}
             maxLength={1500}
-            className="w-full border border-muted-foreground/30 bg-muted/70 focus:bg-background px-4 py-3 pl-10 text-sm rounded-lg focus:outline-none focus:border-azure focus:ring-4 focus:ring-azure/10 transition-all duration-200 placeholder:text-muted-foreground/60 text-foreground"
+            className="w-full border border-border bg-transparent focus:bg-card/25 px-4 py-3.5 pl-10 text-sm rounded-xl focus:outline-none focus:border-azure focus:ring-4 focus:ring-azure/10 transition-all duration-300 placeholder:text-muted-foreground/40 text-foreground"
             placeholder="Tell us about your musical goals..."
           />
         </div>
@@ -135,7 +135,7 @@ export function LeadForm({ source, courseInterest }: { source?: string; courseIn
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-gradient-to-r from-azure to-blue-600 hover:from-azure/95 hover:to-blue-600/95 text-azure-foreground px-8 py-4 font-bold uppercase tracking-wider text-sm rounded-lg transition-all duration-300 hover:shadow-[0_4px_20px_rgba(59,130,246,0.35)] hover:-translate-y-0.5 active:translate-y-0 active:shadow-none disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 cursor-pointer"
+        className="w-full bg-azure text-azure-foreground hover:bg-azure/90 px-8 py-4 font-mono font-bold uppercase tracking-widest text-xs rounded-xl transition-all duration-300 hover:shadow-[0_0_20px_rgba(212,175,55,0.2)] hover:-translate-y-0.5 active:translate-y-0 active:shadow-none disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 cursor-pointer"
       >
         <Send className="size-4" />
         {loading ? "Sending inquiry..." : "Send Inquiry"}

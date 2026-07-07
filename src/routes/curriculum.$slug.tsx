@@ -101,10 +101,13 @@ function CoursePage() {
         <div className="glowing-blob top-1/4 left-1/4 w-[500px] h-[500px] -translate-x-1/2 -translate-y-1/2" />
         <div className="glowing-blob-gold bottom-1/4 right-1/4 w-[400px] h-[400px]" />
         
+        {/* Bottom fade transition */}
+        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-background to-transparent pointer-events-none z-1" />
+        
         <div className="max-w-7xl mx-auto relative z-10">
           <Link
             to="/curriculum"
-            className="font-mono text-[10px] uppercase tracking-widest text-azure hover:text-white transition-colors"
+            className="font-mono text-[11px] uppercase tracking-widest text-[#d4af37] hover:text-white transition-colors"
           >
             ← Back to curriculum
           </Link>
@@ -129,7 +132,7 @@ function CoursePage() {
         <div className="glowing-blob top-1/2 right-10 w-[300px] h-[300px]" />
         
         <div className="relative z-10">
-          <span className="font-mono text-[9px] uppercase tracking-widest text-azure font-bold">Overview</span>
+          <span className="font-mono text-[11px] uppercase tracking-widest text-azure font-bold">Overview</span>
           <h2 className="mt-3 font-display text-4xl font-extrabold uppercase tracking-tight">About this course</h2>
           <p className="mt-6 text-base sm:text-lg text-muted-foreground leading-relaxed font-light">{c.summary}</p>
 
@@ -202,7 +205,7 @@ function CoursePage() {
 
         <aside className="space-y-8 relative z-10">
           <div className="glass-panel border border-border/60 p-8 rounded-2xl hover-glow">
-            <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground font-bold">
+            <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground font-bold">
               Duration
             </span>
             <p className="mt-3 font-display text-2xl font-bold uppercase tracking-tight text-gradient-azure">{c.duration}</p>
@@ -210,7 +213,7 @@ function CoursePage() {
           
           {c.certification && (
             <div className="glass-panel border border-border/60 p-8 rounded-2xl hover-glow">
-              <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground font-bold">
+              <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground font-bold">
                 Certification
               </span>
               <p className="mt-3 font-display text-2xl font-bold uppercase tracking-tight text-gradient-azure">{c.certification}</p>
@@ -218,14 +221,14 @@ function CoursePage() {
           )}
           
           {isAdmin ? (
-            <div className="glass-panel border border-azure/30 bg-azure/10 dark:bg-azure/5 p-8 rounded-2xl shadow-xl">
-              <h3 className="font-display text-2xl font-bold uppercase tracking-tight text-white">Console</h3>
-              <p className="mt-3 text-xs text-white/60 leading-relaxed font-light">
+            <div className="glass-panel border border-azure/40 bg-card p-8 rounded-2xl shadow-xl">
+              <h3 className="font-display text-2xl font-bold uppercase tracking-tight text-foreground">Console</h3>
+              <p className="mt-3 text-xs text-muted-foreground leading-relaxed font-light">
                 You are viewing this course details page as an administrator.
               </p>
               <Link
                 to="/dashboard"
-                className="mt-6 w-full text-center inline-block bg-azure text-white py-3.5 text-[10px] font-mono font-bold uppercase tracking-widest hover:bg-azure/80 shadow-md shadow-azure/10 transition-all rounded-xl cursor-pointer"
+                className="mt-6 w-full text-center inline-block bg-azure text-azure-foreground py-3.5 text-[10px] font-mono font-bold uppercase tracking-widest hover:bg-azure/80 shadow-md shadow-azure/10 transition-all rounded-xl cursor-pointer"
               >
                 Go to Console
               </Link>
