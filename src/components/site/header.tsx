@@ -5,12 +5,12 @@ import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/logo.png";
 
 const NAV = [
-  { to: "/curriculum", label: "Curriculum" },
-  { to: "/fees", label: "Fees" },
-  { to: "/about", label: "About" },
   { to: "/courses", label: "Courses" },
+  { to: "/fees", label: "Fees" },
+  { to: "/events", label: "Events" },
+  { to: "/about", label: "About" },
   { to: "/gallery", label: "Gallery" },
-  { to: "/schedule", label: "Weekly Schedule" },
+  { to: "/schedule", label: "Schedule" },
   { to: "/contact", label: "Contact" },
 ] as const;
 
@@ -70,58 +70,34 @@ export function Header() {
   }, [rawSession]);
 
   useEffect(() => {
-    let localTheme = null;
+    setTheme("light");
     try {
-      localTheme = localStorage.getItem("theme");
-    } catch (e) {
-      console.error("[ThemeToggle] Failed to read from localStorage:", e);
-    }
-    const isDark = localTheme ? localTheme === "dark" : document.documentElement.classList.contains("dark");
-    console.log("[ThemeToggle] Initial theme setup. isDark:", isDark);
-    setTheme(isDark ? "dark" : "light");
+      localStorage.setItem("theme", "light");
+    } catch (e) {}
+    document.documentElement.classList.remove("dark");
   }, []);
 
-  const toggleTheme = () => {
-    const nextTheme = theme === "dark" ? "light" : "dark";
-    console.log("[ThemeToggle] Toggling theme. Current:", theme, "Next:", nextTheme);
-    setTheme(nextTheme);
-    try {
-      localStorage.setItem("theme", nextTheme);
-    } catch (e) {
-      console.error("[ThemeToggle] Failed to write to localStorage:", e);
-    }
-    if (nextTheme === "dark") {
-      document.documentElement.classList.add("dark");
-      console.log("[ThemeToggle] Added 'dark' class to html element.");
-    } else {
-      document.documentElement.classList.remove("dark");
-      console.log("[ThemeToggle] Removed 'dark' class from html element.");
-    }
-  };
+  const toggleTheme = () => {};
 
-  const isTransparent = isHomePage && !scrolled;
+  const isTransparent = !scrolled;
 
   return (
-    <header className={`fixed top-0 left-0 right-0 z-50 w-full px-4 sm:px-6 lg:px-8 transition-all duration-300 border-b ${
-      isTransparent 
-        ? "bg-transparent border-transparent py-5" 
-        : "bg-background/85 backdrop-blur-md border-border/80 shadow-lg py-3"
+    <header className={`fixed top-0 left-0 right-0 z-50 w-full px-4 sm:px-6 lg:px-8 transition-all duration-500 border-b ${
+      scrolled 
+        ? "bg-background/85 backdrop-blur-md border-border/80 shadow-md py-3" 
+        : "bg-transparent border-transparent shadow-none py-5 sm:py-6"
     }`}>
       <div className="mx-auto max-w-7xl w-full flex items-center justify-between">
         <Link to="/" className="flex items-center gap-3 text-xl tracking-tighter uppercase group">
           <img src={logo} alt="Zahau Logo" className="h-9 w-9 object-contain rounded-full border border-azure/20 shadow-md group-hover:rotate-12 group-hover:scale-105 transition-all duration-500" />
-          <span className={`font-display font-extrabold tracking-tight flex items-center gap-2 ${
-            isTransparent ? "text-white" : "text-foreground"
-          }`}>
+          <span className="font-display font-extrabold tracking-tight flex items-center gap-2 text-foreground">
             Zahau 
-            <span className={`font-serif italic font-light normal-case text-lg tracking-normal ${
-              isTransparent ? "text-[#d4af37]" : "text-azure"
-            }`}>music</span>
+            <span className="font-serif italic font-light normal-case text-lg tracking-normal text-azure group-hover:text-indigo-600 transition-colors duration-300">music</span>
             <span className="flex items-end gap-[3px] h-3.5 w-4 mb-0.5 opacity-95 shrink-0">
-              <span className={`w-[2.5px] music-visualizer-bar-1 rounded-full h-full block ${isTransparent ? "bg-[#d4af37]" : "bg-azure"}`} />
-              <span className={`w-[2.5px] music-visualizer-bar-2 rounded-full h-full block ${isTransparent ? "bg-[#d4af37]" : "bg-azure"}`} style={{ animationDelay: "0.15s" }} />
-              <span className={`w-[2.5px] music-visualizer-bar-3 rounded-full h-full block ${isTransparent ? "bg-[#d4af37]" : "bg-azure"}`} style={{ animationDelay: "0.3s" }} />
-              <span className={`w-[2.5px] music-visualizer-bar-4 rounded-full h-full block ${isTransparent ? "bg-[#d4af37]" : "bg-azure"}`} style={{ animationDelay: "0.05s" }} />
+              <span className="w-[2.5px] music-visualizer-bar-1 rounded-full h-full block bg-azure group-hover:bg-indigo-600 transition-colors duration-300" />
+              <span className="w-[2.5px] music-visualizer-bar-2 rounded-full h-full block bg-azure group-hover:bg-indigo-600 transition-colors duration-300" style={{ animationDelay: "0.15s" }} />
+              <span className="w-[2.5px] music-visualizer-bar-3 rounded-full h-full block bg-azure group-hover:bg-indigo-600 transition-colors duration-300" style={{ animationDelay: "0.3s" }} />
+              <span className="w-[2.5px] music-visualizer-bar-4 rounded-full h-full block bg-azure group-hover:bg-indigo-600 transition-colors duration-300" style={{ animationDelay: "0.05s" }} />
             </span>
           </span>
         </Link>
@@ -130,9 +106,7 @@ export function Header() {
             <Link
               key={n.to}
               to={n.to}
-              className={`transition-all duration-200 relative py-1 ${
-                isTransparent ? "text-white/80 hover:text-white" : "text-foreground/80 hover:text-azure"
-              }`}
+              className="transition-all duration-200 relative py-1 text-foreground/80 hover:text-azure"
             >
               {({ isActive }) => (
                 <span className="flex flex-col items-center">
@@ -146,35 +120,14 @@ export function Header() {
           ))}
         </nav>
         <div className="flex items-center gap-2">
-          <button
-            onClick={toggleTheme}
-            className={`size-10 grid place-items-center rounded-xl transition-all duration-200 cursor-pointer ${
-              isTransparent ? "text-white/80 hover:bg-white/10 hover:text-white" : "text-foreground/80 hover:bg-muted hover:text-foreground"
-            }`}
-            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
-          >
-            {theme === "dark" ? (
-              <Sun className="size-5 text-yellow-500 animate-pulse" />
-            ) : (
-              <Moon className="size-5 text-azure" />
-            )}
-          </button>
           <Link
             to={session ? "/dashboard" : "/auth"}
-            className={`hidden sm:inline-flex px-6 py-2.5 text-[10px] font-mono font-bold uppercase tracking-widest transition-all duration-300 rounded-xl hover:scale-105 active:scale-95 cursor-pointer ${
-              session && isAdmin
-                ? "bg-azure text-azure-foreground hover:bg-azure/85 shadow-lg shadow-azure/20"
-                : isTransparent
-                  ? "bg-white/10 text-white border border-white/20 hover:bg-azure hover:text-azure-foreground hover:border-azure shadow-md"
-                  : "bg-navy text-navy-foreground hover:bg-azure hover:text-azure-foreground dark:bg-muted dark:text-foreground dark:hover:bg-azure dark:hover:text-azure-foreground shadow-md hover:shadow-lg"
-            }`}
+            className="hidden sm:inline-flex px-6 py-2.5 text-[10px] font-mono font-bold uppercase tracking-widest transition-all duration-300 rounded-xl hover:scale-105 active:scale-95 cursor-pointer bg-navy text-navy-foreground hover:bg-azure hover:text-azure-foreground shadow-md hover:shadow-lg"
           >
             {session ? (isAdmin ? "Admin Console" : "Dashboard") : "Login"}
           </Link>
           <button
-            className={`md:hidden size-10 grid place-items-center rounded-xl transition-colors ${
-              isTransparent ? "text-white hover:bg-white/15" : "text-foreground hover:bg-muted"
-            }`}
+            className="md:hidden size-10 grid place-items-center rounded-xl transition-colors text-foreground hover:bg-muted"
             aria-label="Toggle menu"
             onClick={() => setOpen((v) => !v)}
           >

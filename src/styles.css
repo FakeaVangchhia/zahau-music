@@ -53,64 +53,66 @@
 
 :root {
   --radius: 0.5rem;
-  /* Premium Brand Palette — Warm Ivory and Rich Charcoal */
-  --navy: oklch(0.18 0.02 45);
-  --navy-foreground: oklch(0.98 0.015 60);
-  --azure: oklch(0.42 0.09 72); /* Deeper bronze-gold for excellent light mode text and button contrast */
-  --azure-foreground: oklch(0.98 0.015 60);
-  --surface: oklch(0.97 0.01 60);
-  --ink: oklch(0.15 0.015 45);
+  /* Premium White Noise Palette — Soft Off-White and Crisp Charcoal with Electric Azure Accent */
+  --navy: oklch(0.965 0.004 240); /* Very soft white-noise light background instead of dark brown/black */
+  --navy-foreground: oklch(0.12 0.01 240); /* Crisp charcoal text for high readability */
+  --azure: oklch(0.52 0.18 250); /* Premium electric azure blue for excellent contrast and high visibility */
+  --azure-foreground: oklch(0.99 0.002 240); /* Pure white text on blue accent buttons */
+  --surface: oklch(0.985 0.002 240); /* Extremely clean light page background */
+  --ink: oklch(0.12 0.01 240); /* Crisp charcoal text */
 
   --background: var(--surface);
   --foreground: var(--ink);
-  --card: oklch(0.99 0.005 60);
+  --card: oklch(1.0 0 0); /* Pure white cards */
   --card-foreground: var(--ink);
-  --popover: oklch(0.99 0.005 60);
+  --popover: oklch(1.0 0 0);
   --popover-foreground: var(--ink);
   --primary: var(--navy);
   --primary-foreground: var(--navy-foreground);
-  --secondary: oklch(0.94 0.01 60);
+  --secondary: oklch(0.94 0.005 240); /* Light silver-grey */
   --secondary-foreground: var(--ink);
-  --muted: oklch(0.94 0.01 60);
-  --muted-foreground: oklch(0.35 0.015 45); /* Darker muted text for high-contrast readability */
+  --muted: oklch(0.94 0.005 240);
+  --muted-foreground: oklch(0.42 0.01 240); /* Mid-grey text for clear secondary labels */
   --accent: var(--azure);
   --accent-foreground: var(--azure-foreground);
-  --destructive: oklch(0.6 0.22 27);
-  --destructive-foreground: oklch(0.98 0.015 60);
-  --border: oklch(0.15 0.015 45 / 0.15); /* Sharper border visibility */
-  --input: oklch(0.15 0.015 45 / 0.2);
+  --destructive: oklch(0.58 0.18 28);
+  --destructive-foreground: oklch(0.99 0.002 240);
+  --border: oklch(0.12 0.01 240 / 0.08); /* Clean light borders */
+  --input: oklch(0.12 0.01 240 / 0.12);
   --ring: var(--azure);
-  --grid-color: rgba(24, 22, 21, 0.02);
+  --grid-color: rgba(0, 0, 0, 0.02); /* Soft grid lines */
 }
 
 .dark {
-  /* Premium dominant dark mode — Warm Charcoal and Brass Gold */
-  --navy: oklch(0.12 0.015 45);
-  --navy-foreground: oklch(0.95 0.015 60);
-  --azure: oklch(0.78 0.12 84);
-  --azure-foreground: oklch(0.12 0.015 45);
-  --surface: oklch(0.12 0.015 45);
-  --ink: oklch(0.95 0.015 60);
+  /* Enforce identical light mode properties so dark mode cannot trigger */
+  --radius: 0.5rem;
+  --navy: oklch(0.965 0.004 240);
+  --navy-foreground: oklch(0.12 0.01 240);
+  --azure: oklch(0.52 0.18 250);
+  --azure-foreground: oklch(0.99 0.002 240);
+  --surface: oklch(0.985 0.002 240);
+  --ink: oklch(0.12 0.01 240);
 
   --background: var(--surface);
   --foreground: var(--ink);
-  --card: oklch(0.15 0.02 45);
+  --card: oklch(1.0 0 0);
   --card-foreground: var(--ink);
-  --popover: oklch(0.15 0.02 45);
+  --popover: oklch(1.0 0 0);
   --popover-foreground: var(--ink);
   --primary: var(--navy);
   --primary-foreground: var(--navy-foreground);
-  --secondary: oklch(0.18 0.02 45);
+  --secondary: oklch(0.94 0.005 240);
   --secondary-foreground: var(--ink);
-  --muted: oklch(0.18 0.02 45);
-  --muted-foreground: oklch(0.78 0.015 50); /* Brighter muted text for dark mode details */
+  --muted: oklch(0.94 0.005 240);
+  --muted-foreground: oklch(0.42 0.01 240);
   --accent: var(--azure);
   --accent-foreground: var(--azure-foreground);
-  --destructive: oklch(0.7 0.19 22);
-  --border: oklch(1 0 0 / 0.15); /* Sharper border visibility */
-  --input: oklch(1 0 0 / 0.22);
+  --destructive: oklch(0.58 0.18 28);
+  --destructive-foreground: oklch(0.99 0.002 240);
+  --border: oklch(0.12 0.01 240 / 0.08);
+  --input: oklch(0.12 0.01 240 / 0.12);
   --ring: var(--azure);
-  --grid-color: rgba(255, 255, 255, 0.01);
+  --grid-color: rgba(0, 0, 0, 0.02);
 }
 
 @layer base {

@@ -8,7 +8,7 @@ export const Route = createFileRoute("/contact")({
       { title: "Contact — Zahau Music School" },
       {
         name: "description",
-        content: "Visit our Delhi campus, book a free trial class, or reach our admissions team.",
+        content: "Reach our admissions team and book a free trial online music session.",
       },
       { property: "og:url", content: "/contact" },
     ],
@@ -52,55 +52,56 @@ function Contact() {
           </div>
         </div>
         
-        <aside className="space-y-8 relative z-10">
-          <div className="glass-panel border border-border/60 p-8 rounded-2xl hover-glow">
-            <span className="font-mono text-[9px] uppercase tracking-widest text-azure font-bold">
-              Main Campus
-            </span>
-            <h3 className="mt-3 font-display text-2xl font-bold uppercase tracking-tight">South Extension II</h3>
-            <p className="mt-2 text-muted-foreground text-sm font-light">New Delhi, 110049, India</p>
-          </div>
-          
-          <div className="glass-panel border border-border/60 p-8 rounded-2xl space-y-4 text-sm hover-glow">
-            <a
-              href="tel:+916360777933"
-              className="flex items-center gap-3 text-foreground/80 hover:text-azure transition-colors"
-            >
-              <Phone className="size-4 text-azure" /> <span className="font-mono font-medium">+91 63607 77933</span>
-            </a>
-            <a
-              href="mailto:hello@zahau.school"
-              className="flex items-center gap-3 text-foreground/80 hover:text-azure transition-colors"
-            >
-              <Mail className="size-4 text-azure" /> <span className="font-mono font-medium">hello@zahau.school</span>
-            </a>
-            <a
-              href="https://wa.me/916360777933"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-3 text-foreground/80 hover:text-azure transition-colors"
-            >
-              <MessageCircle className="size-4 text-azure" /> <span>WhatsApp (+91 63607 77933)</span>
-            </a>
-            <a
-              href="https://maps.google.com/?q=South+Extension+II+New+Delhi"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-3 text-foreground/80 hover:text-azure transition-colors"
-            >
-              <MapPin className="size-4 text-azure" /> <span>Get directions</span>
-            </a>
-          </div>
-          
-          <div className="aspect-video w-full border border-border/80 overflow-hidden rounded-2xl shadow-xl hover:border-azure/60 transition-all duration-300">
-            <iframe
-              title="Zahau Music School location"
-              src="https://www.google.com/maps?q=South+Extension+II+New+Delhi&output=embed"
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              className="w-full h-full border-0"
-            />
-          </div>
+        <aside className="space-y-6 relative z-10">
+          <a
+            href="tel:+916360777933"
+            className="block glass-panel border border-border/60 p-6 rounded-2xl hover-glow hover:-translate-y-0.5 transition-all duration-300"
+          >
+            <div className="flex items-center gap-4">
+              <div className="size-10 rounded-xl bg-azure/10 text-azure flex items-center justify-center border border-azure/20 shrink-0">
+                <Phone className="size-5" />
+              </div>
+              <div>
+                <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground block font-bold">Admissions Hotline</span>
+                <span className="font-mono font-bold text-sm text-foreground group-hover:text-azure transition-colors block mt-1">+91 63607 77933</span>
+              </div>
+            </div>
+            <p className="mt-3 text-xs text-muted-foreground font-light">Available for calls Monday to Saturday, 10 AM – 6 PM IST.</p>
+          </a>
+
+          <a
+            href="mailto:hello@zahau.school"
+            className="block glass-panel border border-border/60 p-6 rounded-2xl hover-glow hover:-translate-y-0.5 transition-all duration-300"
+          >
+            <div className="flex items-center gap-4">
+              <div className="size-10 rounded-xl bg-azure/10 text-azure flex items-center justify-center border border-azure/20 shrink-0">
+                <Mail className="size-5" />
+              </div>
+              <div>
+                <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground block font-bold">Email Inquiries</span>
+                <span className="font-mono font-bold text-sm text-foreground group-hover:text-azure transition-colors block mt-1">hello@zahau.school</span>
+              </div>
+            </div>
+            <p className="mt-3 text-xs text-muted-foreground font-light">For admissions, support, and billing. Average response time: under 4 hours.</p>
+          </a>
+
+          <a
+            href="https://wa.me/916360777933"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block glass-panel border border-border/60 p-6 rounded-2xl hover-glow hover:-translate-y-0.5 transition-all duration-300"
+          >
+            <div className="flex items-center gap-4">
+              <div className="size-10 rounded-xl bg-emerald-500/10 text-emerald-550 flex items-center justify-center border border-emerald-500/20 shrink-0">
+                <MessageCircle className="size-5" />
+              </div>
+              <div>
+                <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground block font-bold">Instant Support</span>
+                <span className="font-sans font-bold text-sm text-foreground group-hover:text-azure transition-colors block mt-1">WhatsApp Chat</span>
+              </div>
+            </div>
+            <p className="mt-3 text-xs text-muted-foreground font-light">Chat instantly with our admissions team to book a trial class or discuss schedules.</p>
+          </a>
         </aside>
       </section>
     </>

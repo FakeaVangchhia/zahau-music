@@ -14,28 +14,28 @@ function getCourseIcon(slug: string) {
   return <Music className="size-5" />;
 }
 
-export const Route = createFileRoute("/curriculum/")({
+export const Route = createFileRoute("/courses/")({
   head: () => ({
     meta: [
-      { title: "Curriculum — Zahau Music School" },
+      { title: "Courses — Zahau Music School" },
       {
         name: "description",
         content:
-          "Piano, keyboard, guitar, bass, drums, violin, voice, and music theory. Beginner to performance certification.",
+          "Piano, Keyboard, Guitar (Ukulele, Classical & Electric), Drum, Vocal Performance (Hindustani, Carnatic, Western) and Music Theory. Beginner to diploma.",
       },
-      { property: "og:title", content: "Curriculum at Zahau Music School" },
+      { property: "og:title", content: "Courses at Zahau Music School" },
       {
         property: "og:description",
-        content: "Eight disciplines, every level, ABRSM and Trinity certifications.",
+        content: "Six disciplines, every level — including ABRSM and Trinity certifications.",
       },
-      { property: "og:url", content: "/curriculum" },
+      { property: "og:url", content: "/courses" },
     ],
-    links: [{ rel: "canonical", href: "/curriculum" }],
+    links: [{ rel: "canonical", href: "/courses" }],
   }),
-  component: CurriculumIndex,
+  component: CoursesIndex,
 });
 
-function CurriculumIndex() {
+function CoursesIndex() {
   const fetchCourses = useServerFn(getCourses);
   const { data, isLoading } = useQuery({
     queryKey: ["courses-all"],
@@ -66,16 +66,15 @@ function CurriculumIndex() {
         <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-background to-transparent pointer-events-none z-1" />
         
         <div className="max-w-7xl mx-auto relative z-10">
-          <span className="font-mono text-xs uppercase tracking-[0.3em] text-azure font-bold block mb-4">Curriculum</span>
+          <span className="font-mono text-xs uppercase tracking-[0.3em] text-azure font-bold block mb-4">Courses</span>
           <h1 className="font-display text-6xl sm:text-7xl md:text-8xl lg:text-9xl uppercase leading-none font-extrabold tracking-tight">
             Find your
             <br />
             <span className="font-serif italic text-azure normal-case font-light lowercase">instrument.</span>
           </h1>
-          <p className="mt-8 max-w-2xl text-lg text-white/70 leading-relaxed font-light">
-            Eight disciplines, four levels, one philosophy. Whether you're picking up your first
-            instrument or preparing for international certification, there's a path designed for
-            you.
+          <p className="mt-8 max-w-2xl text-lg text-navy-foreground/80 leading-relaxed font-light">
+            Six disciplines, every level, one philosophy. Piano, Keyboard, Guitar, Drums, Vocal and
+            Music Theory — from your very first lesson to professional diploma level.
           </p>
         </div>
       </section>
@@ -88,7 +87,7 @@ function CurriculumIndex() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search disciplines..."
-            aria-label="Search curriculum"
+            aria-label="Search courses"
             className="flex-1 bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground/60"
           />
         </div>
@@ -121,7 +120,7 @@ function CurriculumIndex() {
           {courses.map((c, i) => (
             <Link
               key={c.id}
-              to="/curriculum/$slug"
+              to="/courses/$slug"
               params={{ slug: c.slug }}
               className="group bg-card/45 dark:bg-card/20 border border-border/60 hover-glow p-8 rounded-3xl min-h-[280px] flex flex-col justify-between hover:-translate-y-1 transition-all duration-300"
             >

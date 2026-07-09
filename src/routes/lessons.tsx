@@ -2,28 +2,28 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getLessons } from "@/lib/site.functions";
-import { Video, ExternalLink, Download, FileText, Plus, Trash2 } from "lucide-react";
+import { Video, ExternalLink, FileText, Plus, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getVideoDetails } from "@/lib/utils";
 
-export const Route = createFileRoute("/courses")({
+export const Route = createFileRoute("/lessons")({
   head: () => ({
     meta: [
-      { title: "Recorded Courses & Lessons — Zahau Music School" },
+      { title: "Recorded Lessons — Zahau Music School" },
       {
         name: "description",
         content: "Access video lessons, learning resources, and sheet music uploaded by Zahau Music School faculty.",
       },
-      { property: "og:url", content: "/courses" },
+      { property: "og:url", content: "/lessons" },
     ],
-    links: [{ rel: "canonical", href: "/courses" }],
+    links: [{ rel: "canonical", href: "/lessons" }],
   }),
-  component: Courses,
+  component: Lessons,
 });
 
-function Courses() {
+function Lessons() {
   const fetchLessons = useServerFn(getLessons);
   const queryClient = useQueryClient();
   const { data, isLoading, isError } = useQuery({ 
@@ -96,7 +96,7 @@ function Courses() {
       const fileName = `lesson-${Math.random().toString(36).substring(2, 15)}-${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
 
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from("videos")
         .upload(filePath, file, {
           cacheControl: "3600",
@@ -151,22 +151,20 @@ function Courses() {
       setLinkUrl("");
       setDisplayOrder(lessons.length + 2);
       setShowUploadForm(false);
-
-      // Invalidate React Query cache to fetch updated lessons feed
       queryClient.invalidateQueries({ queryKey: ["lessons-all"] });
     } catch (err: any) {
-      toast.error(err.message || "Failed to create lesson");
+      toast.error(err.message || "Failed to publish lesson");
     } finally {
       setCreating(false);
     }
   }
 
   async function handleDeleteLesson(id: string) {
-    if (!confirm("Are you sure you want to delete this recorded lesson?")) return;
+    if (!confirm("Are you sure you want to delete this lesson?")) return;
     try {
       const { error } = await supabase.from("lessons").delete().eq("id", id);
       if (error) throw error;
-      toast.success("Recorded lesson deleted.");
+      toast.success("Lesson deleted successfully");
       queryClient.invalidateQueries({ queryKey: ["lessons-all"] });
     } catch (err: any) {
       toast.error(err.message || "Failed to delete lesson");
@@ -184,67 +182,66 @@ function Courses() {
         <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-background to-transparent pointer-events-none z-1" />
         
         <div className="max-w-7xl mx-auto relative z-10">
-          <span className="font-mono text-xs uppercase tracking-[0.3em] text-azure font-bold block mb-4">Video Portal</span>
+          <span className="font-mono text-xs uppercase tracking-[0.3em] text-azure font-bold block mb-4">Lessons</span>
           <h1 className="font-display text-6xl sm:text-7xl md:text-8xl lg:text-9xl uppercase leading-none font-extrabold tracking-tight">
             Recorded
             <br />
             <span className="font-serif italic text-azure normal-case font-light lowercase">lessons.</span>
           </h1>
-          <p className="mt-8 max-w-2xl text-white/70 text-lg font-light leading-relaxed">
-            Explore video materials, practice assignments, and supplementary downloads uploaded directly by your teachers.
+          <p className="mt-8 max-w-2xl text-lg text-navy-foreground/80 leading-relaxed font-light">
+            Premium step-by-step video courses and resources. Structured modules across disciplines.
           </p>
         </div>
       </section>
-      
-      <section className="py-24 px-6 max-w-7xl mx-auto relative">
-        <div className="glowing-blob top-1/2 right-10 w-[350px] h-[350px]" />
 
-        {/* Admin Inline Creation Console */}
+      <section className="py-20 px-6 max-w-7xl mx-auto relative">
+        <div className="glowing-blob top-1/2 left-1/2 w-[350px] h-[350px] -translate-x-1/2" />
+        
         {isAdmin && (
-          <div className="mb-12 glass-card p-6 sm:p-8 rounded-3xl border border-azure/20 relative z-20 animate-fade-in">
-            <div className="flex justify-between items-center flex-wrap gap-4 mb-6">
-              <div>
-                <span className="font-mono text-[9px] uppercase tracking-widest text-azure bg-azure/10 px-2 py-0.5 rounded font-bold">Admin Privileges</span>
-                <h2 className="font-display text-2xl uppercase tracking-tight text-white font-extrabold mt-1.5">Faculty Video Panel</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">Directly upload MP4/MOV files to Supabase Storage or paste external YouTube links.</p>
-              </div>
+          <div className="mb-12 relative z-20">
+            {!showUploadForm ? (
               <button
-                onClick={() => {
-                  setShowUploadForm(!showUploadForm);
-                  setDisplayOrder(lessons.length + 1);
-                }}
-                className="bg-azure hover:bg-azure/90 text-azure-foreground px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 shadow-md shadow-azure/20"
+                onClick={() => setShowUploadForm(true)}
+                className="bg-azure hover:bg-azure/90 text-white font-bold uppercase tracking-wider text-xs px-5 py-3.5 rounded-xl flex items-center gap-2 transition-all shadow-md shadow-azure/20 cursor-pointer"
               >
-                {showUploadForm ? "Close Panel" : "Add Recorded Video"}
-                <Plus className="size-4" />
+                <Plus className="size-4" /> Add Lesson Upload
               </button>
-            </div>
-
-            {showUploadForm && (
-              <form onSubmit={handleCreateLesson} className="grid md:grid-cols-2 gap-6 animate-slide-up">
-                {/* Title */}
-                <div className="grid gap-1.5">
-                  <label className="font-mono text-[10px] uppercase tracking-widest text-slate-400">Lesson Title *</label>
-                  <input
-                    type="text"
-                    required
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="bg-[#060B18] border border-border/80 focus:border-azure rounded-xl p-3 text-sm text-white focus:outline-none"
-                    placeholder="e.g. Introduction to Minor Keys"
-                  />
+            ) : (
+              <form onSubmit={handleCreateLesson} className="glass-panel border border-azure/30 p-8 rounded-3xl max-w-3xl space-y-6 animate-fadeIn">
+                <div className="flex justify-between items-center border-b border-border/40 pb-4">
+                  <h3 className="font-display text-xl uppercase text-white font-bold">New Lesson Resource</h3>
+                  <button
+                    type="button"
+                    onClick={() => setShowUploadForm(false)}
+                    className="text-slate-400 hover:text-white font-mono text-xs cursor-pointer"
+                  >
+                    Cancel
+                  </button>
                 </div>
 
-                {/* Display Order */}
-                <div className="grid gap-1.5">
-                  <label className="font-mono text-[10px] uppercase tracking-widest text-slate-400">Display Order</label>
-                  <input
-                    type="number"
-                    value={displayOrder}
-                    onChange={(e) => setDisplayOrder(Number(e.target.value))}
-                    className="bg-[#060B18] border border-border/80 focus:border-azure rounded-xl p-3 text-sm text-white focus:outline-none"
-                    placeholder="e.g. 1"
-                  />
+                <div className="grid md:grid-cols-2 gap-6">
+                  {/* Title */}
+                  <div className="grid gap-1.5">
+                    <label className="font-mono text-[10px] uppercase tracking-widest text-slate-400">Lesson Title</label>
+                    <input
+                      type="text"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      className="bg-[#060B18] border border-border/80 focus:border-azure rounded-xl p-3 text-sm text-white focus:outline-none"
+                      placeholder="e.g. Intermediate Guitar Fingerpicking Patterns"
+                    />
+                  </div>
+
+                  {/* Display Order */}
+                  <div className="grid gap-1.5">
+                    <label className="font-mono text-[10px] uppercase tracking-widest text-slate-400">Display Order</label>
+                    <input
+                      type="number"
+                      value={displayOrder}
+                      onChange={(e) => setDisplayOrder(Number(e.target.value))}
+                      className="bg-[#060B18] border border-border/80 focus:border-azure rounded-xl p-3 text-sm text-white focus:outline-none"
+                    />
+                  </div>
                 </div>
 
                 {/* Description */}
@@ -351,7 +348,7 @@ function Courses() {
         )}
         
         {isLoading && (
-          <p className="text-muted-foreground font-mono text-sm animate-pulse">Loading course lessons...</p>
+          <p className="text-muted-foreground font-mono text-sm animate-pulse">Loading lessons...</p>
         )}
 
         {isError && (

@@ -9,7 +9,7 @@ export const Route = createFileRoute("/about")({
       {
         name: "description",
         content:
-          "Founded by Henry Jahau, Zahau Music School is Delhi's premier music academy with fifteen years of conservatory-grade training.",
+          "Founded by Henry Jahau, Zahau Music School offers premier online conservatory-grade training.",
       },
       { property: "og:title", content: "About Zahau Music School" },
       {
@@ -42,9 +42,8 @@ function About() {
             <br />
             <span className="font-serif italic text-azure normal-case font-light lowercase">of mastery.</span>
           </h1>
-          <p className="mt-8 max-w-2xl text-lg text-white/70 leading-relaxed font-light">
-            Founded in Delhi by Henry Jahau, Zahau Music School has spent fifteen years building a
-            culture where serious craft and genuine joy live in the same room.
+          <p className="mt-8 max-w-2xl text-lg text-navy-foreground/80 leading-relaxed font-light">
+            Founded by Henry Jahau, Zahau Music School offers a dedicated online music platform where serious craft and genuine joy meet.
           </p>
         </div>
       </section>
@@ -172,7 +171,7 @@ function About() {
               to="/contact"
               className="bg-azure text-azure-foreground px-8 py-4 font-mono font-bold uppercase tracking-wider text-xs hover:bg-azure/85 transition-all duration-300 rounded-xl shadow-lg shadow-azure/20 hover:scale-105 active:scale-95 inline-block"
             >
-              Visit the academy
+              Get Started Online
             </Link>
           </div>
         </div>

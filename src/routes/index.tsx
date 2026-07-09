@@ -13,16 +13,14 @@ import { supabase } from "@/integrations/supabase/client";
 import useEmblaCarousel from "embla-carousel-react";
 
 const INSTRUMENTS = [
-  "Piano", "Keyboard", "Guitar", "Bass", "Drums", "Violin", "Voice", "Music Production", "Music Theory", "Songwriting & Composition"
+  "Piano", "Keyboard", "Guitar", "Ukulele", "Classical Guitar", "Electric Guitar", "Drum", "Vocal (Hindustani)", "Vocal (Carnatic)", "Vocal (Western)", "Music Theory"
 ];
 
 const COURSE_IMAGES: Record<string, string> = {
   piano: "https://images.unsplash.com/photo-1552422535-c45813c61732?auto=format&fit=crop&q=80&w=800",
   keyboard: "https://images.unsplash.com/photo-1598653222000-6b7b7a552625?auto=format&fit=crop&q=80&w=800",
   guitar: "https://images.unsplash.com/photo-1510915361894-db8b60106cb1?auto=format&fit=crop&q=80&w=800",
-  bass: "https://images.unsplash.com/photo-1445985543470-41fba5c3144a?auto=format&fit=crop&q=80&w=800",
   drums: "https://images.unsplash.com/photo-1524412513790-b57ceb2c6114?auto=format&fit=crop&q=80&w=800",
-  violin: "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?auto=format&fit=crop&q=80&w=800",
   voice: "https://images.unsplash.com/photo-1516280440614-37939bbacd6a?auto=format&fit=crop&q=80&w=800",
   "music-theory": "https://images.unsplash.com/photo-1507838153414-b4b713384a76?auto=format&fit=crop&q=80&w=800"
 };
@@ -164,16 +162,16 @@ function getCourseIcon(slug: string) {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Zahau Music School — Master the Art of Sound | Delhi" },
+      { title: "Zahau Music School — Master the Art of Sound" },
       {
         name: "description",
         content:
-          "Delhi's premier music academy. Piano, guitar, drums, violin, voice, and music production for all ages — beginner to performance.",
+          "Piano, Keyboard, Guitar, Drums, Vocal (Hindustani, Carnatic, Western) and Music Theory — from beginner to diploma level at Zahau Music School.",
       },
       { property: "og:title", content: "Zahau Music School — Master the Art of Sound" },
       {
         property: "og:description",
-        content: "Premier music education in Delhi. Online and offline. Founded by Henry Jahau.",
+        content: "Premier online music education. Founded by Henry Jahau.",
       },
       { property: "og:url", content: "/" },
       { property: "og:image", content: heroPiano },
@@ -230,17 +228,17 @@ const WHY = [
     t: "World-class faculty",
     d: "Performing musicians trained at Berklee, ABRSM, and top conservatories.",
   },
-  { t: "Performance-first", d: "Quarterly recitals build stage confidence from day one." },
-  { t: "Hybrid learning", d: "In-person studios plus live one-on-one online classes." },
+  { t: "Performance-first", d: "Quarterly virtual recitals build stage confidence from day one." },
+  { t: "Online-first learning", d: "Interactive live sessions plus structured digital resources." },
   { t: "Recognised certification", d: "ABRSM, Trinity, and Zahau performance certificates." },
 ];
 
 const JOURNEY = [
   ["Discover", "Audition and placement to find your perfect fit."],
   ["Learn", "Weekly one-on-one sessions with faculty masters."],
-  ["Practice", "Access to state-of-the-art practice studios."],
-  ["Perform", "Quarterly stage showcases and recital nights."],
-  ["Record", "Studio sessions to archive your progress."],
+  ["Practice", "Access to interactive digital workbooks & guides."],
+  ["Perform", "Quarterly stage showcases and virtual recital nights."],
+  ["Record", "Virtual performance reviews to archive your progress."],
   ["Graduate", "Certification recognised by international boards."],
 ];
 
@@ -336,15 +334,15 @@ function Home() {
       mouse.y = e.clientY - rect.top;
       mouse.active = true;
 
-      // Restrict spawning to 35% of mouse moves for professional yet clear density
-      if (Math.random() < 0.35) {
+      // Restrict spawning to 20% of mouse moves for professional yet clear density
+      if (Math.random() < 0.20) {
         particles.push({
           x: mouse.x,
           y: mouse.y,
           vx: (Math.random() - 0.5) * 1.6,
           vy: -Math.random() * 1.4 - 0.5, // Drift upwards
           alpha: 1.0, // Start fully clear and visible
-          size: Math.floor(Math.random() * 12) + 18, // Enlarged size range (18px to 30px)
+          size: Math.floor(Math.random() * 8) + 12, // Cleaner, smaller size range (12px to 20px)
           symbol: symbols[Math.floor(Math.random() * symbols.length)],
           rotation: Math.random() * Math.PI * 2,
           rotationSpeed: (Math.random() - 0.5) * 0.04
@@ -377,8 +375,24 @@ function Home() {
         ctx.save();
         ctx.translate(p.x, p.y);
         ctx.rotate(p.rotation);
-        // Beautiful semi-translucent gold accent matching the brand theme
-        ctx.fillStyle = `rgba(212, 175, 55, ${p.alpha})`;
+        
+        // Calculate proximity ratio (0 = far away/gold, 1 = close/electric azure)
+        let ratio = 0;
+        if (mouse.active) {
+          const dx = p.x - mouse.x;
+          const dy = p.y - mouse.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 100) {
+            ratio = 1 - dist / 100;
+          }
+        }
+        
+        // Interpolate between gold (212, 175, 55) and electric azure (0, 102, 204)
+        const r = Math.round(212 - (212 - 0) * ratio);
+        const g = Math.round(175 - (175 - 102) * ratio);
+        const b = Math.round(55 + (204 - 55) * ratio);
+
+        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${p.alpha})`;
         ctx.font = `${p.size}px serif`;
         ctx.fillText(p.symbol, 0, 0);
         ctx.restore();
@@ -445,28 +459,21 @@ function Home() {
           ref={canvasRef}
           className="absolute inset-0 size-full pointer-events-none z-[2]"
         />
-        <img
-          src={heroPiano}
-          alt="Grand piano under a single spotlight"
-          width={1920}
-          height={1280}
-          className="absolute inset-0 size-full object-cover opacity-20 mix-blend-luminosity scale-105"
-        />
-        {/* Cinematic dark gradients and radial spotlights */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(18,16,15,0.15)_0%,rgba(18,16,15,0.8)_60%,rgba(18,16,15,1)_100%)] z-1" />
+        {/* Soft light radial gradients and spotlights */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.1)_0%,rgba(248,249,250,0.6)_60%,rgba(244,244,245,0.95)_100%)] z-1" />
         
         {/* Subtle staff-line style backdrop grid */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:5rem_5rem] pointer-events-none" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.01)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.015)_1px,transparent_1px)] bg-[size:5rem_5rem] pointer-events-none" />
         
         {/* Ambient stage glows */}
         <div className="glowing-blob top-1/4 left-1/4 w-[600px] h-[600px] -translate-x-1/2 -translate-y-1/2" />
         <div className="glowing-blob-gold bottom-1/4 right-1/4 w-[400px] h-[400px]" />
 
         <div className="relative z-10 px-6 md:px-12 max-w-7xl mx-auto w-full">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass-panel border border-white/5 shadow-sm mb-8 animate-reveal" style={{ animationDelay: "100ms" }}>
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass-panel border border-border/10 shadow-sm mb-8 animate-reveal" style={{ animationDelay: "100ms" }}>
             <span className="size-2 rounded-full bg-azure animate-pulse" />
-            <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-white/95">
-              Delhi · Online · Global
+            <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-foreground/95">
+              Delhi · Online · India
             </span>
           </div>
           
@@ -476,7 +483,7 @@ function Home() {
             <span className="font-serif italic text-azure font-light normal-case tracking-normal lowercase">art of sound</span>
           </h1>
           
-          <p className="mt-8 max-w-xl text-base sm:text-lg leading-relaxed text-white/70 font-light animate-reveal" style={{ animationDelay: "200ms" }}>
+          <p className="mt-8 max-w-xl text-base sm:text-lg leading-relaxed text-foreground/80 font-light animate-reveal" style={{ animationDelay: "200ms" }}>
             Rigorous conservatory-level training meets contemporary performance. Join a sanctuary
             of musical craft and find your distinct voice.
           </p>
@@ -492,20 +499,15 @@ function Home() {
             ) : (
               <>
                 <Link
-                  to="/contact"
-                  className="bg-azure text-azure-foreground px-8 py-4 font-mono font-bold uppercase tracking-widest text-[10px] hover:bg-azure/90 transition-all duration-300 rounded-xl shadow-lg shadow-azure/25 hover:scale-105 active:scale-95 cursor-pointer"
+                  id="hero-book-demo-btn"
+                  to="/book-demo"
+                  className="bg-azure text-azure-foreground px-8 py-4 font-mono font-bold uppercase tracking-widest text-[10px] hover:bg-azure/90 transition-all duration-300 rounded-xl shadow-lg shadow-azure/25 hover:scale-105 active:scale-95 cursor-pointer text-center flex items-center justify-center"
                 >
-                  Book Free Consultation
+                  Book Demo
                 </Link>
                 <Link
-                  to="/auth"
-                  className="border-2 border-white/20 hover:border-azure text-white px-8 py-4 font-mono font-bold uppercase tracking-widest text-[10px] hover:bg-azure hover:text-azure-foreground transition-all duration-300 rounded-xl hover:scale-105 active:scale-95 shadow-md"
-                >
-                  Enroll Now
-                </Link>
-                <Link
-                  to="/curriculum"
-                  className="text-white/60 hover:text-white px-5 py-4 font-mono font-bold uppercase tracking-widest text-[10px] transition-all duration-200 flex items-center gap-1.5 group/btn"
+                  to="/courses"
+                  className="text-foreground/70 hover:text-azure px-5 py-4 font-mono font-bold uppercase tracking-widest text-[10px] transition-all duration-200 flex items-center gap-1.5 group/btn"
                 >
                   <span>Explore Courses</span>
                   <ArrowRight className="size-3.5 group-hover/btn:translate-x-1 transition-transform" />
@@ -517,12 +519,12 @@ function Home() {
       </section>
 
       {/* Infinite marquee of disciplines */}
-      <div className="w-full border-y border-border/20 bg-card/25 py-6 overflow-hidden marquee-mask backdrop-blur-sm relative z-10">
+      <div className="w-full border-y border-border/60 bg-card py-6 overflow-hidden marquee-mask relative z-10 shadow-sm">
         <div className="animate-marquee whitespace-nowrap gap-16 flex">
           {[...INSTRUMENTS, ...INSTRUMENTS].map((w, i) => (
-            <span key={i} className="font-display font-bold text-lg text-muted-foreground/35 uppercase tracking-[0.2em] mx-6 flex items-center gap-4">
+            <span key={i} className="font-display font-bold text-lg text-foreground/80 uppercase tracking-[0.2em] mx-6 flex items-center gap-4">
               <span>{w}</span>
-              <span className="text-azure/40 select-none">•</span>
+              <span className="text-azure/80 select-none">•</span>
             </span>
           ))}
         </div>
@@ -634,26 +636,6 @@ function Home() {
         </div>
       </ScrollReveal>
 
-      {/* Stats */}
-      <section className="bg-navy border-y border-white/5 py-16 px-6 relative overflow-hidden">
-        <div className="glowing-blob-gold top-1/2 left-1/2 w-[350px] h-[350px] -translate-x-1/2 -translate-y-1/2" />
-        <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-y-10 relative z-10 md:divide-x md:divide-white/10">
-          {STATS.map((s) => (
-            <div 
-              key={s.l} 
-              className="text-center px-6"
-            >
-              <div className="font-serif text-5xl md:text-6xl font-light text-azure tracking-tight">
-                <AnimatedCounter value={s.k} />
-              </div>
-              <div className="font-mono text-[9px] uppercase tracking-[0.2em] mt-3 text-white/50 block">
-                {s.l}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* Why */}
       <ScrollReveal className="py-28 px-6 max-w-7xl mx-auto relative">
         <div className="glowing-blob top-1/3 right-10 w-[300px] h-[300px]" />
@@ -721,7 +703,7 @@ function Home() {
               </h2>
             </div>
             <Link
-              to="/curriculum"
+              to="/courses"
               className="font-mono text-[10px] uppercase tracking-widest text-azure hover:text-foreground inline-flex items-center gap-2 border-b border-azure/30 pb-1 hover:border-foreground transition-all duration-300 font-bold"
             >
               View all courses <ArrowRight className="size-4" />
@@ -734,7 +716,7 @@ function Home() {
               return (
                 <Link
                   key={c.id}
-                  to="/curriculum/$slug"
+                  to="/courses/$slug"
                   params={{ slug: c.slug }}
                   className="group relative min-h-[380px] rounded-3xl overflow-hidden border border-white/10 hover:border-azure flex flex-col justify-end p-8 transition-all duration-500 hover:shadow-[0_0_30px_rgba(212,175,55,0.12)] hover:-translate-y-1.5"
                 >
@@ -763,7 +745,7 @@ function Home() {
                         {c.tagline}
                       </p>
                       <span className="inline-flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-widest text-azure mt-4 font-bold border-b border-azure/30 pb-0.5 group-hover:border-azure transition-all duration-300">
-                        Explore Curriculum <ArrowRight className="size-3" />
+                        Explore Course <ArrowRight className="size-3" />
                       </span>
                     </div>
                   </div>
@@ -775,18 +757,18 @@ function Home() {
       </ScrollReveal>
 
       {/* Journey */}
-      <section className="bg-navy border-y border-white/5 py-28 px-6 relative overflow-hidden">
+      <section className="bg-navy border-y border-border/40 py-28 px-6 relative overflow-hidden">
         <div className="glowing-blob top-1/4 left-1/3 w-[500px] h-[500px]" />
         
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-16 relative z-10">
           <div className="lg:w-1/4">
             <span className="font-mono text-xs text-azure uppercase tracking-[0.2em] font-bold">The Pathway</span>
-            <h2 className="mt-4 font-display text-5xl md:text-6xl font-extrabold uppercase leading-none tracking-tight text-white">
+            <h2 className="mt-4 font-display text-5xl md:text-6xl font-extrabold uppercase leading-none tracking-tight text-foreground">
               The Zahau
               <br />
               <span className="font-serif italic text-azure normal-case font-light">journey</span>
             </h2>
-            <p className="mt-6 text-white/50 text-sm leading-relaxed font-light">
+            <p className="mt-6 text-muted-foreground text-sm leading-relaxed font-light">
               Our pedagogical framework takes you from initial curiosity to professional mastery —
               six deliberate steps.
             </p>
@@ -795,18 +777,18 @@ function Home() {
           <div className="lg:w-3/4 flex flex-col justify-center">
             {/* Desktop Horizontal Timeline */}
             <div className="hidden md:block relative w-full pt-4">
-              <div className="absolute top-[28px] left-[32px] right-[32px] h-[1px] bg-white/10 z-0 pointer-events-none" />
+              <div className="absolute top-[28px] left-[32px] right-[32px] h-[1px] bg-border/80 z-0 pointer-events-none" />
               
               <div className="grid grid-cols-6 gap-4 relative z-10">
                 {JOURNEY.map(([title, desc], i) => (
                   <div key={title} className="flex flex-col items-center text-center group">
-                    <div className="size-8 rounded-full bg-navy border border-white/20 flex items-center justify-center text-[10px] font-mono font-bold text-azure group-hover:border-azure group-hover:bg-azure group-hover:text-azure-foreground transition-all duration-300 shadow-md">
+                    <div className="size-8 rounded-full bg-card border border-border flex items-center justify-center text-[10px] font-mono font-bold text-azure group-hover:border-azure group-hover:bg-azure group-hover:text-azure-foreground transition-all duration-300 shadow-md">
                       {String(i + 1).padStart(2, "0")}
                     </div>
-                    <h4 className="font-display font-bold text-sm text-white mt-5 uppercase tracking-wider group-hover:text-azure transition-colors duration-300">
+                    <h4 className="font-display font-bold text-sm text-foreground mt-5 uppercase tracking-wider group-hover:text-azure transition-colors duration-300">
                       {title}
                     </h4>
-                    <p className="text-[11px] text-white/40 mt-2 leading-relaxed font-light px-1">
+                    <p className="text-[11px] text-muted-foreground mt-2 leading-relaxed font-light px-1">
                       {desc}
                     </p>
                   </div>
@@ -815,16 +797,16 @@ function Home() {
             </div>
             
             {/* Mobile Vertical Timeline */}
-            <div className="md:hidden relative pl-6 border-l border-white/10 space-y-10">
+            <div className="md:hidden relative pl-6 border-l border-border/80 space-y-10">
               {JOURNEY.map(([title, desc], i) => (
                 <div key={title} className="relative group">
-                  <div className="absolute -left-[31px] top-1.5 size-4 rounded-full bg-navy border border-azure/40 flex items-center justify-center text-[8px] font-mono font-bold text-azure group-hover:bg-azure group-hover:text-azure-foreground transition-all duration-300">
+                  <div className="absolute -left-[31px] top-1.5 size-4 rounded-full bg-card border border-azure/40 flex items-center justify-center text-[8px] font-mono font-bold text-azure group-hover:bg-azure group-hover:text-azure-foreground transition-all duration-300">
                     {String(i + 1).padStart(2, "0")}
                   </div>
-                  <h4 className="font-display font-bold text-base text-white uppercase tracking-wide group-hover:text-azure transition-colors">
+                  <h4 className="font-display font-bold text-base text-foreground uppercase tracking-wide group-hover:text-azure transition-colors">
                     {title}
                   </h4>
-                  <p className="text-xs text-white/50 mt-2 leading-relaxed font-light">
+                  <p className="text-xs text-muted-foreground mt-2 leading-relaxed font-light">
                     {desc}
                   </p>
                 </div>

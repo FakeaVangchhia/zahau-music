@@ -1,4 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { Video, UserCheck, CalendarClock, ClipboardList, MonitorPlay, Music, Globe, Award } from "lucide-react";
+
+const CARDS = [
+  { t: "Live classes", d: "Real-time video with screen-share and split-camera.", icon: Video },
+  { t: "1-on-1 mentorship", d: "A single faculty member stays with you across terms.", icon: UserCheck },
+  { t: "Flexible scheduling", d: "Reschedule up to two classes per term, no questions asked.", icon: CalendarClock },
+  { t: "Interactive assignments", d: "Weekly play-along tasks and recording uploads.", icon: ClipboardList },
+  { t: "Progress dashboard", d: "Track time, repertoire, theory milestones, and recordings.", icon: MonitorPlay },
+  { t: "Studio sessions", d: "Visit Delhi twice a year for a recording weekend (optional).", icon: Music },
+  { t: "Global recitals", d: "Quarterly online recitals streamed to family and friends.", icon: Globe },
+  { t: "International certification", d: "Sit ABRSM and Trinity exams from your home city.", icon: Award },
+];
 
 export const Route = createFileRoute("/online")({
   head: () => ({
@@ -34,7 +46,7 @@ function Online() {
             <br />
             <span className="font-serif italic text-azure normal-case font-light lowercase">anywhere.</span>
           </h1>
-          <p className="mt-8 max-w-2xl text-white/70 text-lg font-light leading-relaxed">
+          <p className="mt-8 max-w-2xl text-navy-foreground/80 text-lg font-light leading-relaxed">
             The same Zahau curriculum, delivered live one-on-one — with a student dashboard that
             keeps you on track.
           </p>
@@ -51,24 +63,23 @@ function Online() {
         <div className="glowing-blob top-1/2 left-1/2 w-[350px] h-[350px] -translate-x-1/2" />
         
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
-          {[
-            ["Live classes", "Real-time video with screen-share and split-camera."],
-            ["1-on-1 mentorship", "A single faculty member stays with you across terms."],
-            ["Flexible scheduling", "Reschedule up to two classes per term, no questions asked."],
-            ["Interactive assignments", "Weekly play-along tasks and recording uploads."],
-            ["Progress dashboard", "Track time, repertoire, theory milestones, and recordings."],
-            ["Studio sessions", "Visit Delhi twice a year for a recording weekend (optional)."],
-            ["Global recitals", "Quarterly online recitals streamed to family and friends."],
-            ["International certification", "Sit ABRSM and Trinity exams from your home city."],
-          ].map(([t, d], i) => (
-            <div key={t} className="glass-panel border border-border/60 hover-glow p-8 rounded-2xl flex flex-col justify-between group">
-              <div>
-                <span className="font-mono text-xs text-azure font-bold">0{i + 1}</span>
-                <h3 className="mt-6 font-display text-xl font-bold uppercase tracking-tight group-hover:text-azure transition-colors">{t}</h3>
+          {CARDS.map((card, i) => {
+            const Icon = card.icon;
+            return (
+              <div key={card.t} className="glass-panel border border-border/60 hover-glow p-8 rounded-2xl flex flex-col justify-between group min-h-[250px] transition-all duration-300">
+                <div>
+                  <div className="flex justify-between items-center">
+                    <span className="font-mono text-xs text-azure font-bold">0{i + 1}</span>
+                    <div className="size-8 rounded-lg bg-azure/10 text-azure flex items-center justify-center border border-azure/20 group-hover:bg-azure group-hover:text-azure-foreground transition-all duration-350 shrink-0">
+                      <Icon className="size-4" />
+                    </div>
+                  </div>
+                  <h3 className="font-display text-xl font-bold uppercase tracking-tight group-hover:text-azure transition-colors duration-300 mt-6">{card.t}</h3>
+                </div>
+                <p className="mt-3 text-sm text-muted-foreground leading-relaxed font-light">{card.d}</p>
               </div>
-              <p className="mt-3 text-sm text-muted-foreground leading-relaxed font-light">{d}</p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
     </>

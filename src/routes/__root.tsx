@@ -71,11 +71,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Zahau Music School — Delhi's Premier Music Academy" },
+      { title: "Zahau Music School — Premier Online Music Academy" },
       {
         name: "description",
         content:
-          "Learn piano, guitar, drums, violin, voice, and music production with world-class faculty at Zahau Music School in Delhi. Online and in-person.",
+          "Piano, Keyboard, Guitar (Ukulele, Classical, Electric), Drum, Vocal Performance (Hindustani, Carnatic, Western) and Music Theory at Zahau Music School.",
       },
       { name: "author", content: "Zahau Music School" },
       { property: "og:site_name", content: "Zahau Music School" },
@@ -101,7 +101,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           name: "Zahau Music School",
           url: "/",
           founder: { "@type": "Person", name: "Henry Jahau" },
-          address: { "@type": "PostalAddress", addressLocality: "Delhi", addressCountry: "IN" },
           sameAs: [],
         }),
       },
@@ -122,10 +121,10 @@ function RootShell({ children }: { children: ReactNode }) {
             __html: `
               (function() {
                 try {
-                  var theme = localStorage.getItem('theme') || 'dark';
-                  document.documentElement.className = theme;
+                  localStorage.setItem('theme', 'light');
+                  document.documentElement.className = 'light';
                 } catch (e) {
-                  document.documentElement.className = 'dark';
+                  document.documentElement.className = 'light';
                 }
               })();
             `,
@@ -186,8 +185,7 @@ function RootComponent() {
     checkAdmin();
   }, [session]);
 
-  const isDashboardRoute = pathname.startsWith("/dashboard");
-  const hideLayout = isDashboardRoute && isAdmin;
+  const hideLayout = false;
 
   return (
     <QueryClientProvider client={queryClient}>

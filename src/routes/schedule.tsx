@@ -19,43 +19,43 @@ export const Route = createFileRoute("/schedule")({
 const SCHEDULE_ITEMS = [
   {
     day: "Monday",
-    time: "4:00 PM - 5:00 PM",
+    time: "2:00 PM - 4:00 PM",
     certificate: "Without Base Certificate",
     instructor: "Dr. Henery",
-    online: false,
+    online: true,
     color: "from-blue-600/20 to-blue-800/5",
     border: "border-blue-500/20 hover:border-blue-500/40"
   },
   {
     day: "Tuesday",
-    time: "4:00 PM - 5:00 PM",
+    time: "2:00 PM - 4:00 PM",
     certificate: "Without Base Certificate",
     instructor: "Dr. Henery",
-    online: false,
+    online: true,
     color: "from-emerald-600/20 to-emerald-800/5",
     border: "border-emerald-500/20 hover:border-emerald-500/40"
   },
   {
     day: "Wednesday",
-    time: "4:00 PM - 5:00 PM",
+    time: "2:00 PM - 4:00 PM",
     certificate: "Without Base Certificate",
     instructor: "Dr. Henery",
-    online: false,
+    online: true,
     color: "from-purple-600/20 to-purple-800/5",
     border: "border-purple-500/20 hover:border-purple-500/40"
   },
   {
     day: "Thursday",
-    time: "4:00 PM - 5:00 PM",
+    time: "2:00 PM - 4:00 PM",
     certificate: "Without Base Certificate",
     instructor: "Dr. Henery",
-    online: false,
+    online: true,
     color: "from-indigo-600/20 to-indigo-800/5",
     border: "border-indigo-500/20 hover:border-indigo-500/40"
   },
   {
     day: "Friday",
-    time: "4:00 PM - 5:00 PM",
+    time: "2:00 PM - 4:00 PM",
     certificate: "Without Base Certificate - Online",
     instructor: "Dr. Henery",
     online: true,
@@ -64,10 +64,10 @@ const SCHEDULE_ITEMS = [
   },
   {
     day: "Saturday",
-    time: "4:00 PM - 5:00 PM",
+    time: "12:00 PM - 3:00 PM",
     certificate: "Without Base Certificate",
     instructor: "Dr. Henery",
-    online: false,
+    online: true,
     color: "from-pink-600/20 to-pink-800/5",
     border: "border-pink-500/20 hover:border-pink-500/40"
   }
@@ -91,7 +91,7 @@ function WeeklySchedule() {
             <br />
             <span className="font-serif italic text-azure normal-case font-light lowercase">schedule.</span>
           </h1>
-          <p className="mt-8 max-w-2xl text-white/70 text-lg font-light leading-relaxed">
+          <p className="mt-8 max-w-2xl text-navy-foreground/80 text-lg font-light leading-relaxed">
             Lecture timetable and session scheduling under Dr. Henery. Plan your week and secure your class timings.
           </p>
         </div>
@@ -145,7 +145,7 @@ function WeeklySchedule() {
  
               <div className="mt-8 pt-6 border-t border-border/40 flex justify-between items-center">
                 <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
-                  {item.online ? "Zoom Link Provided" : "Studio A / Campus"}
+                  Zoom Link Provided
                 </span>
                 <span className="size-2 rounded-full bg-azure animate-pulse" />
               </div>

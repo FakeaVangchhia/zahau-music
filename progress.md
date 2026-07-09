@@ -85,12 +85,12 @@ zahau-music/
         ├── __root.tsx                # App shell layout containing navigation and query context
         ├── index.tsx                 # Homepage
         ├── auth.tsx                  # Login and account registration page
-        ├── curriculum.index.tsx      # Curriculum catalog listing courses
-        ├── curriculum.$slug.tsx      # Course details page (includes intro video & curriculum breakdown)
+        ├── courses.index.tsx         # Courses catalog listing courses
+        ├── courses.$slug.tsx         # Course details page (includes intro video & syllabus breakdown)
         ├── online.tsx                # Online lessons info page
         ├── about.tsx                 # About us page
         ├── gallery.tsx               # Photo gallery page
-        ├── courses.tsx               # Lessons/videos listing page (replaces events.tsx)
+        ├── lessons.tsx               # Lessons/videos listing page (replaces events.tsx)
         ├── testimonials.tsx          # Testimonials page
         ├── contact.tsx               # Contact page (Lead Form)
         ├── fees.tsx                  # Fees structure page (with dynamic admin management)
@@ -119,7 +119,7 @@ zahau-music/
 - [x] Seed initial 8 courses details into the database
 
 ### 🏁 Phase 3: Site Layout & Basic Routing
-- [x] Create site structure and core pages (Home, About, Curriculum, Gallery, Courses, Weekly Schedule, Contact, Fees)
+- [x] Create site structure and core pages (Home, About, Courses, Gallery, Lessons, Weekly Schedule, Contact, Fees)
 - [x] Create layout shell (`__root.tsx`) with global Header, Footer, and WhatsApp FAB
 - [x] Build forms for user interaction:
   - `LeadForm` for consultation bookings (submits to `leads` table via Server Function)
@@ -151,7 +151,7 @@ zahau-music/
 ### 🏁 Phase 7: Video Support & Enhancements
 - [x] Create database migration `20260613194500_add_video_url_to_courses.sql` adding `video_url` column to courses
 - [x] Create YouTube URL parser utility to extract video IDs and generate secure embed URLs (`https://www.youtube.com/embed/...`)
-- [x] Update Course Details page (`/curriculum/$slug`) to dynamically display YouTube player if a `video_url` is configured for that course
+- [x] Update Course Details page (`/courses/$slug`) to dynamically display YouTube player if a `video_url` is configured for that course
 - [x] Hide consultation/enrollment CTA forms on the Course Details page and homepage when the user is logged in as an administrator
 - [x] Resolve theme toggler hydration reset and local storage issues
 - [x] Add CSRF security middleware to TanStack Start instance in `src/start.ts`

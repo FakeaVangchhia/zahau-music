@@ -39,7 +39,7 @@ export function Footer() {
             </span>
             {[
               { to: "/about", label: "About" },
-              { to: "/curriculum", label: "Curriculum" },
+              { to: "/courses", label: "Courses" },
               { to: "/fees", label: "Fees & Pricing" },
               { to: "/learning-levels", label: "Levels" },
               { to: "/online", label: "Online Learning" },
@@ -58,7 +58,7 @@ export function Footer() {
               Connect
             </span>
             {[
-              { to: "/courses", label: "Courses" },
+              { to: "/lessons", label: "Lessons" },
               { to: "/gallery", label: "Gallery" },
               { to: "/testimonials", label: "Testimonials" },
               { to: "/contact", label: "Contact" },
