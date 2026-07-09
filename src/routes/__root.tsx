@@ -7,8 +7,9 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Toaster } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 import appCss from "../styles.css?url";
 import { Header } from "@/components/site/header";
@@ -82,12 +83,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
+      { rel: "icon", href: "/logo.png" },
       { rel: "stylesheet", href: appCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
       },
     ],
     scripts: [
@@ -141,14 +143,66 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [session, setSession] = useState<any>(null);
+  const router = useRouter();
+  const pathname = router.state.location.pathname;
+  const isPending = router.state.status === "pending";
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    }).catch(err => console.error("Supabase auth session fetch failed:", err));
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    async function checkAdmin() {
+      if (session?.user) {
+        try {
+          const { data } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", session.user.id)
+            .maybeSingle();
+          setIsAdmin(data?.role === "admin");
+        } catch (err) {
+          console.error("Failed to fetch user roles:", err);
+          setIsAdmin(false);
+        }
+      } else {
+        setIsAdmin(false);
+      }
+    }
+    checkAdmin();
+  }, [session]);
+
+  const isDashboardRoute = pathname.startsWith("/dashboard");
+  const hideLayout = isDashboardRoute && isAdmin;
+
   return (
     <QueryClientProvider client={queryClient}>
-      <Header />
-      <main id="main">
+      {/* Route-switching loader indicator */}
+      {isPending && (
+        <div className="fixed top-0 left-0 right-0 z-[100] h-1 bg-azure/20 overflow-hidden">
+          <div className="h-full bg-azure animate-[pulse_1s_infinite] w-2/3" />
+        </div>
+      )}
+      {!hideLayout && <Header />}
+      <main id="main" key={pathname} className="animate-page-transition">
         <Outlet />
       </main>
-      <Footer />
-      <WhatsAppFab />
+      {!hideLayout && <Footer />}
+      {!hideLayout && <WhatsAppFab />}
       <Toaster position="top-right" />
     </QueryClientProvider>
   );
