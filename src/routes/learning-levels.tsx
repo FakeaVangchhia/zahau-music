@@ -63,29 +63,39 @@ function Levels() {
           </h1>
         </div>
       </section>
-      <section className="py-20 px-6 max-w-5xl mx-auto">
-        <div className="space-y-16">
+      <section className="py-24 px-6 max-w-4xl mx-auto relative">
+        <div className="glowing-blob top-1/2 left-10 w-[300px] h-[300px]" />
+        
+        <div className="relative border-l border-border/80 ml-4 md:ml-10 pl-8 md:pl-12 space-y-12 z-10">
           {LEVELS.map((lv, i) => (
-            <div
-              key={lv.l}
-              className="grid md:grid-cols-[140px_1fr] gap-8 border-t border-border pt-8"
-            >
-              <div>
-                <span className="font-mono text-xs text-azure">LEVEL {i + 1}</span>
-                <div className="font-mono text-sm text-muted-foreground mt-2">{lv.durations}</div>
+            <div key={lv.l} className="relative group">
+              {/* Stepped timeline dot indicator */}
+              <div className="absolute -left-[49px] md:-left-[65px] top-4 size-8 rounded-full bg-background border-2 border-azure flex items-center justify-center shadow-lg shadow-azure/10 group-hover:bg-azure group-hover:text-azure-foreground transition-all duration-500 z-10">
+                <span className="font-mono text-xs text-azure group-hover:text-azure-foreground font-bold transition-all duration-500">{i + 1}</span>
               </div>
-              <div>
-                <h2 className="font-display text-4xl uppercase">{lv.l}</h2>
-                <p className="mt-3 text-muted-foreground leading-relaxed">{lv.d}</p>
-                <div className="mt-6 flex flex-wrap gap-2">
-                  {lv.focus.map((f) => (
-                    <span
-                      key={f}
-                      className="text-[10px] font-mono uppercase tracking-widest border border-border px-2.5 py-1 rounded-md"
-                    >
-                      {f}
+              
+              <div className="glass-panel border border-border/60 hover-glow rounded-3xl p-8 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_50px_-10px_rgba(59,130,246,0.12)]">
+                <div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="font-mono text-[9px] uppercase tracking-widest text-azure font-bold border border-azure/20 bg-azure/5 px-2.5 py-1 rounded-full">
+                      Duration: {lv.durations}
                     </span>
-                  ))}
+                  </div>
+                  <h2 className="mt-4 font-display text-3xl font-extrabold uppercase tracking-tight text-foreground group-hover:text-azure transition-colors duration-300">
+                    {lv.l}
+                  </h2>
+                  <p className="mt-4 text-sm sm:text-base text-muted-foreground leading-relaxed font-light">{lv.d}</p>
+                  
+                  <div className="mt-6 flex flex-wrap gap-2 border-t border-border/40 pt-6">
+                    {lv.focus.map((f) => (
+                      <span
+                        key={f}
+                        className="text-[9px] font-mono uppercase tracking-widest border border-border bg-card/45 text-muted-foreground/90 px-3 py-1.5 rounded-lg"
+                      >
+                        {f}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>

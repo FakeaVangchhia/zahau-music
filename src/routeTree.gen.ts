@@ -12,17 +12,19 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TestimonialsRouteImport } from './routes/testimonials'
 import { Route as ScheduleRouteImport } from './routes/schedule'
 import { Route as OnlineRouteImport } from './routes/online'
+import { Route as LessonsRouteImport } from './routes/lessons'
 import { Route as LearningLevelsRouteImport } from './routes/learning-levels'
 import { Route as GalleryRouteImport } from './routes/gallery'
 import { Route as FeesRouteImport } from './routes/fees'
-import { Route as CoursesRouteImport } from './routes/courses'
+import { Route as EventsRouteImport } from './routes/events'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as BookDemoRouteImport } from './routes/book-demo'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as CurriculumIndexRouteImport } from './routes/curriculum.index'
-import { Route as CurriculumSlugRouteImport } from './routes/curriculum.$slug'
+import { Route as CoursesIndexRouteImport } from './routes/courses.index'
+import { Route as CoursesSlugRouteImport } from './routes/courses.$slug'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 
 const TestimonialsRoute = TestimonialsRouteImport.update({
@@ -40,6 +42,11 @@ const OnlineRoute = OnlineRouteImport.update({
   path: '/online',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LessonsRoute = LessonsRouteImport.update({
+  id: '/lessons',
+  path: '/lessons',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LearningLevelsRoute = LearningLevelsRouteImport.update({
   id: '/learning-levels',
   path: '/learning-levels',
@@ -55,14 +62,19 @@ const FeesRoute = FeesRouteImport.update({
   path: '/fees',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CoursesRoute = CoursesRouteImport.update({
-  id: '/courses',
-  path: '/courses',
+const EventsRoute = EventsRouteImport.update({
+  id: '/events',
+  path: '/events',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactRoute = ContactRouteImport.update({
   id: '/contact',
   path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BookDemoRoute = BookDemoRouteImport.update({
+  id: '/book-demo',
+  path: '/book-demo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -84,14 +96,14 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CurriculumIndexRoute = CurriculumIndexRouteImport.update({
-  id: '/curriculum/',
-  path: '/curriculum/',
+const CoursesIndexRoute = CoursesIndexRouteImport.update({
+  id: '/courses/',
+  path: '/courses/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CurriculumSlugRoute = CurriculumSlugRouteImport.update({
-  id: '/curriculum/$slug',
-  path: '/curriculum/$slug',
+const CoursesSlugRoute = CoursesSlugRouteImport.update({
+  id: '/courses/$slug',
+  path: '/courses/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
@@ -104,33 +116,37 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
+  '/book-demo': typeof BookDemoRoute
   '/contact': typeof ContactRoute
-  '/courses': typeof CoursesRoute
+  '/events': typeof EventsRoute
   '/fees': typeof FeesRoute
   '/gallery': typeof GalleryRoute
   '/learning-levels': typeof LearningLevelsRoute
+  '/lessons': typeof LessonsRoute
   '/online': typeof OnlineRoute
   '/schedule': typeof ScheduleRoute
   '/testimonials': typeof TestimonialsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
-  '/curriculum/$slug': typeof CurriculumSlugRoute
-  '/curriculum/': typeof CurriculumIndexRoute
+  '/courses/$slug': typeof CoursesSlugRoute
+  '/courses/': typeof CoursesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
+  '/book-demo': typeof BookDemoRoute
   '/contact': typeof ContactRoute
-  '/courses': typeof CoursesRoute
+  '/events': typeof EventsRoute
   '/fees': typeof FeesRoute
   '/gallery': typeof GalleryRoute
   '/learning-levels': typeof LearningLevelsRoute
+  '/lessons': typeof LessonsRoute
   '/online': typeof OnlineRoute
   '/schedule': typeof ScheduleRoute
   '/testimonials': typeof TestimonialsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
-  '/curriculum/$slug': typeof CurriculumSlugRoute
-  '/curriculum': typeof CurriculumIndexRoute
+  '/courses/$slug': typeof CoursesSlugRoute
+  '/courses': typeof CoursesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -138,17 +154,19 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
+  '/book-demo': typeof BookDemoRoute
   '/contact': typeof ContactRoute
-  '/courses': typeof CoursesRoute
+  '/events': typeof EventsRoute
   '/fees': typeof FeesRoute
   '/gallery': typeof GalleryRoute
   '/learning-levels': typeof LearningLevelsRoute
+  '/lessons': typeof LessonsRoute
   '/online': typeof OnlineRoute
   '/schedule': typeof ScheduleRoute
   '/testimonials': typeof TestimonialsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
-  '/curriculum/$slug': typeof CurriculumSlugRoute
-  '/curriculum/': typeof CurriculumIndexRoute
+  '/courses/$slug': typeof CoursesSlugRoute
+  '/courses/': typeof CoursesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -156,50 +174,56 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/auth'
+    | '/book-demo'
     | '/contact'
-    | '/courses'
+    | '/events'
     | '/fees'
     | '/gallery'
     | '/learning-levels'
+    | '/lessons'
     | '/online'
     | '/schedule'
     | '/testimonials'
     | '/dashboard'
-    | '/curriculum/$slug'
-    | '/curriculum/'
+    | '/courses/$slug'
+    | '/courses/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/about'
     | '/auth'
+    | '/book-demo'
     | '/contact'
-    | '/courses'
+    | '/events'
     | '/fees'
     | '/gallery'
     | '/learning-levels'
+    | '/lessons'
     | '/online'
     | '/schedule'
     | '/testimonials'
     | '/dashboard'
-    | '/curriculum/$slug'
-    | '/curriculum'
+    | '/courses/$slug'
+    | '/courses'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/about'
     | '/auth'
+    | '/book-demo'
     | '/contact'
-    | '/courses'
+    | '/events'
     | '/fees'
     | '/gallery'
     | '/learning-levels'
+    | '/lessons'
     | '/online'
     | '/schedule'
     | '/testimonials'
     | '/_authenticated/dashboard'
-    | '/curriculum/$slug'
-    | '/curriculum/'
+    | '/courses/$slug'
+    | '/courses/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -207,16 +231,18 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
   AuthRoute: typeof AuthRoute
+  BookDemoRoute: typeof BookDemoRoute
   ContactRoute: typeof ContactRoute
-  CoursesRoute: typeof CoursesRoute
+  EventsRoute: typeof EventsRoute
   FeesRoute: typeof FeesRoute
   GalleryRoute: typeof GalleryRoute
   LearningLevelsRoute: typeof LearningLevelsRoute
+  LessonsRoute: typeof LessonsRoute
   OnlineRoute: typeof OnlineRoute
   ScheduleRoute: typeof ScheduleRoute
   TestimonialsRoute: typeof TestimonialsRoute
-  CurriculumSlugRoute: typeof CurriculumSlugRoute
-  CurriculumIndexRoute: typeof CurriculumIndexRoute
+  CoursesSlugRoute: typeof CoursesSlugRoute
+  CoursesIndexRoute: typeof CoursesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -242,6 +268,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OnlineRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lessons': {
+      id: '/lessons'
+      path: '/lessons'
+      fullPath: '/lessons'
+      preLoaderRoute: typeof LessonsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/learning-levels': {
       id: '/learning-levels'
       path: '/learning-levels'
@@ -263,11 +296,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FeesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/courses': {
-      id: '/courses'
-      path: '/courses'
-      fullPath: '/courses'
-      preLoaderRoute: typeof CoursesRouteImport
+    '/events': {
+      id: '/events'
+      path: '/events'
+      fullPath: '/events'
+      preLoaderRoute: typeof EventsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contact': {
@@ -275,6 +308,13 @@ declare module '@tanstack/react-router' {
       path: '/contact'
       fullPath: '/contact'
       preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/book-demo': {
+      id: '/book-demo'
+      path: '/book-demo'
+      fullPath: '/book-demo'
+      preLoaderRoute: typeof BookDemoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -305,18 +345,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/curriculum/': {
-      id: '/curriculum/'
-      path: '/curriculum'
-      fullPath: '/curriculum/'
-      preLoaderRoute: typeof CurriculumIndexRouteImport
+    '/courses/': {
+      id: '/courses/'
+      path: '/courses'
+      fullPath: '/courses/'
+      preLoaderRoute: typeof CoursesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/curriculum/$slug': {
-      id: '/curriculum/$slug'
-      path: '/curriculum/$slug'
-      fullPath: '/curriculum/$slug'
-      preLoaderRoute: typeof CurriculumSlugRouteImport
+    '/courses/$slug': {
+      id: '/courses/$slug'
+      path: '/courses/$slug'
+      fullPath: '/courses/$slug'
+      preLoaderRoute: typeof CoursesSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/dashboard': {
@@ -345,16 +385,18 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AboutRoute: AboutRoute,
   AuthRoute: AuthRoute,
+  BookDemoRoute: BookDemoRoute,
   ContactRoute: ContactRoute,
-  CoursesRoute: CoursesRoute,
+  EventsRoute: EventsRoute,
   FeesRoute: FeesRoute,
   GalleryRoute: GalleryRoute,
   LearningLevelsRoute: LearningLevelsRoute,
+  LessonsRoute: LessonsRoute,
   OnlineRoute: OnlineRoute,
   ScheduleRoute: ScheduleRoute,
   TestimonialsRoute: TestimonialsRoute,
-  CurriculumSlugRoute: CurriculumSlugRoute,
-  CurriculumIndexRoute: CurriculumIndexRoute,
+  CoursesSlugRoute: CoursesSlugRoute,
+  CoursesIndexRoute: CoursesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

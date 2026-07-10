@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getVideoDetails } from "@/lib/utils";
 
-export const Route = createFileRoute("/curriculum/$slug")({
+export const Route = createFileRoute("/courses/$slug")({
   loader: async ({ params }) => {
     const course = await getCourse({ data: { slug: params.slug } });
     if (!course) throw notFound();
@@ -21,7 +21,7 @@ export const Route = createFileRoute("/curriculum/$slug")({
         { property: "og:description", content: c?.summary ?? "" },
         { property: "og:type", content: "article" },
       ],
-      links: c ? [{ rel: "canonical", href: `/curriculum/${c.slug}` }] : [],
+      links: c ? [{ rel: "canonical", href: `/courses/${c.slug}` }] : [],
       scripts: c
         ? [
             {
@@ -43,8 +43,8 @@ export const Route = createFileRoute("/curriculum/$slug")({
   notFoundComponent: () => (
     <div className="p-16 text-center">
       <h1 className="font-display text-4xl uppercase">Course not found</h1>
-      <Link to="/curriculum" className="mt-6 inline-block underline">
-        Back to curriculum
+      <Link to="/courses" className="mt-6 inline-block underline">
+        Back to courses
       </Link>
     </div>
   ),
@@ -106,20 +106,20 @@ function CoursePage() {
         
         <div className="max-w-7xl mx-auto relative z-10">
           <Link
-            to="/curriculum"
-            className="font-mono text-[11px] uppercase tracking-widest text-[#d4af37] hover:text-white transition-colors"
+            to="/courses"
+            className="font-mono text-[11px] uppercase tracking-widest text-azure hover:text-foreground transition-colors"
           >
-            ← Back to curriculum
+            ← Back to courses
           </Link>
           <h1 className="mt-6 font-display text-6xl md:text-8xl uppercase leading-none font-extrabold tracking-tight">
             {c.name}
           </h1>
-          <p className="mt-6 max-w-2xl text-lg text-white/70 font-light leading-relaxed">{c.tagline}</p>
+          <p className="mt-6 max-w-2xl text-lg text-navy-foreground/80 font-light leading-relaxed">{c.tagline}</p>
           <div className="mt-10 flex flex-wrap gap-2">
             {(c.levels ?? []).map((l: string) => (
               <span
                 key={l}
-                className="text-[9px] font-mono uppercase tracking-widest border border-white/20 px-3 py-1.5 rounded-lg"
+                className="text-[9px] font-mono uppercase tracking-widest border border-border text-foreground px-3 py-1.5 rounded-lg"
               >
                 {l}
               </span>
@@ -156,10 +156,10 @@ function CoursePage() {
             </div>
           )}
 
-          <h3 className="mt-20 font-display text-3xl font-extrabold uppercase tracking-tight">Curriculum</h3>
+          <h3 className="mt-20 font-display text-3xl font-extrabold uppercase tracking-tight">Syllabus / Curriculum</h3>
           <div className="mt-12 relative border-l border-border/80 ml-3 pl-8 space-y-12">
             {curriculum.length === 0 && (
-              <p className="text-muted-foreground -ml-8 font-light text-sm">Curriculum details available on request.</p>
+              <p className="text-muted-foreground -ml-8 font-light text-sm">Course syllabus details available on request.</p>
             )}
             {curriculum.map((term, i) => (
               <div key={i} className="relative group">
@@ -234,16 +234,16 @@ function CoursePage() {
               </Link>
             </div>
           ) : (
-            <div className="bg-gradient-to-br from-navy to-slate-900 text-white p-8 rounded-2xl border border-white/5 shadow-2xl relative overflow-hidden">
+            <div className="bg-gradient-to-br from-azure to-blue-600 text-azure-foreground p-8 rounded-2xl border border-border shadow-2xl relative overflow-hidden">
               <div className="glowing-blob top-0 right-0 w-[200px] h-[200px]" />
               <div className="relative z-10">
-                <h3 className="font-display text-2xl font-bold uppercase tracking-tight">Enroll</h3>
-                <p className="mt-3 text-sm text-white/70 font-light leading-relaxed">
+                <h3 className="font-display text-2xl font-bold uppercase tracking-tight text-white">Enroll</h3>
+                <p className="mt-3 text-sm text-white/80 font-light leading-relaxed">
                   Submit a quick interest form and we'll schedule a free trial class within 48 hours.
                 </p>
                 <Link
                   to="/contact"
-                  className="mt-8 w-full text-center inline-block bg-azure text-azure-foreground py-3.5 text-[10px] font-mono font-bold uppercase tracking-widest rounded-xl hover:scale-105 active:scale-95 transition-all shadow-lg shadow-azure/20 cursor-pointer"
+                  className="mt-8 w-full text-center inline-block bg-white text-azure hover:bg-white/95 py-3.5 text-[10px] font-mono font-bold uppercase tracking-widest rounded-xl hover:scale-105 active:scale-95 transition-all shadow-lg cursor-pointer"
                 >
                   Book trial class
                 </Link>

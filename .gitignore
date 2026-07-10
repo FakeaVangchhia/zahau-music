@@ -16,6 +16,10 @@ dist-ssr
 .nitro
 *.local
 
+# Next.js
+.next/
+out/
+
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars
@@ -32,4 +36,8 @@ dist-ssr
 *.sw?
 
 .env
+<<<<<<< HEAD
+.env.local.env 
+=======
 .env.local
+>>>>>>> d82c1a1ee43ab2dcb5a25f25fcb351fc6707c367
