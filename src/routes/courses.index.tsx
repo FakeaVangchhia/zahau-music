@@ -61,16 +61,20 @@ function CoursesIndex() {
         {/* Glowing background blobs */}
         <div className="glowing-blob top-1/4 left-1/4 w-[500px] h-[500px] -translate-x-1/2 -translate-y-1/2" />
         <div className="glowing-blob-gold bottom-1/4 right-1/4 w-[400px] h-[400px]" />
-        
+
         {/* Bottom fade transition */}
         <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-background to-transparent pointer-events-none z-1" />
-        
+
         <div className="max-w-7xl mx-auto relative z-10">
-          <span className="font-mono text-xs uppercase tracking-[0.3em] text-azure font-bold block mb-4">Courses</span>
+          <span className="font-mono text-xs uppercase tracking-[0.3em] text-azure font-bold block mb-4">
+            Courses
+          </span>
           <h1 className="font-display text-6xl sm:text-7xl md:text-8xl lg:text-9xl uppercase leading-none font-extrabold tracking-tight">
             Find your
             <br />
-            <span className="font-serif italic text-azure normal-case font-light lowercase">instrument.</span>
+            <span className="font-serif italic text-azure normal-case font-light lowercase">
+              instrument.
+            </span>
           </h1>
           <p className="mt-8 max-w-2xl text-lg text-navy-foreground/80 leading-relaxed font-light">
             Six disciplines, every level, one philosophy. Piano, Keyboard, Guitar, Drums, Vocal and
@@ -113,9 +117,11 @@ function CoursesIndex() {
       <section className="px-6 max-w-7xl mx-auto pb-28 relative z-10">
         {isLoading && <p className="text-muted-foreground font-mono text-sm">Loading courses...</p>}
         {courses.length === 0 && !isLoading && (
-          <p className="text-muted-foreground py-12 font-light text-center">No courses found matching criteria.</p>
+          <p className="text-muted-foreground py-12 font-light text-center">
+            No courses found matching criteria.
+          </p>
         )}
-        
+
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {courses.map((c, i) => (
             <Link
@@ -133,8 +139,12 @@ function CoursesIndex() {
                 </div>
               </div>
               <div>
-                <h3 className="mt-10 font-display text-2xl font-bold uppercase tracking-tight group-hover:text-azure transition-colors">{c.name}</h3>
-                <p className="mt-3 text-sm text-muted-foreground leading-relaxed font-light line-clamp-2">{c.tagline}</p>
+                <h3 className="mt-10 font-display text-2xl font-bold uppercase tracking-tight group-hover:text-azure transition-colors">
+                  {c.name}
+                </h3>
+                <p className="mt-3 text-sm text-muted-foreground leading-relaxed font-light line-clamp-2">
+                  {c.tagline}
+                </p>
               </div>
               <div className="mt-6 flex flex-wrap gap-2">
                 {(c.levels ?? []).slice(0, 3).map((l: string) => (

@@ -1,15 +1,15 @@
-const fs = require('fs');
-const path = require('path');
-const { createClient } = require('@supabase/supabase-js');
+const fs = require("fs");
+const path = require("path");
+const { createClient } = require("@supabase/supabase-js");
 
-const envPath = path.join(__dirname, '.env');
-const envContent = fs.readFileSync(envPath, 'utf-8');
+const envPath = path.join(__dirname, ".env");
+const envContent = fs.readFileSync(envPath, "utf-8");
 const env = {};
-envContent.split('\n').forEach(line => {
+envContent.split("\n").forEach((line) => {
   const match = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/);
   if (match) {
     const key = match[1];
-    let value = match[2] || '';
+    let value = match[2] || "";
     if (value.length > 0 && value.startsWith('"') && value.endsWith('"')) {
       value = value.substring(1, value.length - 1);
     }
@@ -30,7 +30,7 @@ const supabase = createClient(url, publishableKey, { auth: { persistSession: fal
 async function run() {
   console.log("Testing signin on URL:", url);
   console.log("Using email: henrysui7@gmail.com");
-  
+
   const timeout = setTimeout(() => {
     console.log("Sign-in request is HANGING (timed out after 10s)!");
     process.exit(1);
@@ -38,12 +38,12 @@ async function run() {
 
   try {
     const { data, error } = await supabase.auth.signInWithPassword({
-      email: 'henrysui7@gmail.com',
-      password: 'zahaumusic@26'
+      email: "henrysui7@gmail.com",
+      password: "zahaumusic@26",
     });
-    
+
     clearTimeout(timeout);
-    
+
     if (error) {
       console.log("Sign-in failed with error:", error.message);
     } else {

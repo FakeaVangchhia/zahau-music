@@ -35,12 +35,17 @@ export function Header() {
   }, []);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setRawSession(session);
-      setSession(!!session);
-    }).catch(err => console.error("Supabase auth session fetch failed:", err));
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => {
+        setRawSession(session);
+        setSession(!!session);
+      })
+      .catch((err) => console.error("Supabase auth session fetch failed:", err));
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setRawSession(session);
       setSession(!!session);
     });
@@ -82,22 +87,39 @@ export function Header() {
   const isTransparent = !scrolled;
 
   return (
-    <header className={`fixed top-0 left-0 right-0 z-50 w-full px-4 sm:px-6 lg:px-8 transition-all duration-500 border-b ${
-      scrolled 
-        ? "bg-background/85 backdrop-blur-md border-border/80 shadow-md py-3" 
-        : "bg-transparent border-transparent shadow-none py-5 sm:py-6"
-    }`}>
+    <header
+      className={`fixed top-0 left-0 right-0 z-50 w-full px-4 sm:px-6 lg:px-8 transition-all duration-500 border-b ${
+        scrolled
+          ? "bg-background/85 backdrop-blur-md border-border/80 shadow-md py-3"
+          : "bg-transparent border-transparent shadow-none py-5 sm:py-6"
+      }`}
+    >
       <div className="mx-auto max-w-7xl w-full flex items-center justify-between">
         <Link to="/" className="flex items-center gap-3 text-xl tracking-tighter uppercase group">
-          <img src={logo} alt="Zahau Logo" className="h-9 w-9 object-contain rounded-full border border-azure/20 shadow-md group-hover:rotate-12 group-hover:scale-105 transition-all duration-500" />
+          <img
+            src={logo}
+            alt="Zahau Logo"
+            className="h-9 w-9 object-contain rounded-full border border-azure/20 shadow-md group-hover:rotate-12 group-hover:scale-105 transition-all duration-500"
+          />
           <span className="font-display font-extrabold tracking-tight flex items-center gap-2 text-foreground">
-            Zahau 
-            <span className="font-serif italic font-light normal-case text-lg tracking-normal text-azure group-hover:text-indigo-600 transition-colors duration-300">music</span>
+            Zahau
+            <span className="font-serif italic font-light normal-case text-lg tracking-normal text-azure group-hover:text-indigo-600 transition-colors duration-300">
+              music
+            </span>
             <span className="flex items-end gap-[3px] h-3.5 w-4 mb-0.5 opacity-95 shrink-0">
               <span className="w-[2.5px] music-visualizer-bar-1 rounded-full h-full block bg-azure group-hover:bg-indigo-600 transition-colors duration-300" />
-              <span className="w-[2.5px] music-visualizer-bar-2 rounded-full h-full block bg-azure group-hover:bg-indigo-600 transition-colors duration-300" style={{ animationDelay: "0.15s" }} />
-              <span className="w-[2.5px] music-visualizer-bar-3 rounded-full h-full block bg-azure group-hover:bg-indigo-600 transition-colors duration-300" style={{ animationDelay: "0.3s" }} />
-              <span className="w-[2.5px] music-visualizer-bar-4 rounded-full h-full block bg-azure group-hover:bg-indigo-600 transition-colors duration-300" style={{ animationDelay: "0.05s" }} />
+              <span
+                className="w-[2.5px] music-visualizer-bar-2 rounded-full h-full block bg-azure group-hover:bg-indigo-600 transition-colors duration-300"
+                style={{ animationDelay: "0.15s" }}
+              />
+              <span
+                className="w-[2.5px] music-visualizer-bar-3 rounded-full h-full block bg-azure group-hover:bg-indigo-600 transition-colors duration-300"
+                style={{ animationDelay: "0.3s" }}
+              />
+              <span
+                className="w-[2.5px] music-visualizer-bar-4 rounded-full h-full block bg-azure group-hover:bg-indigo-600 transition-colors duration-300"
+                style={{ animationDelay: "0.05s" }}
+              />
             </span>
           </span>
         </Link>
@@ -111,9 +133,11 @@ export function Header() {
               {({ isActive }) => (
                 <span className="flex flex-col items-center">
                   <span>{n.label}</span>
-                  <span className={`absolute -bottom-1 size-1 rounded-full bg-azure transition-all duration-300 transform ${
-                    isActive ? "scale-100 opacity-100" : "scale-0 opacity-0"
-                  }`} />
+                  <span
+                    className={`absolute -bottom-1 size-1 rounded-full bg-azure transition-all duration-300 transform ${
+                      isActive ? "scale-100 opacity-100" : "scale-0 opacity-0"
+                    }`}
+                  />
                 </span>
               )}
             </Link>

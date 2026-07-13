@@ -3,9 +3,24 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getCourses } from "@/lib/site.functions";
 import heroPiano from "@/assets/hero-piano.jpg";
-import { 
-  ArrowRight, Star, ChevronLeft, ChevronRight, Play, Music, Guitar, Drum, Mic, 
-  BookOpen, MapPin, Phone, Clock, Users, Award, Volume2, Shield 
+import {
+  ArrowRight,
+  Star,
+  ChevronLeft,
+  ChevronRight,
+  Play,
+  Music,
+  Guitar,
+  Drum,
+  Mic,
+  BookOpen,
+  MapPin,
+  Phone,
+  Clock,
+  Users,
+  Award,
+  Volume2,
+  Shield,
 } from "lucide-react";
 import { LeadForm } from "@/components/site/lead-form";
 import { useEffect, useState, useRef } from "react";
@@ -13,19 +28,41 @@ import { supabase } from "@/integrations/supabase/client";
 import useEmblaCarousel from "embla-carousel-react";
 
 const INSTRUMENTS = [
-  "Piano", "Keyboard", "Guitar", "Ukulele", "Classical Guitar", "Electric Guitar", "Drum", "Vocal (Hindustani)", "Vocal (Carnatic)", "Vocal (Western)", "Music Theory"
+  "Piano",
+  "Keyboard",
+  "Guitar",
+  "Ukulele",
+  "Classical Guitar",
+  "Electric Guitar",
+  "Drum",
+  "Vocal (Hindustani)",
+  "Vocal (Carnatic)",
+  "Vocal (Western)",
+  "Music Theory",
 ];
 
 const COURSE_IMAGES: Record<string, string> = {
-  piano: "https://images.unsplash.com/photo-1552422535-c45813c61732?auto=format&fit=crop&q=80&w=800",
-  keyboard: "https://images.unsplash.com/photo-1598653222000-6b7b7a552625?auto=format&fit=crop&q=80&w=800",
-  guitar: "https://images.unsplash.com/photo-1510915361894-db8b60106cb1?auto=format&fit=crop&q=80&w=800",
-  drums: "https://images.unsplash.com/photo-1524412513790-b57ceb2c6114?auto=format&fit=crop&q=80&w=800",
-  voice: "https://images.unsplash.com/photo-1516280440614-37939bbacd6a?auto=format&fit=crop&q=80&w=800",
-  "music-theory": "https://images.unsplash.com/photo-1507838153414-b4b713384a76?auto=format&fit=crop&q=80&w=800"
+  piano:
+    "https://images.unsplash.com/photo-1552422535-c45813c61732?auto=format&fit=crop&q=80&w=800",
+  keyboard:
+    "https://images.unsplash.com/photo-1598653222000-6b7b7a552625?auto=format&fit=crop&q=80&w=800",
+  guitar:
+    "https://images.unsplash.com/photo-1510915361894-db8b60106cb1?auto=format&fit=crop&q=80&w=800",
+  drums:
+    "https://images.unsplash.com/photo-1524412513790-b57ceb2c6114?auto=format&fit=crop&q=80&w=800",
+  voice:
+    "https://images.unsplash.com/photo-1516280440614-37939bbacd6a?auto=format&fit=crop&q=80&w=800",
+  "music-theory":
+    "https://images.unsplash.com/photo-1507838153414-b4b713384a76?auto=format&fit=crop&q=80&w=800",
 };
 
-function ScrollReveal({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+function ScrollReveal({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
 
@@ -37,7 +74,7 @@ function ScrollReveal({ children, className = "" }: { children: React.ReactNode;
           observer.unobserve(entry.target);
         }
       },
-      { threshold: 0.05 }
+      { threshold: 0.05 },
     );
 
     if (ref.current) {
@@ -61,53 +98,56 @@ function ScrollReveal({ children, className = "" }: { children: React.ReactNode;
 function AnimatedCounter({ value }: { value: string }) {
   const [count, setCount] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
-  
+
   useEffect(() => {
     const match = value.match(/([\d.]+)/);
     if (!match) return;
     const target = parseFloat(match[1]);
     const isFloat = value.includes(".");
-    
-    let observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting) {
-        let start = 0;
-        const duration = 1500; 
-        const startTime = performance.now();
-        
-        const updateCount = (currentTime: number) => {
-          const elapsed = currentTime - startTime;
-          const progress = Math.min(elapsed / duration, 1);
-          const easeProgress = progress * (2 - progress);
-          const currentCount = easeProgress * target;
-          
-          setCount(currentCount);
-          
-          if (progress < 1) {
-            requestAnimationFrame(updateCount);
-          } else {
-            setCount(target);
-          }
-        };
-        
-        requestAnimationFrame(updateCount);
-        observer.disconnect();
-      }
-    }, { threshold: 0.1 });
-    
+
+    let observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          let start = 0;
+          const duration = 1500;
+          const startTime = performance.now();
+
+          const updateCount = (currentTime: number) => {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const easeProgress = progress * (2 - progress);
+            const currentCount = easeProgress * target;
+
+            setCount(currentCount);
+
+            if (progress < 1) {
+              requestAnimationFrame(updateCount);
+            } else {
+              setCount(target);
+            }
+          };
+
+          requestAnimationFrame(updateCount);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1 },
+    );
+
     if (ref.current) {
       observer.observe(ref.current);
     }
-    
+
     return () => observer.disconnect();
   }, [value]);
-  
+
   const hasLeadingZero = value.startsWith("0") && parseFloat(value) < 10;
   let displayValue = value.includes(".") ? count.toFixed(1) : Math.round(count).toString();
   if (hasLeadingZero && displayValue.length < 2) {
     displayValue = "0" + displayValue;
   }
   const suffix = value.replace(/[\d.]+/, "");
-  
+
   return (
     <span ref={ref} className="font-serif italic font-light tabular-nums">
       {displayValue}
@@ -119,31 +159,37 @@ function AnimatedCounter({ value }: { value: string }) {
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
   return (
-    <div 
+    <div
       className={`glass-panel border rounded-2xl p-6 transition-all duration-300 cursor-pointer ${
-        open ? "border-azure/40 bg-card/60 shadow-lg shadow-azure/5" : "border-border/50 hover:border-azure/20"
+        open
+          ? "border-azure/40 bg-card/60 shadow-lg shadow-azure/5"
+          : "border-border/50 hover:border-azure/20"
       }`}
       onClick={() => setOpen(!open)}
     >
       <div className="flex justify-between items-center select-none">
-        <span className={`font-display text-lg font-bold uppercase tracking-tight transition-colors duration-300 ${
-          open ? "text-azure" : "text-foreground"
-        }`}>
+        <span
+          className={`font-display text-lg font-bold uppercase tracking-tight transition-colors duration-300 ${
+            open ? "text-azure" : "text-foreground"
+          }`}
+        >
           {q}
         </span>
-        <span className={`font-mono text-xl text-azure transition-transform duration-350 ${
-          open ? "rotate-45" : ""
-        }`}>
+        <span
+          className={`font-mono text-xl text-azure transition-transform duration-350 ${
+            open ? "rotate-45" : ""
+          }`}
+        >
           +
         </span>
       </div>
-      <div className={`grid transition-all duration-350 ease-in-out ${
-        open ? "grid-rows-[1fr] opacity-100 mt-4" : "grid-rows-[0fr] opacity-0"
-      }`}>
+      <div
+        className={`grid transition-all duration-350 ease-in-out ${
+          open ? "grid-rows-[1fr] opacity-100 mt-4" : "grid-rows-[0fr] opacity-0"
+        }`}
+      >
         <div className="overflow-hidden">
-          <p className="text-muted-foreground leading-relaxed text-sm font-light max-w-3xl">
-            {a}
-          </p>
+          <p className="text-muted-foreground leading-relaxed text-sm font-light max-w-3xl">{a}</p>
         </div>
       </div>
     </div>
@@ -335,7 +381,7 @@ function Home() {
       mouse.active = true;
 
       // Restrict spawning to 20% of mouse moves for professional yet clear density
-      if (Math.random() < 0.20) {
+      if (Math.random() < 0.2) {
         particles.push({
           x: mouse.x,
           y: mouse.y,
@@ -345,7 +391,7 @@ function Home() {
           size: Math.floor(Math.random() * 8) + 12, // Cleaner, smaller size range (12px to 20px)
           symbol: symbols[Math.floor(Math.random() * symbols.length)],
           rotation: Math.random() * Math.PI * 2,
-          rotationSpeed: (Math.random() - 0.5) * 0.04
+          rotationSpeed: (Math.random() - 0.5) * 0.04,
         });
       }
     };
@@ -375,7 +421,7 @@ function Home() {
         ctx.save();
         ctx.translate(p.x, p.y);
         ctx.rotate(p.rotation);
-        
+
         // Calculate proximity ratio (0 = far away/gold, 1 = close/electric azure)
         let ratio = 0;
         if (mouse.active) {
@@ -386,7 +432,7 @@ function Home() {
             ratio = 1 - dist / 100;
           }
         }
-        
+
         // Interpolate between gold (212, 175, 55) and electric azure (0, 102, 204)
         const r = Math.round(212 - (212 - 0) * ratio);
         const g = Math.round(175 - (175 - 102) * ratio);
@@ -416,11 +462,16 @@ function Home() {
   const scrollNext = () => emblaApi && emblaApi.scrollNext();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    }).catch(err => console.error("Supabase auth session fetch failed:", err));
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => {
+        setSession(session);
+      })
+      .catch((err) => console.error("Supabase auth session fetch failed:", err));
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
     });
 
@@ -451,44 +502,52 @@ function Home() {
   return (
     <>
       {/* Hero */}
-      <section 
+      <section
         ref={heroRef}
         className="relative h-[90vh] min-h-[680px] bg-navy text-navy-foreground overflow-hidden flex flex-col justify-center"
       >
-        <canvas
-          ref={canvasRef}
-          className="absolute inset-0 size-full pointer-events-none z-[2]"
-        />
+        <canvas ref={canvasRef} className="absolute inset-0 size-full pointer-events-none z-[2]" />
         {/* Soft light radial gradients and spotlights */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.1)_0%,rgba(248,249,250,0.6)_60%,rgba(244,244,245,0.95)_100%)] z-1" />
-        
+
         {/* Subtle staff-line style backdrop grid */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.01)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.015)_1px,transparent_1px)] bg-[size:5rem_5rem] pointer-events-none" />
-        
+
         {/* Ambient stage glows */}
         <div className="glowing-blob top-1/4 left-1/4 w-[600px] h-[600px] -translate-x-1/2 -translate-y-1/2" />
         <div className="glowing-blob-gold bottom-1/4 right-1/4 w-[400px] h-[400px]" />
 
         <div className="relative z-10 px-6 md:px-12 max-w-7xl mx-auto w-full">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass-panel border border-border/10 shadow-sm mb-8 animate-reveal" style={{ animationDelay: "100ms" }}>
+          <div
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass-panel border border-border/10 shadow-sm mb-8 animate-reveal"
+            style={{ animationDelay: "100ms" }}
+          >
             <span className="size-2 rounded-full bg-azure animate-pulse" />
             <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-foreground/95">
               Delhi · Online · India
             </span>
           </div>
-          
+
           <h1 className="font-display text-5xl sm:text-7xl md:text-8xl lg:text-9xl uppercase leading-[0.85] font-extrabold tracking-tight animate-reveal">
             Master the
             <br />
-            <span className="font-serif italic text-azure font-light normal-case tracking-normal lowercase">art of sound</span>
+            <span className="font-serif italic text-azure font-light normal-case tracking-normal lowercase">
+              art of sound
+            </span>
           </h1>
-          
-          <p className="mt-8 max-w-xl text-base sm:text-lg leading-relaxed text-foreground/80 font-light animate-reveal" style={{ animationDelay: "200ms" }}>
-            Rigorous conservatory-level training meets contemporary performance. Join a sanctuary
-            of musical craft and find your distinct voice.
+
+          <p
+            className="mt-8 max-w-xl text-base sm:text-lg leading-relaxed text-foreground/80 font-light animate-reveal"
+            style={{ animationDelay: "200ms" }}
+          >
+            Rigorous conservatory-level training meets contemporary performance. Join a sanctuary of
+            musical craft and find your distinct voice.
           </p>
-          
-          <div className="mt-10 flex flex-wrap items-center gap-5 animate-reveal" style={{ animationDelay: "300ms" }}>
+
+          <div
+            className="mt-10 flex flex-wrap items-center gap-5 animate-reveal"
+            style={{ animationDelay: "300ms" }}
+          >
             {isAdmin ? (
               <Link
                 to="/dashboard"
@@ -522,7 +581,10 @@ function Home() {
       <div className="w-full border-y border-border/60 bg-card py-6 overflow-hidden marquee-mask relative z-10 shadow-sm">
         <div className="animate-marquee whitespace-nowrap gap-16 flex">
           {[...INSTRUMENTS, ...INSTRUMENTS].map((w, i) => (
-            <span key={i} className="font-display font-bold text-lg text-foreground/80 uppercase tracking-[0.2em] mx-6 flex items-center gap-4">
+            <span
+              key={i}
+              className="font-display font-bold text-lg text-foreground/80 uppercase tracking-[0.2em] mx-6 flex items-center gap-4"
+            >
               <span>{w}</span>
               <span className="text-azure/80 select-none">•</span>
             </span>
@@ -533,10 +595,12 @@ function Home() {
       {/* Featured Videos / Showcases */}
       <ScrollReveal className="py-28 px-6 max-w-7xl mx-auto relative">
         <div className="glowing-blob top-1/2 left-10 w-[300px] h-[300px]" />
-        
+
         <div className="flex justify-between items-end mb-16 flex-wrap gap-6 relative z-10">
           <div>
-            <span className="font-mono text-[10px] text-azure uppercase tracking-[0.25em] font-bold">Featured Video Showcase</span>
+            <span className="font-mono text-[10px] text-azure uppercase tracking-[0.25em] font-bold">
+              Featured Video Showcase
+            </span>
             <h2 className="mt-4 font-display text-5xl md:text-6xl font-extrabold uppercase leading-none tracking-tight">
               Performances
               <br />
@@ -544,7 +608,8 @@ function Home() {
             </h2>
           </div>
           <p className="max-w-md text-sm text-muted-foreground leading-relaxed font-light">
-            Watch our talented students and world-class faculty bring music to life in recitals, spotlights, and studio sessions.
+            Watch our talented students and world-class faculty bring music to life in recitals,
+            spotlights, and studio sessions.
           </p>
         </div>
 
@@ -560,7 +625,7 @@ function Home() {
             },
             {
               id: "aLJVYF-dcCk",
-              title: "\"Tum Jo Aaye\" Showcase",
+              title: '"Tum Jo Aaye" Showcase',
               category: "Student Spotlight",
               duration: "4:12",
               desc: "A beautiful acoustic live cover performed by our students at the Zahau studios.",
@@ -575,7 +640,10 @@ function Home() {
               tags: ["Improvisation", "Faculty Jam", "Jazz & Blues"],
             },
           ].map((v) => (
-            <article key={v.id} className="glass-panel border border-border/50 hover-glow p-6 rounded-3xl flex flex-col justify-between group h-full transition-all duration-300">
+            <article
+              key={v.id}
+              className="glass-panel border border-border/50 hover-glow p-6 rounded-3xl flex flex-col justify-between group h-full transition-all duration-300"
+            >
               <div>
                 <div className="flex justify-between items-center mb-4">
                   <span className="font-mono text-[9px] uppercase tracking-widest text-azure border border-azure/20 px-2.5 py-0.5 rounded-full bg-azure/5 font-bold">
@@ -585,7 +653,7 @@ function Home() {
                     {v.duration}
                   </span>
                 </div>
-                
+
                 <div className="overflow-hidden rounded-2xl border border-border/40 bg-slate-950 aspect-video shadow-lg relative group/video mb-6 cursor-pointer">
                   {playingVideos[v.id] ? (
                     <iframe
@@ -596,8 +664,8 @@ function Home() {
                       className="w-full h-full border-0 relative z-10"
                     />
                   ) : (
-                    <button 
-                      onClick={() => setPlayingVideos(prev => ({ ...prev, [v.id]: true }))}
+                    <button
+                      onClick={() => setPlayingVideos((prev) => ({ ...prev, [v.id]: true }))}
                       className="absolute inset-0 size-full block border-none p-0 bg-transparent text-left focus:outline-none z-10 cursor-pointer"
                     >
                       <img
@@ -614,19 +682,22 @@ function Home() {
                     </button>
                   )}
                 </div>
-                
+
                 <h3 className="font-display text-xl font-bold uppercase tracking-tight group-hover:text-azure transition-colors duration-300">
                   {v.title}
                 </h3>
-                
+
                 <p className="mt-3 text-xs text-muted-foreground leading-relaxed font-light">
                   {v.desc}
                 </p>
               </div>
-              
+
               <div className="mt-6 flex flex-wrap gap-1.5 pt-4 border-t border-border/20">
                 {v.tags.map((tag) => (
-                  <span key={tag} className="font-mono text-[8px] uppercase tracking-wider text-muted-foreground/80 border border-border/40 bg-card/40 px-2.5 py-0.5 rounded-md">
+                  <span
+                    key={tag}
+                    className="font-mono text-[8px] uppercase tracking-wider text-muted-foreground/80 border border-border/40 bg-card/40 px-2.5 py-0.5 rounded-md"
+                  >
                     {tag}
                   </span>
                 ))}
@@ -639,10 +710,12 @@ function Home() {
       {/* Why */}
       <ScrollReveal className="py-28 px-6 max-w-7xl mx-auto relative">
         <div className="glowing-blob top-1/3 right-10 w-[300px] h-[300px]" />
-        
+
         <div className="grid md:grid-cols-[1fr_2fr] gap-12 mb-20 relative z-10">
           <div>
-            <span className="font-mono text-xs text-azure uppercase tracking-[0.2em] font-bold">The Philosophy</span>
+            <span className="font-mono text-xs text-azure uppercase tracking-[0.2em] font-bold">
+              The Philosophy
+            </span>
             <h2 className="mt-4 font-display text-5xl md:text-6xl font-extrabold uppercase leading-none tracking-tight">
               Why
               <br />
@@ -655,11 +728,11 @@ function Home() {
             uncompromising on craft.
           </p>
         </div>
-        
+
         <div className="grid md:grid-cols-2 gap-8 lg:gap-12 relative z-10">
           {WHY.map((w, i) => (
-            <div 
-              key={w.t} 
+            <div
+              key={w.t}
               className={`glass-panel border border-border/50 p-8 rounded-3xl relative overflow-hidden group hover:border-azure/30 transition-all duration-500 min-h-[220px] flex flex-col justify-between ${
                 i % 2 === 1 ? "md:translate-y-8" : ""
               }`}
@@ -667,7 +740,7 @@ function Home() {
               <span className="font-serif italic text-8xl text-azure/5 absolute right-6 top-4 select-none pointer-events-none group-hover:text-azure/10 transition-colors duration-500">
                 0{i + 1}
               </span>
-              
+
               <div>
                 <div className="size-10 rounded-xl bg-azure/10 text-azure flex items-center justify-center mb-6 border border-azure/20">
                   {i === 0 && <Users className="size-5" />}
@@ -679,10 +752,8 @@ function Home() {
                   {w.t}
                 </h3>
               </div>
-              
-              <p className="mt-4 text-sm text-muted-foreground leading-relaxed font-light">
-                {w.d}
-              </p>
+
+              <p className="mt-4 text-sm text-muted-foreground leading-relaxed font-light">{w.d}</p>
             </div>
           ))}
         </div>
@@ -691,15 +762,19 @@ function Home() {
       {/* Featured courses / catalog */}
       <ScrollReveal className="py-28 px-6 bg-secondary/5 border-y border-border/40 relative">
         <div className="glowing-blob-gold bottom-10 left-10 w-[350px] h-[350px]" />
-        
+
         <div className="max-w-7xl mx-auto relative z-10">
           <div className="flex justify-between items-end mb-16 flex-wrap gap-6">
             <div>
-              <span className="font-mono text-xs text-azure uppercase tracking-[0.2em] font-bold">Our Catalog</span>
+              <span className="font-mono text-xs text-azure uppercase tracking-[0.2em] font-bold">
+                Our Catalog
+              </span>
               <h2 className="mt-4 font-display text-5xl md:text-6xl font-extrabold uppercase leading-none tracking-tight">
                 Featured
                 <br />
-                <span className="font-serif italic text-azure normal-case font-light">disciplines</span>
+                <span className="font-serif italic text-azure normal-case font-light">
+                  disciplines
+                </span>
               </h2>
             </div>
             <Link
@@ -709,10 +784,12 @@ function Home() {
               View all courses <ArrowRight className="size-4" />
             </Link>
           </div>
-          
+
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {featured.map((c, i) => {
-              const courseImage = COURSE_IMAGES[c.slug] || "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&q=80&w=800";
+              const courseImage =
+                COURSE_IMAGES[c.slug] ||
+                "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&q=80&w=800";
               return (
                 <Link
                   key={c.id}
@@ -720,13 +797,13 @@ function Home() {
                   params={{ slug: c.slug }}
                   className="group relative min-h-[380px] rounded-3xl overflow-hidden border border-white/10 hover:border-azure flex flex-col justify-end p-8 transition-all duration-500 hover:shadow-[0_0_30px_rgba(212,175,55,0.12)] hover:-translate-y-1.5"
                 >
-                  <img 
-                    src={courseImage} 
+                  <img
+                    src={courseImage}
                     alt={c.name}
                     className="absolute inset-0 size-full object-cover opacity-30 mix-blend-luminosity scale-100 group-hover:scale-105 group-hover:opacity-50 group-hover:mix-blend-normal transition-all duration-700 ease-out z-0"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#12100f] via-[#12100f]/80 to-transparent z-1" />
-                  
+
                   <div className="relative z-10 flex flex-col h-full justify-between w-full">
                     <div className="flex justify-between items-start">
                       <span className="font-mono text-[9px] uppercase tracking-widest border border-azure/30 bg-azure/10 text-azure px-2.5 py-1 rounded-full font-bold">
@@ -736,7 +813,7 @@ function Home() {
                         <ArrowRight className="size-4 group-hover:translate-x-0.5 transition-all duration-300" />
                       </div>
                     </div>
-                    
+
                     <div className="mt-auto">
                       <h3 className="font-display text-3xl font-extrabold uppercase tracking-tight text-white group-hover:text-azure transition-colors duration-300">
                         {c.name}
@@ -759,10 +836,12 @@ function Home() {
       {/* Journey */}
       <section className="bg-navy border-y border-border/40 py-28 px-6 relative overflow-hidden">
         <div className="glowing-blob top-1/4 left-1/3 w-[500px] h-[500px]" />
-        
+
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-16 relative z-10">
           <div className="lg:w-1/4">
-            <span className="font-mono text-xs text-azure uppercase tracking-[0.2em] font-bold">The Pathway</span>
+            <span className="font-mono text-xs text-azure uppercase tracking-[0.2em] font-bold">
+              The Pathway
+            </span>
             <h2 className="mt-4 font-display text-5xl md:text-6xl font-extrabold uppercase leading-none tracking-tight text-foreground">
               The Zahau
               <br />
@@ -773,12 +852,12 @@ function Home() {
               six deliberate steps.
             </p>
           </div>
-          
+
           <div className="lg:w-3/4 flex flex-col justify-center">
             {/* Desktop Horizontal Timeline */}
             <div className="hidden md:block relative w-full pt-4">
               <div className="absolute top-[28px] left-[32px] right-[32px] h-[1px] bg-border/80 z-0 pointer-events-none" />
-              
+
               <div className="grid grid-cols-6 gap-4 relative z-10">
                 {JOURNEY.map(([title, desc], i) => (
                   <div key={title} className="flex flex-col items-center text-center group">
@@ -795,7 +874,7 @@ function Home() {
                 ))}
               </div>
             </div>
-            
+
             {/* Mobile Vertical Timeline */}
             <div className="md:hidden relative pl-6 border-l border-border/80 space-y-10">
               {JOURNEY.map(([title, desc], i) => (
@@ -819,10 +898,12 @@ function Home() {
       {/* Testimonials */}
       <ScrollReveal className="py-28 px-6 max-w-7xl mx-auto overflow-hidden relative">
         <div className="glowing-blob-gold top-10 right-10 w-[300px] h-[300px]" />
-        
+
         <div className="flex justify-between items-end mb-16 flex-wrap gap-6 relative z-10">
           <div>
-            <span className="font-mono text-xs text-azure uppercase tracking-[0.2em] font-bold">Success Stories</span>
+            <span className="font-mono text-xs text-azure uppercase tracking-[0.2em] font-bold">
+              Success Stories
+            </span>
             <h2 className="mt-4 font-display text-5xl md:text-6xl font-extrabold uppercase leading-none tracking-tight">
               Student
               <br />
@@ -846,7 +927,7 @@ function Home() {
             </button>
           </div>
         </div>
-        
+
         <div className="overflow-hidden relative z-10" ref={emblaRef}>
           <div className="flex gap-6">
             {TESTIMONIALS.map((t) => (
@@ -855,18 +936,27 @@ function Home() {
                 className="flex-[0_0_100%] sm:flex-[0_0_50%] lg:flex-[0_0_33.333%] min-w-0 glass-panel border border-border/60 p-8 rounded-2xl flex flex-col justify-between hover-glow hover:-translate-y-1.5 transition-all duration-500"
               >
                 <div>
-                  <span className="font-serif text-6xl text-azure/15 select-none leading-none block h-5 mb-2 -mt-4">“</span>
+                  <span className="font-serif text-6xl text-azure/15 select-none leading-none block h-5 mb-2 -mt-4">
+                    “
+                  </span>
                   <blockquote className="text-lg sm:text-xl leading-relaxed font-serif italic text-foreground/90 font-light relative z-10 pl-6 border-l-2 border-azure/30">
                     "{t.quote}"
                   </blockquote>
                 </div>
                 <figcaption className="mt-8 border-t border-border/40 pt-6 flex items-center gap-3">
                   <div className="size-10 rounded-full bg-azure/10 text-azure border border-azure/20 flex items-center justify-center font-mono text-[11px] font-bold">
-                    {t.who.split(' ').map(n => n[0]).join('')}
+                    {t.who
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")}
                   </div>
                   <div>
-                    <div className="text-foreground font-bold text-xs font-display uppercase tracking-wider">{t.who}</div>
-                    <div className="text-[9px] uppercase tracking-widest text-muted-foreground/80 font-mono mt-0.5">{t.role}</div>
+                    <div className="text-foreground font-bold text-xs font-display uppercase tracking-wider">
+                      {t.who}
+                    </div>
+                    <div className="text-[9px] uppercase tracking-widest text-muted-foreground/80 font-mono mt-0.5">
+                      {t.role}
+                    </div>
                   </div>
                 </figcaption>
               </figure>
@@ -879,8 +969,18 @@ function Home() {
       <div className="border-y border-border/60 grid md:grid-cols-3 relative overflow-hidden bg-secondary/5">
         <div className="glowing-blob bottom-0 left-1/3 w-[300px] h-[300px]" />
         {[
-          { c: "South Extension II", a: "Main Campus · Concert Hall", p: "+91 11 4050 6070", h: "10:00 AM – 8:00 PM" },
-          { c: "Hauz Khas", a: "Production Studios", p: "+91 11 4050 6071", h: "11:00 AM – 8:00 PM" },
+          {
+            c: "South Extension II",
+            a: "Main Campus · Concert Hall",
+            p: "+91 11 4050 6070",
+            h: "10:00 AM – 8:00 PM",
+          },
+          {
+            c: "Hauz Khas",
+            a: "Production Studios",
+            p: "+91 11 4050 6071",
+            h: "11:00 AM – 8:00 PM",
+          },
           { c: "Vasant Kunj", a: "Junior Wing", p: "+91 11 4050 6072", h: "10:00 AM – 7:00 PM" },
         ].map((b, i) => (
           <div
@@ -893,7 +993,7 @@ function Home() {
             <h5 className="mt-4 font-display text-2xl font-bold uppercase tracking-tight group-hover:text-azure transition-colors duration-300">
               {b.c}
             </h5>
-            
+
             <div className="mt-6 space-y-3">
               <div className="flex items-center gap-2.5 text-xs text-muted-foreground font-light">
                 <MapPin className="size-3.5 text-azure shrink-0" />
@@ -916,7 +1016,9 @@ function Home() {
       <ScrollReveal className="py-28 px-6 max-w-4xl mx-auto relative">
         <div className="glowing-blob-gold bottom-10 left-1/4 w-[250px] h-[250px]" />
         <div className="relative z-10">
-          <span className="font-mono text-xs text-azure uppercase tracking-[0.2em] font-bold block text-center mb-4">FAQ</span>
+          <span className="font-mono text-xs text-azure uppercase tracking-[0.2em] font-bold block text-center mb-4">
+            FAQ
+          </span>
           <h2 className="font-display text-5xl md:text-6xl font-extrabold uppercase leading-none tracking-tight text-center mb-16">
             Common
             <br />
@@ -936,18 +1038,22 @@ function Home() {
           <div className="bg-card border border-border/80 rounded-3xl p-8 md:p-16 relative overflow-hidden shadow-2xl">
             <div className="glowing-blob top-0 left-0 w-[450px] h-[450px] -translate-x-1/3 -translate-y-1/3" />
             <div className="glowing-blob-gold bottom-0 right-0 w-[350px] h-[350px] translate-x-1/4 translate-y-1/4" />
-            
+
             <div className="relative z-10 grid md:grid-cols-2 gap-12 items-center">
               <div>
-                <span className="font-mono text-xs text-azure uppercase tracking-[0.2em] font-bold">Get Started</span>
+                <span className="font-mono text-xs text-azure uppercase tracking-[0.2em] font-bold">
+                  Get Started
+                </span>
                 <h2 className="mt-4 font-display text-5xl md:text-6xl font-extrabold uppercase leading-none tracking-tight">
                   Ready to
                   <br />
-                  <span className="font-serif italic text-azure normal-case font-light lowercase">play?</span>
+                  <span className="font-serif italic text-azure normal-case font-light lowercase">
+                    play?
+                  </span>
                 </h2>
                 <p className="mt-6 text-muted-foreground leading-relaxed font-light text-sm sm:text-base max-w-md">
-                  Tell us what you'd like to learn. We'll match you with a faculty mentor and design a
-                  trial class around your goals — free of charge.
+                  Tell us what you'd like to learn. We'll match you with a faculty mentor and design
+                  a trial class around your goals — free of charge.
                 </p>
               </div>
               <div className="bg-background/80 backdrop-blur-md text-foreground p-8 rounded-2xl border border-border/60 shadow-2xl">

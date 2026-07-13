@@ -31,19 +31,24 @@ function About() {
         {/* Glowing background blobs */}
         <div className="glowing-blob top-1/4 left-1/4 w-[500px] h-[500px] -translate-x-1/2 -translate-y-1/2" />
         <div className="glowing-blob-gold bottom-1/4 right-1/4 w-[400px] h-[400px]" />
-        
+
         {/* Bottom fade transition */}
         <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-background to-transparent pointer-events-none z-1" />
-        
+
         <div className="max-w-7xl mx-auto relative z-10">
-          <span className="font-mono text-xs uppercase tracking-[0.3em] text-azure font-bold block mb-4">Our Story</span>
+          <span className="font-mono text-xs uppercase tracking-[0.3em] text-azure font-bold block mb-4">
+            Our Story
+          </span>
           <h1 className="font-display text-6xl sm:text-7xl md:text-8xl lg:text-9xl uppercase leading-[0.85] font-extrabold tracking-tight">
             The art
             <br />
-            <span className="font-serif italic text-azure normal-case font-light lowercase">of mastery.</span>
+            <span className="font-serif italic text-azure normal-case font-light lowercase">
+              of mastery.
+            </span>
           </h1>
           <p className="mt-8 max-w-2xl text-lg text-navy-foreground/80 leading-relaxed font-light">
-            Founded by Henry Jahau, Zahau Music School offers a dedicated online music platform where serious craft and genuine joy meet.
+            Founded by Henry Jahau, Zahau Music School offers a dedicated online music platform
+            where serious craft and genuine joy meet.
           </p>
         </div>
       </section>
@@ -51,7 +56,9 @@ function About() {
       <section className="py-24 px-6 max-w-7xl mx-auto grid md:grid-cols-2 gap-16 relative">
         <div className="glowing-blob top-1/2 left-1/2 w-[300px] h-[300px] -translate-x-1/2" />
         <div className="glass-panel border border-border/60 hover-glow p-10 rounded-3xl relative z-10">
-          <span className="font-mono text-[9px] uppercase tracking-widest text-azure font-bold">Mission</span>
+          <span className="font-mono text-[9px] uppercase tracking-widest text-azure font-bold">
+            Mission
+          </span>
           <h2 className="mt-4 font-display text-3xl sm:text-4xl font-extrabold uppercase tracking-tight">
             Train the next generation of world-class musicians.
           </h2>
@@ -62,7 +69,9 @@ function About() {
           </p>
         </div>
         <div className="glass-panel border border-border/60 hover-glow p-10 rounded-3xl relative z-10 md:mt-8">
-          <span className="font-mono text-[9px] uppercase tracking-widest text-azure font-bold">Vision</span>
+          <span className="font-mono text-[9px] uppercase tracking-widest text-azure font-bold">
+            Vision
+          </span>
           <h2 className="mt-4 font-display text-3xl sm:text-4xl font-extrabold uppercase tracking-tight">
             A culture of musicians, not just hobbyists.
           </h2>
@@ -88,16 +97,21 @@ function About() {
             />
           </div>
           <div>
-            <span className="font-mono text-xs text-azure uppercase tracking-widest font-bold">Founder</span>
-            <h2 className="mt-3 font-display text-5xl font-extrabold uppercase tracking-tight">Henry Jahau</h2>
+            <span className="font-mono text-xs text-azure uppercase tracking-widest font-bold">
+              Founder
+            </span>
+            <h2 className="mt-3 font-display text-5xl font-extrabold uppercase tracking-tight">
+              Henry Jahau
+            </h2>
             <p className="mt-2 text-muted-foreground font-mono text-xs uppercase tracking-widest font-semibold border-b border-border/60 pb-4">
               Violinist · Conductor · Educator
             </p>
-            
+
             <blockquote className="mt-8 border-l-4 border-azure pl-6 font-serif italic text-lg sm:text-xl text-foreground/90">
-              "We must treat every note as an act of pure attention, where serious craft and genuine joy meet."
+              "We must treat every note as an act of pure attention, where serious craft and genuine
+              joy meet."
             </blockquote>
-            
+
             <div className="mt-8 space-y-5 text-muted-foreground leading-relaxed text-sm sm:text-base font-light">
               <p>
                 Henry's journey began at age six with a borrowed violin in a small Delhi flat. Two
@@ -120,15 +134,19 @@ function About() {
 
       <section className="py-28 px-6 max-w-7xl mx-auto relative">
         <div className="glowing-blob top-1/4 right-1/4 w-[350px] h-[350px]" />
-        
+
         <div className="relative z-10">
-          <span className="font-mono text-xs text-azure uppercase tracking-widest font-bold block text-center mb-4">Methodology</span>
+          <span className="font-mono text-xs text-azure uppercase tracking-widest font-bold block text-center mb-4">
+            Methodology
+          </span>
           <h2 className="font-display text-5xl font-extrabold uppercase leading-none tracking-tight text-center mb-16">
             Teaching
             <br />
-            <span className="font-serif italic text-azure normal-case font-light lowercase">philosophy</span>
+            <span className="font-serif italic text-azure normal-case font-light lowercase">
+              philosophy
+            </span>
           </h2>
-          
+
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
               {
@@ -156,16 +174,23 @@ function About() {
                 d: "Quarterly recitals replace passive grading. You learn by getting up and playing.",
               },
             ].map((m, i) => (
-              <div key={m.t} className="glass-panel border border-border/60 hover-glow p-8 rounded-2xl flex flex-col justify-between group">
+              <div
+                key={m.t}
+                className="glass-panel border border-border/60 hover-glow p-8 rounded-2xl flex flex-col justify-between group"
+              >
                 <div>
                   <span className="font-mono text-xs text-azure font-bold">0{i + 1}</span>
-                  <h3 className="mt-6 font-display text-2xl font-bold uppercase tracking-tight group-hover:text-azure transition-colors">{m.t}</h3>
+                  <h3 className="mt-6 font-display text-2xl font-bold uppercase tracking-tight group-hover:text-azure transition-colors">
+                    {m.t}
+                  </h3>
                 </div>
-                <p className="mt-4 text-sm text-muted-foreground leading-relaxed font-light">{m.d}</p>
+                <p className="mt-4 text-sm text-muted-foreground leading-relaxed font-light">
+                  {m.d}
+                </p>
               </div>
             ))}
           </div>
-          
+
           <div className="mt-16 text-center">
             <Link
               to="/contact"

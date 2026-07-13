@@ -38,7 +38,7 @@
   --font-serif: "Playfair Display", Georgia, serif;
   --font-sans: "Inter", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
-  
+
   /* Typography Scaling Up globally */
   --text-xs: 0.8125rem;
   --text-sm: 0.9375rem;
@@ -46,7 +46,7 @@
   --text-lg: 1.1875rem;
   --text-xl: 1.3125rem;
   --text-2xl: 1.625rem;
-  --text-3xl: 2.0rem;
+  --text-3xl: 2rem;
   --text-4xl: 2.5rem;
   --text-5xl: 3.25rem;
 }
@@ -54,18 +54,22 @@
 :root {
   --radius: 0.5rem;
   /* Premium White Noise Palette — Soft Off-White and Crisp Charcoal with Electric Azure Accent */
-  --navy: oklch(0.965 0.004 240); /* Very soft white-noise light background instead of dark brown/black */
+  --navy: oklch(
+    0.965 0.004 240
+  ); /* Very soft white-noise light background instead of dark brown/black */
   --navy-foreground: oklch(0.12 0.01 240); /* Crisp charcoal text for high readability */
-  --azure: oklch(0.52 0.18 250); /* Premium electric azure blue for excellent contrast and high visibility */
+  --azure: oklch(
+    0.52 0.18 250
+  ); /* Premium electric azure blue for excellent contrast and high visibility */
   --azure-foreground: oklch(0.99 0.002 240); /* Pure white text on blue accent buttons */
   --surface: oklch(0.985 0.002 240); /* Extremely clean light page background */
   --ink: oklch(0.12 0.01 240); /* Crisp charcoal text */
 
   --background: var(--surface);
   --foreground: var(--ink);
-  --card: oklch(1.0 0 0); /* Pure white cards */
+  --card: oklch(1 0 0); /* Pure white cards */
   --card-foreground: var(--ink);
-  --popover: oklch(1.0 0 0);
+  --popover: oklch(1 0 0);
   --popover-foreground: var(--ink);
   --primary: var(--navy);
   --primary-foreground: var(--navy-foreground);
@@ -95,9 +99,9 @@
 
   --background: var(--surface);
   --foreground: var(--ink);
-  --card: oklch(1.0 0 0);
+  --card: oklch(1 0 0);
   --card-foreground: var(--ink);
-  --popover: oklch(1.0 0 0);
+  --popover: oklch(1 0 0);
   --popover-foreground: var(--ink);
   --primary: var(--navy);
   --primary-foreground: var(--navy-foreground);
@@ -126,8 +130,9 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
-    background-image: linear-gradient(to right, var(--grid-color) 1px, transparent 1px),
-                      linear-gradient(to bottom, var(--grid-color) 1px, transparent 1px);
+    background-image:
+      linear-gradient(to right, var(--grid-color) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--grid-color) 1px, transparent 1px);
     background-size: 6rem 6rem;
   }
   ::selection {
@@ -146,8 +151,9 @@
   }
 }
 @utility grid-background {
-  background-image: linear-gradient(to right, var(--grid-color) 1px, transparent 1px),
-                    linear-gradient(to bottom, var(--grid-color) 1px, transparent 1px);
+  background-image:
+    linear-gradient(to right, var(--grid-color) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-color) 1px, transparent 1px);
   background-size: 4rem 4rem;
 }
 @utility animate-marquee {
@@ -195,8 +201,12 @@
 
 /* Fade In animation */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 @utility animate-fade-in {
   animation: fadeIn 0.5s ease-out forwards;
@@ -239,7 +249,7 @@
 }
 
 @utility text-gradient-gold {
-  background: linear-gradient(135deg, oklch(0.76 0.11 75) 0%, oklch(0.60 0.13 65) 100%);
+  background: linear-gradient(135deg, oklch(0.76 0.11 75) 0%, oklch(0.6 0.13 65) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -266,16 +276,28 @@
 
 @utility border-gradient {
   border: 1px solid transparent;
-  background-image: linear-gradient(var(--color-card), var(--color-card)), 
-                    linear-gradient(135deg, var(--color-border) 0%, var(--color-azure) 50%, var(--color-border) 100%);
+  background-image:
+    linear-gradient(var(--color-card), var(--color-card)),
+    linear-gradient(
+      135deg,
+      var(--color-border) 0%,
+      var(--color-azure) 50%,
+      var(--color-border) 100%
+    );
   background-origin: border-box;
   background-clip: padding-box, border-box;
 }
 
 @utility border-gradient-gold {
   border: 1px solid transparent;
-  background-image: linear-gradient(var(--color-card), var(--color-card)), 
-                    linear-gradient(135deg, var(--color-border) 0%, oklch(0.76 0.11 75) 50%, var(--color-border) 100%);
+  background-image:
+    linear-gradient(var(--color-card), var(--color-card)),
+    linear-gradient(
+      135deg,
+      var(--color-border) 0%,
+      oklch(0.76 0.11 75) 50%,
+      var(--color-border) 100%
+    );
   background-origin: border-box;
   background-clip: padding-box, border-box;
 }
@@ -305,20 +327,40 @@
 
 /* Music Visualizer Animations */
 @keyframes bounce-bar-1 {
-  0%, 100% { height: 20%; }
-  50% { height: 80%; }
+  0%,
+  100% {
+    height: 20%;
+  }
+  50% {
+    height: 80%;
+  }
 }
 @keyframes bounce-bar-2 {
-  0%, 100% { height: 35%; }
-  50% { height: 100%; }
+  0%,
+  100% {
+    height: 35%;
+  }
+  50% {
+    height: 100%;
+  }
 }
 @keyframes bounce-bar-3 {
-  0%, 100% { height: 15%; }
-  50% { height: 90%; }
+  0%,
+  100% {
+    height: 15%;
+  }
+  50% {
+    height: 90%;
+  }
 }
 @keyframes bounce-bar-4 {
-  0%, 100% { height: 45%; }
-  50% { height: 70%; }
+  0%,
+  100% {
+    height: 45%;
+  }
+  50% {
+    height: 70%;
+  }
 }
 @utility music-visualizer-bar-1 {
   animation: bounce-bar-1 1s ease-in-out infinite;
@@ -346,4 +388,3 @@
     animation: none !important;
   }
 }
-

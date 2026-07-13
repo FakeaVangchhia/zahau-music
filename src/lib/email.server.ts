@@ -21,6 +21,13 @@ export interface DemoBookingEmailData {
 }
 
 export async function sendDemoConfirmationEmail(data: DemoBookingEmailData) {
+  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
+    console.warn(
+      "[SMTP] Skipping email transmission because SMTP environment variables are not configured in your .env file.",
+    );
+    return;
+  }
+
   const transporter = createTransporter();
   const from = `"Zahau Music School" <${process.env.SMTP_USER}>`;
   const adminEmail = process.env.SMTP_USER!;
@@ -114,16 +121,20 @@ function buildConfirmationHtml({ name, day, slot, courseInterest }: DemoBookingE
                       <tr>
                         <td style="padding-bottom:16px;">
                           <span style="font-family:'Courier New',monospace;font-size:9px;letter-spacing:0.25em;text-transform:uppercase;color:rgba(212,175,55,0.6);font-weight:700;display:block;margin-bottom:4px;">Instructor</span>
-                          <span style="font-size:16px;font-weight:700;color:#ffffff;">Dr. Henery</span>
+                          <span style="font-size:16px;font-weight:700;color:#ffffff;">Dr. Henry</span>
                         </td>
                       </tr>
-                      ${courseInterest ? `
+                      ${
+                        courseInterest
+                          ? `
                       <tr>
                         <td>
                           <span style="font-family:'Courier New',monospace;font-size:9px;letter-spacing:0.25em;text-transform:uppercase;color:rgba(212,175,55,0.6);font-weight:700;display:block;margin-bottom:4px;">Course Interest</span>
                           <span style="font-size:16px;font-weight:700;color:#ffffff;">${courseInterest}</span>
                         </td>
-                      </tr>` : ""}
+                      </tr>`
+                          : ""
+                      }
                     </table>
                   </td>
                 </tr>
@@ -172,7 +183,7 @@ SESSION DETAILS
 ---------------
 Day:        ${day}
 Time:       ${slot}
-Instructor: Dr. Henery
+Instructor: Dr. Henry
 ${courseInterest ? `Course:     ${courseInterest}` : ""}
 
 We'll confirm your slot within one business day.
@@ -184,7 +195,13 @@ If you have questions, reply to this email or visit zahaumusic.com/contact.
 }
 
 // ─── Admin notification email ──────────────────────────────────────────────
-function buildAdminNotificationHtml({ name, to, day, slot, courseInterest }: DemoBookingEmailData & { to: string }): string {
+function buildAdminNotificationHtml({
+  name,
+  to,
+  day,
+  slot,
+  courseInterest,
+}: DemoBookingEmailData & { to: string }): string {
   return `<!DOCTYPE html>
 <html>
 <body style="margin:0;padding:32px;background:#0d0d0f;font-family:monospace;color:#e5e5e5;">

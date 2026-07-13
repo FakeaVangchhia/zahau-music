@@ -7,6 +7,7 @@ Welcome to the progress tracking document for the **Zahau Music School** web app
 ## 🛠️ Project Tech Stack
 
 ### Frontend
+
 - **Framework**: [React 19](https://react.dev/) (Client and Server rendering)
 - **Routing & Framework Core**: [TanStack Start](https://tanstack.com/router/latest/docs/start/overview) (Type-safe routing, SSR, hydration support, and API Server Functions)
 - **State Management & Querying**: [TanStack Query v5](https://tanstack.com/query/latest) (React Query)
@@ -16,12 +17,14 @@ Welcome to the progress tracking document for the **Zahau Music School** web app
 - **Forms & Validation**: [React Hook Form](https://react-hook-form.com/) & [Zod](https://zod.dev/)
 
 ### Backend & Database
+
 - **Database**: [Supabase](https://supabase.com/) (PostgreSQL)
 - **Authentication**: Supabase Auth (supports Email/Password and Google OAuth sign-in)
 - **Authorization**: Role-based access control (`student` and `admin` roles) via database triggers, the `user_roles` table, and the `has_role` PostgreSQL function.
 - **ORM & Types**: TypeScript types auto-generated from the Supabase schema (`src/integrations/supabase/types.ts`).
 
 ### Tooling & Infrastructure
+
 - **Build Tool**: [Vite 7](https://vitejs.dev/)
 - **Runtime**: [Bun](https://bun.sh/) (configured via `bunfig.toml` and lockfile `bun.lock`)
 - **Server Engine**: [Nitro](https://nitro.unjs.io/) (configured for production-ready, edge-compatible deployments)
@@ -102,12 +105,14 @@ zahau-music/
 ## 📈 Milestone & Step Tracking
 
 ### 🏁 Phase 1: Core Architecture & Setup
+
 - [x] Initialize project with TanStack Start, React 19, and TypeScript
 - [x] Configure Vite with plugin support for TanStack Router, React, Tailwind CSS v4, and Nitro
 - [x] Set up ESLint, Prettier, and path aliases (`@/*` pointing to `src/*`)
 - [x] Configure Local environment settings (`.env`, `bunfig.toml`)
 
 ### 🏁 Phase 2: Database Schema & Supabase Setup
+
 - [x] Set up remote/local Supabase project (project ID updated to `lzzhxceprsykslwfclxp`)
 - [x] Write SQL initialization script (`setup_supabase_db.sql`) defining:
   - Tables: `profiles`, `user_roles`, `leads`, `newsletter_subscribers`, `courses`, `enrollments`, `events`, `event_registrations`
@@ -119,6 +124,7 @@ zahau-music/
 - [x] Seed initial 8 courses details into the database
 
 ### 🏁 Phase 3: Site Layout & Basic Routing
+
 - [x] Create site structure and core pages (Home, About, Courses, Gallery, Lessons, Weekly Schedule, Contact, Fees)
 - [x] Create layout shell (`__root.tsx`) with global Header, Footer, and WhatsApp FAB
 - [x] Build forms for user interaction:
@@ -126,6 +132,7 @@ zahau-music/
   - `NewsletterForm` for subscribers (submits to `newsletter_subscribers` table via Server Function)
 
 ### 🏁 Phase 4: Authentication & Role Management
+
 - [x] Create authentication route (`/auth`) supporting Email/Password signin, signup, and Google OAuth
 - [x] Setup client-side and server-side Supabase client instances (`client.ts`, `client.server.ts`)
 - [x] Configure global middleware (`attachSupabaseAuth`) to automatically pass bearer JWT tokens to server functions
@@ -133,6 +140,7 @@ zahau-music/
 - [x] Implement database checks to verify role authorization upon session retrieval
 
 ### 🏁 Phase 5: Dashboard & Portal Separation
+
 - [x] Create protected routing group (`/_authenticated`) requiring users to sign in
 - [x] Implement dynamic branching in `dashboard.tsx` based on user roles:
   - Render **Student Portal** for users with `student` role (displays courses, progress, assignments, events, and certs)
@@ -141,6 +149,7 @@ zahau-music/
 - [x] Customize site navigation header to dynamically display "Dashboard" (for students), "Admin Console" (for admins), or "Login" (for visitors) depending on session status.
 
 ### 🏁 Phase 6: Admin Console Features (Management Portal)
+
 - [x] **Overview Tab**: Show metrics summarizing total courses, consultations/leads, newsletter subscribers, lessons, and active fees.
 - [x] **Courses Management Tab**: Allow admins to view courses, update details (name, duration, tagline, summary, certification, display order), and add/modify YouTube introduction videos.
 - [x] **Leads Tab**: Display lead entries submitted through forms, showing contact info (name, phone, email, source), selected interest, and messages.
@@ -149,6 +158,7 @@ zahau-music/
 - [x] **Fees Management Tab**: Add, edit, and delete school tuition fee options directly from the console.
 
 ### 🏁 Phase 7: Video Support & Enhancements
+
 - [x] Create database migration `20260613194500_add_video_url_to_courses.sql` adding `video_url` column to courses
 - [x] Create YouTube URL parser utility to extract video IDs and generate secure embed URLs (`https://www.youtube.com/embed/...`)
 - [x] Update Course Details page (`/courses/$slug`) to dynamically display YouTube player if a `video_url` is configured for that course
@@ -161,14 +171,21 @@ zahau-music/
 ## 🛠️ Diagnostics & Refactoring Opportunities
 
 ### ⚠️ Unused & Buggy Middleware (`auth-middleware.ts`)
+
 Inside `src/integrations/supabase/auth-middleware.ts`, there is an authentication middleware `requireSupabaseAuth` containing:
+
 ```typescript
 const { data, error } = await supabase.auth.getClaims(token);
 ```
-**Issue**: The `@supabase/supabase-js` library does not have a `getClaims(token)` function on the `auth` namespace. Running this middleware results in a runtime error (`undefined` function error). 
+
+**Issue**: The `@supabase/supabase-js` library does not have a `getClaims(token)` function on the `auth` namespace. Running this middleware results in a runtime error (`undefined` function error).
 **Status**: This middleware is currently **not** imported or used anywhere in the active routes. However, if this middleware is intended for future backend API endpoint protection, it should be refactored to use:
+
 ```typescript
-const { data: { user }, error } = await supabase.auth.getUser(token);
+const {
+  data: { user },
+  error,
+} = await supabase.auth.getUser(token);
 // Roles/claims can then be read from user.app_metadata or by querying user_roles
 ```
 
