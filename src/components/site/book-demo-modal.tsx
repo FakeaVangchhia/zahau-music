@@ -6,12 +6,42 @@ import { User, Mail, Phone, Music, Calendar, Clock, X, Send, CheckCircle2 } from
 
 // Schedule aligned with /schedule page
 const DAYS = [
-  { label: "Monday", short: "MON", slots: ["2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM"], type: "weekday" },
-  { label: "Tuesday", short: "TUE", slots: ["2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM"], type: "weekday" },
-  { label: "Wednesday", short: "WED", slots: ["2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM"], type: "weekday" },
-  { label: "Thursday", short: "THU", slots: ["2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM"], type: "weekday" },
-  { label: "Friday", short: "FRI", slots: ["2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM"], type: "weekday" },
-  { label: "Saturday", short: "SAT", slots: ["12:00 PM", "12:30 PM", "1:00 PM", "1:30 PM", "2:00 PM", "2:30 PM"], type: "weekend" },
+  {
+    label: "Monday",
+    short: "MON",
+    slots: ["2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM"],
+    type: "weekday",
+  },
+  {
+    label: "Tuesday",
+    short: "TUE",
+    slots: ["2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM"],
+    type: "weekday",
+  },
+  {
+    label: "Wednesday",
+    short: "WED",
+    slots: ["2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM"],
+    type: "weekday",
+  },
+  {
+    label: "Thursday",
+    short: "THU",
+    slots: ["2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM"],
+    type: "weekday",
+  },
+  {
+    label: "Friday",
+    short: "FRI",
+    slots: ["2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM"],
+    type: "weekday",
+  },
+  {
+    label: "Saturday",
+    short: "SAT",
+    slots: ["12:00 PM", "12:30 PM", "1:00 PM", "1:30 PM", "2:00 PM", "2:30 PM"],
+    type: "weekend",
+  },
 ];
 
 interface BookDemoModalProps {
@@ -45,7 +75,9 @@ export function BookDemoModal({ open, onClose }: BookDemoModalProps) {
     } else {
       document.body.style.overflow = "";
     }
-    return () => { document.body.style.overflow = ""; };
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [open]);
 
   // Close on Escape
@@ -57,7 +89,7 @@ export function BookDemoModal({ open, onClose }: BookDemoModalProps) {
     return () => window.removeEventListener("keydown", handleKey);
   }, [open, onClose]);
 
-  const currentDay = DAYS.find(d => d.label === selectedDay);
+  const currentDay = DAYS.find((d) => d.label === selectedDay);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -92,7 +124,9 @@ export function BookDemoModal({ open, onClose }: BookDemoModalProps) {
     <div
       ref={overlayRef}
       className="fixed inset-0 z-[999] flex items-center justify-center p-4 sm:p-6"
-      onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
+      onClick={(e) => {
+        if (e.target === overlayRef.current) onClose();
+      }}
     >
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-md" />
@@ -113,7 +147,8 @@ export function BookDemoModal({ open, onClose }: BookDemoModalProps) {
               Free Session
             </span>
             <h2 className="font-display text-3xl font-extrabold uppercase tracking-tight">
-              Book a <span className="font-serif italic text-azure normal-case font-light">Demo</span>
+              Book a{" "}
+              <span className="font-serif italic text-azure normal-case font-light">Demo</span>
             </h2>
           </div>
           <button
@@ -137,8 +172,10 @@ export function BookDemoModal({ open, onClose }: BookDemoModalProps) {
               </h3>
               <p className="text-muted-foreground text-sm font-light leading-relaxed max-w-sm">
                 We've received your demo request for{" "}
-                <strong className="text-foreground">{selectedDay} at {selectedSlot}</strong>.
-                Our team will confirm your slot within one business day.
+                <strong className="text-foreground">
+                  {selectedDay} at {selectedSlot}
+                </strong>
+                . Our team will confirm your slot within one business day.
               </p>
             </div>
             <button
@@ -150,7 +187,6 @@ export function BookDemoModal({ open, onClose }: BookDemoModalProps) {
           </div>
         ) : (
           <form onSubmit={onSubmit} className="px-8 py-8 grid gap-8">
-
             {/* Personal Details */}
             <div className="grid gap-5">
               <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-azure/80 font-bold flex items-center gap-2">
@@ -159,7 +195,10 @@ export function BookDemoModal({ open, onClose }: BookDemoModalProps) {
 
               {/* Name */}
               <div className="grid gap-2">
-                <label htmlFor="demo-name" className="font-mono text-[11px] uppercase tracking-widest text-foreground/70 font-bold">
+                <label
+                  htmlFor="demo-name"
+                  className="font-mono text-[11px] uppercase tracking-widest text-foreground/70 font-bold"
+                >
                   Full Name
                 </label>
                 <div className="relative">
@@ -178,7 +217,10 @@ export function BookDemoModal({ open, onClose }: BookDemoModalProps) {
               {/* Email & Phone */}
               <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1 grid gap-2">
-                  <label htmlFor="demo-email" className="font-mono text-[11px] uppercase tracking-widest text-foreground/70 font-bold">
+                  <label
+                    htmlFor="demo-email"
+                    className="font-mono text-[11px] uppercase tracking-widest text-foreground/70 font-bold"
+                  >
                     Email
                   </label>
                   <div className="relative">
@@ -195,7 +237,10 @@ export function BookDemoModal({ open, onClose }: BookDemoModalProps) {
                   </div>
                 </div>
                 <div className="flex-1 grid gap-2">
-                  <label htmlFor="demo-phone" className="font-mono text-[11px] uppercase tracking-widest text-foreground/70 font-bold">
+                  <label
+                    htmlFor="demo-phone"
+                    className="font-mono text-[11px] uppercase tracking-widest text-foreground/70 font-bold"
+                  >
                     Phone
                   </label>
                   <div className="relative">
@@ -214,7 +259,10 @@ export function BookDemoModal({ open, onClose }: BookDemoModalProps) {
 
               {/* Course interest */}
               <div className="grid gap-2">
-                <label htmlFor="demo-course" className="font-mono text-[11px] uppercase tracking-widest text-foreground/70 font-bold">
+                <label
+                  htmlFor="demo-course"
+                  className="font-mono text-[11px] uppercase tracking-widest text-foreground/70 font-bold"
+                >
                   Course Interest
                 </label>
                 <div className="relative">
@@ -251,7 +299,10 @@ export function BookDemoModal({ open, onClose }: BookDemoModalProps) {
                     <button
                       key={day.label}
                       type="button"
-                      onClick={() => { setSelectedDay(day.label); setSelectedSlot(null); }}
+                      onClick={() => {
+                        setSelectedDay(day.label);
+                        setSelectedSlot(null);
+                      }}
                       className={`px-4 py-2.5 rounded-xl font-mono text-[10px] uppercase tracking-widest font-bold border transition-all duration-200 cursor-pointer ${
                         selectedDay === day.label
                           ? "bg-azure text-azure-foreground border-azure shadow-lg shadow-azure/20 scale-105"
@@ -266,7 +317,10 @@ export function BookDemoModal({ open, onClose }: BookDemoModalProps) {
 
               {/* Time slot selector */}
               {currentDay && (
-                <div className="grid gap-2 animate-in" style={{ animation: "slideUp 0.2s ease-out" }}>
+                <div
+                  className="grid gap-2 animate-in"
+                  style={{ animation: "slideUp 0.2s ease-out" }}
+                >
                   <span className="font-mono text-[10px] uppercase tracking-widest text-foreground/60 font-bold flex items-center gap-1.5">
                     <Clock className="size-3" /> Select Time Slot
                   </span>
@@ -298,8 +352,10 @@ export function BookDemoModal({ open, onClose }: BookDemoModalProps) {
                   <CheckCircle2 className="size-4 text-azure shrink-0" />
                   <span className="text-sm text-foreground/90 font-light">
                     Session booked for{" "}
-                    <strong className="text-azure font-semibold">{selectedDay} at {selectedSlot}</strong>
-                    {" "}with Dr. Henery
+                    <strong className="text-azure font-semibold">
+                      {selectedDay} at {selectedSlot}
+                    </strong>{" "}
+                    with Dr. Henry
                   </span>
                 </div>
               )}

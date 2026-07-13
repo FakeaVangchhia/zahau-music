@@ -153,11 +153,16 @@ function RootComponent() {
   }, [pathname]);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    }).catch(err => console.error("Supabase auth session fetch failed:", err));
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => {
+        setSession(session);
+      })
+      .catch((err) => console.error("Supabase auth session fetch failed:", err));
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
     });
 
@@ -185,7 +190,8 @@ function RootComponent() {
     checkAdmin();
   }, [session]);
 
-  const hideLayout = false;
+  const hideLayout =
+    pathname.startsWith("/dashboard") || pathname === "/book-demo" || pathname === "/auth";
 
   return (
     <QueryClientProvider client={queryClient}>

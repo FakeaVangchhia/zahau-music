@@ -1,11 +1,21 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { submitDemoBooking } from "@/lib/site.functions";
+import { createRazorpayOrder, verifyRazorpayPayment, getBookedSlots } from "@/lib/site.functions";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
-  User, Mail, Phone, Music, Calendar, Clock,
-  Send, CheckCircle2, ArrowLeft,
+  User,
+  Mail,
+  Phone,
+  Music,
+  Calendar,
+  Clock,
+  Send,
+  CheckCircle2,
+  ArrowLeft,
+  ShieldCheck,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 export const Route = createFileRoute("/book-demo")({
@@ -15,7 +25,7 @@ export const Route = createFileRoute("/book-demo")({
       {
         name: "description",
         content:
-          "Book a free demo session at Zahau Music School. Choose your preferred day and time with Dr. Henery.",
+          "Book a demo session at Zahau Music School. Choose your preferred day and time with Dr. Henry.",
       },
       { property: "og:url", content: "/book-demo" },
     ],
@@ -24,53 +34,221 @@ export const Route = createFileRoute("/book-demo")({
   component: BookDemoPage,
 });
 
-const DAYS = [
-  { label: "Monday",    short: "MON", slots: ["2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM"] },
-  { label: "Tuesday",   short: "TUE", slots: ["2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM"] },
-  { label: "Wednesday", short: "WED", slots: ["2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM"] },
-  { label: "Thursday",  short: "THU", slots: ["2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM"] },
-  { label: "Friday",    short: "FRI", slots: ["2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM"] },
-  { label: "Saturday",  short: "SAT", slots: ["12:00 PM", "12:30 PM", "1:00 PM", "1:30 PM", "2:00 PM", "2:30 PM"] },
-];
+function loadRazorpayScript(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (typeof window === "undefined") {
+      resolve(false);
+      return;
+    }
+    if ((window as any).Razorpay) {
+      resolve(true);
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+}
+
+function toLocalDateString(date: Date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function isPastDate(date: Date) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return date < today;
+}
+
+function isSunday(date: Date) {
+  return date.getDay() === 0;
+}
+
+function isTooFarFuture(date: Date) {
+  const maxDate = new Date();
+  maxDate.setDate(maxDate.getDate() + 30);
+  return date > maxDate;
+}
+
+function getDaysInMonth(date: Date) {
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const totalDays = new Date(year, month + 1, 0).getDate();
+
+  const days = [];
+  for (let i = 0; i < firstDay; i++) {
+    days.push(null);
+  }
+  for (let i = 1; i <= totalDays; i++) {
+    days.push(new Date(year, month, i));
+  }
+  return days;
+}
+
+function getSlotsForDay(date: Date) {
+  if (date.getDay() === 6) {
+    // Saturday
+    return ["12:00 PM", "12:30 PM", "1:00 PM", "1:30 PM", "2:00 PM", "2:30 PM"];
+  }
+  return ["2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM"];
+}
+
+function formatDateForDisplay(date: Date) {
+  return date.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
 
 function BookDemoPage() {
-  const submit = useServerFn(submitDemoBooking);
+  const createOrder = useServerFn(createRazorpayOrder);
+  const verifyPayment = useServerFn(verifyRazorpayPayment);
+  const getBooked = useServerFn(getBookedSlots);
+
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [bookedSlots, setBookedSlots] = useState<Record<string, string[]>>({});
 
-  const currentDay = DAYS.find((d) => d.label === selectedDay);
+  useEffect(() => {
+    getBooked()
+      .then((data) => {
+        setBookedSlots(data || {});
+      })
+      .catch((err) => console.error("Failed to load booked slots:", err));
+  }, []);
+
+  // Calendar setup
+  const daysInMonthList = getDaysInMonth(currentMonth);
+  const monthName = currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+
+  const handlePrevMonth = () => {
+    const prev = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
+    const today = new Date();
+    if (
+      prev.getMonth() >= today.getMonth() ||
+      prev.getFullYear() > today.getFullYear() ||
+      (prev.getFullYear() === today.getFullYear() && prev.getMonth() >= today.getMonth())
+    ) {
+      setCurrentMonth(prev);
+    }
+  };
+
+  const handleNextMonth = () => {
+    const next = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
+    setCurrentMonth(next);
+  };
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!selectedDay || !selectedSlot) {
+    if (!selectedDate || !selectedSlot) {
       toast.error("Please select a day and time slot.");
       return;
     }
     setLoading(true);
+
     const fd = new FormData(e.currentTarget);
+    const name = String(fd.get("name") ?? "");
+    const email = String(fd.get("email") ?? "");
+    const phone = String(fd.get("phone") ?? "");
+    const course_interest = String(fd.get("course_interest") ?? "");
+    const selectedDayStr = toLocalDateString(selectedDate);
+
     try {
-      await submit({
+      // 1. Load Razorpay checkout script
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded) {
+        throw new Error("Failed to load Razorpay payment gateway. Check your internet connection.");
+      }
+
+      // 2. Create the Razorpay Order (Rs. 500 = 50000 paise booking deposit)
+      const order = await createOrder({
         data: {
-          name: String(fd.get("name") ?? ""),
-          email: String(fd.get("email") ?? ""),
-          phone: String(fd.get("phone") ?? ""),
-          course_interest: String(fd.get("course_interest") ?? ""),
-          day: selectedDay,
-          slot: selectedSlot,
+          amount: 50000,
+          currency: "INR",
+          receipt: `demo_${Date.now()}`,
         },
       });
-      setSuccess(true);
+
+      // 3. Open Razorpay Checkout modal
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_TCGjSQkih6IER5",
+        amount: order.amount,
+        currency: order.currency,
+        name: "Zahau Music School",
+        description: "Trial / Demo Session Booking Fee",
+        order_id: order.id,
+        handler: async function (response: any) {
+          setLoading(true);
+          try {
+            // Verify payment and insert booking details
+            const verifyResult = await verifyPayment({
+              data: {
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_signature: response.razorpay_signature,
+                booking_details: {
+                  name,
+                  email,
+                  phone,
+                  course_interest,
+                  day: selectedDayStr,
+                  slot: selectedSlot,
+                },
+              },
+            });
+
+            if (verifyResult.ok) {
+              toast.success("Payment verified! Demo booking confirmed.");
+              setSuccess(true);
+            } else {
+              toast.error("Payment verification failed.");
+            }
+          } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Payment verification failed.");
+          } finally {
+            setLoading(false);
+          }
+        },
+        prefill: {
+          name,
+          email,
+          contact: phone,
+        },
+        theme: {
+          color: "#0070f3",
+        },
+        modal: {
+          ondismiss: function () {
+            setLoading(false);
+            toast.info("Booking cancelled.");
+          },
+        },
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.open();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Submission failed. Please try again.");
-    } finally {
+      toast.error(
+        err instanceof Error ? err.message : "Booking initialization failed. Please try again.",
+      );
       setLoading(false);
     }
   }
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-background relative overflow-hidden">
+    <div className="min-h-screen flex flex-col lg:flex-row bg-background relative overflow-hidden font-sans">
       {/* Ambient glows */}
       <div className="glowing-blob top-1/4 left-0 w-[500px] h-[500px] -translate-x-1/2 pointer-events-none" />
       <div className="glowing-blob-gold bottom-0 right-0 w-[400px] h-[400px] translate-x-1/2 pointer-events-none" />
@@ -88,7 +266,7 @@ function BookDemoPage() {
           </Link>
 
           <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-azure font-bold block mb-3">
-            Free Session
+            Book Class
           </span>
           <h1 className="font-display text-4xl xl:text-5xl uppercase leading-none font-extrabold tracking-tight text-foreground">
             Book a
@@ -96,7 +274,8 @@ function BookDemoPage() {
             <span className="font-serif italic text-azure normal-case font-light">demo.</span>
           </h1>
           <p className="mt-5 text-muted-foreground text-sm font-light leading-relaxed">
-            A free 30-minute session with Dr. Henery. We'll confirm your slot within one business day.
+            Choose your preferred date and time slot with Dr. Henry. A booking deposit of{" "}
+            <strong>Rs. 500</strong> is required to secure your appointment.
           </p>
 
           {/* Schedule info */}
@@ -104,22 +283,28 @@ function BookDemoPage() {
             <div className="flex items-start gap-2.5">
               <Clock className="size-3.5 text-azure mt-0.5 shrink-0" />
               <div>
-                <p className="font-mono text-[10px] uppercase tracking-widest text-foreground/60 font-bold">Mon – Fri</p>
+                <p className="font-mono text-[10px] uppercase tracking-widest text-foreground/60 font-bold">
+                  Mon – Fri
+                </p>
                 <p className="text-sm text-foreground/80 font-light">2:00 PM – 4:00 PM</p>
               </div>
             </div>
             <div className="flex items-start gap-2.5">
               <Clock className="size-3.5 text-azure mt-0.5 shrink-0" />
               <div>
-                <p className="font-mono text-[10px] uppercase tracking-widest text-foreground/60 font-bold">Saturday</p>
+                <p className="font-mono text-[10px] uppercase tracking-widest text-foreground/60 font-bold">
+                  Saturday
+                </p>
                 <p className="text-sm text-foreground/80 font-light">12:00 PM – 3:00 PM</p>
               </div>
             </div>
             <div className="flex items-start gap-2.5">
               <User className="size-3.5 text-azure mt-0.5 shrink-0" />
               <div>
-                <p className="font-mono text-[10px] uppercase tracking-widest text-foreground/60 font-bold">Instructor</p>
-                <p className="text-sm text-foreground/80 font-light">Dr. Henery</p>
+                <p className="font-mono text-[10px] uppercase tracking-widest text-foreground/60 font-bold">
+                  Instructor
+                </p>
+                <p className="text-sm text-foreground/80 font-light">Dr. Henry</p>
               </div>
             </div>
           </div>
@@ -132,18 +317,22 @@ function BookDemoPage() {
       <main className="relative z-10 flex-1 flex items-center justify-center px-6 py-10 pt-24 lg:pt-10">
         {success ? (
           /* ── Success ── */
-          <div className="w-full max-w-lg flex flex-col items-center text-center gap-6">
-            <div className="size-20 rounded-full bg-azure/10 border border-azure/20 flex items-center justify-center">
-              <CheckCircle2 className="size-10 text-azure" />
+          <div className="w-full max-w-lg flex flex-col items-center text-center gap-6 animate-fadeIn">
+            <div className="size-20 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+              <CheckCircle2 className="size-10 text-emerald-500" />
             </div>
             <div>
-              <h2 className="font-display text-3xl font-extrabold uppercase tracking-tight mb-2">
-                You're all set!
+              <h2 className="font-display text-3xl font-extrabold uppercase tracking-tight mb-2 text-foreground">
+                Payment Successful!
               </h2>
               <p className="text-muted-foreground text-sm font-light leading-relaxed">
                 Demo confirmed for{" "}
-                <strong className="text-foreground">{selectedDay} at {selectedSlot}</strong>.
-                <br />We'll be in touch within one business day.
+                <strong className="text-foreground">
+                  {selectedDate ? formatDateForDisplay(selectedDate) : ""} at {selectedSlot}
+                </strong>
+                .
+                <br />
+                We have received your deposit and will send a confirmation email shortly.
               </p>
             </div>
             <div className="flex flex-wrap gap-3 justify-center mt-2">
@@ -157,16 +346,13 @@ function BookDemoPage() {
                 to="/dashboard"
                 className="border border-border text-foreground/60 hover:text-foreground px-7 py-3 font-mono font-bold uppercase tracking-widest text-[10px] rounded-xl hover:border-azure/40 transition-all duration-300"
               >
-                View Dashboard Schedule
+                Go to Dashboard
               </Link>
             </div>
           </div>
         ) : (
           /* ── Form ── */
-          <form
-            onSubmit={onSubmit}
-            className="w-full max-w-xl grid gap-5"
-          >
+          <form onSubmit={onSubmit} className="w-full max-w-xl grid gap-5">
             {/* Personal details */}
             <div className="grid gap-4">
               <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-azure/80 font-bold flex items-center gap-1.5">
@@ -207,7 +393,7 @@ function BookDemoPage() {
                     name="phone"
                     type="tel"
                     maxLength={40}
-                    placeholder="Phone"
+                    placeholder="Phone Number"
                     className="w-full border border-border bg-card/20 focus:bg-card/40 px-4 py-3 pl-10 text-sm rounded-xl focus:outline-none focus:border-azure focus:ring-4 focus:ring-azure/10 transition-all duration-300 placeholder:text-muted-foreground/40 text-foreground"
                   />
                 </div>
@@ -220,7 +406,7 @@ function BookDemoPage() {
                   id="bd-course"
                   name="course_interest"
                   maxLength={80}
-                  placeholder="Course Interest (Piano, Guitar, Voice…)"
+                  placeholder="Course Interest (Piano, Guitar, Drums…)"
                   className="w-full border border-border bg-card/20 focus:bg-card/40 px-4 py-3 pl-10 text-sm rounded-xl focus:outline-none focus:border-azure focus:ring-4 focus:ring-azure/10 transition-all duration-300 placeholder:text-muted-foreground/40 text-foreground"
                 />
               </div>
@@ -229,56 +415,135 @@ function BookDemoPage() {
             {/* Schedule picker */}
             <div className="grid gap-4">
               <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-azure/80 font-bold flex items-center gap-1.5">
-                <Calendar className="size-3" /> Choose Your Session
+                <Calendar className="size-3" /> Select Date on Calendar
               </span>
 
-              {/* Day buttons */}
-              <div className="flex flex-wrap gap-2">
-                {DAYS.map((day) => (
+              {/* Calendar Grid wrapper */}
+              <div className="border border-border/80 bg-card/10 rounded-2xl p-4 sm:p-5">
+                {/* Month Navigation */}
+                <div className="flex items-center justify-between mb-4">
                   <button
-                    key={day.label}
                     type="button"
-                    onClick={() => { setSelectedDay(day.label); setSelectedSlot(null); }}
-                    className={`px-4 py-2 rounded-lg font-mono text-[10px] uppercase tracking-widest font-bold border transition-all duration-200 cursor-pointer ${
-                      selectedDay === day.label
-                        ? "bg-azure text-azure-foreground border-azure shadow-md shadow-azure/20 scale-105"
-                        : "border-border text-muted-foreground hover:border-azure/40 hover:text-foreground hover:bg-white/5"
-                    }`}
+                    onClick={handlePrevMonth}
+                    className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted/10 transition cursor-pointer"
                   >
-                    {day.short}
+                    <ChevronLeft className="size-4" />
                   </button>
-                ))}
+                  <span className="font-display font-bold uppercase text-xs sm:text-sm text-foreground tracking-wider">
+                    {monthName}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleNextMonth}
+                    className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted/10 transition cursor-pointer"
+                  >
+                    <ChevronRight className="size-4" />
+                  </button>
+                </div>
+
+                {/* Weekday headers */}
+                <div className="grid grid-cols-7 gap-1 text-center font-mono text-[9px] uppercase tracking-wider text-muted-foreground font-bold mb-2">
+                  <span>Sun</span>
+                  <span>Mon</span>
+                  <span>Tue</span>
+                  <span>Wed</span>
+                  <span>Thu</span>
+                  <span>Fri</span>
+                  <span>Sat</span>
+                </div>
+
+                {/* Days Grid */}
+                <div className="grid grid-cols-7 gap-1">
+                  {daysInMonthList.map((day, idx) => {
+                    if (!day) {
+                      return <div key={`empty-${idx}`} />;
+                    }
+
+                    const formattedDateStr = toLocalDateString(day);
+                    const isPast = isPastDate(day);
+                    const isSun = isSunday(day);
+                    const isFar = isTooFarFuture(day);
+                    const isDisabled = isPast || isSun || isFar;
+
+                    const isSelected =
+                      selectedDate && toLocalDateString(selectedDate) === formattedDateStr;
+                    const isToday = toLocalDateString(new Date()) === formattedDateStr;
+
+                    return (
+                      <button
+                        key={formattedDateStr}
+                        type="button"
+                        disabled={isDisabled}
+                        onClick={() => {
+                          setSelectedDate(day);
+                          setSelectedSlot(null);
+                        }}
+                        className={`aspect-square rounded-full font-mono text-xs font-semibold flex items-center justify-center transition-all ${
+                          isDisabled
+                            ? "text-muted-foreground/20 cursor-not-allowed bg-muted/5 border-transparent"
+                            : isSelected
+                              ? "bg-azure text-azure-foreground border-2 border-azure shadow-md shadow-azure/20 scale-105 font-bold cursor-pointer"
+                              : isToday
+                                ? "border border-azure/40 text-azure font-bold hover:bg-azure/10 cursor-pointer"
+                                : "border border-border/60 text-foreground/80 hover:border-azure/40 hover:text-foreground hover:bg-muted/10 cursor-pointer"
+                        }`}
+                      >
+                        {day.getDate()}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Time slots */}
-              {currentDay && (
-                <div className="flex flex-wrap gap-2">
-                  {currentDay.slots.map((slot) => (
-                    <button
-                      key={slot}
-                      type="button"
-                      onClick={() => setSelectedSlot(slot)}
-                      className={`px-4 py-2 rounded-lg font-mono text-[10px] uppercase tracking-widest font-bold border transition-all duration-200 cursor-pointer flex items-center gap-1.5 ${
-                        selectedSlot === slot
-                          ? "bg-azure text-azure-foreground border-azure shadow-md shadow-azure/20 scale-105"
-                          : "border-border text-muted-foreground hover:border-azure/40 hover:text-foreground hover:bg-white/5"
-                      }`}
-                    >
-                      <Clock className="size-3" />
-                      {slot}
-                    </button>
-                  ))}
+              {selectedDate && (
+                <div className="space-y-3 animate-slideUp">
+                  <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-azure/80 font-bold flex items-center gap-1.5">
+                    <Clock className="size-3" /> Select Time Slot for{" "}
+                    {formatDateForDisplay(selectedDate)}
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {getSlotsForDay(selectedDate).map((slot) => {
+                      const dateStr = toLocalDateString(selectedDate);
+                      const isBooked = bookedSlots[dateStr]?.includes(slot);
+
+                      return (
+                        <button
+                          key={slot}
+                          type="button"
+                          disabled={isBooked}
+                          onClick={() => setSelectedSlot(slot)}
+                          className={`px-4 py-2.5 rounded-lg font-mono text-[10px] uppercase tracking-widest font-bold border transition-all duration-200 flex items-center gap-1.5 disabled:opacity-40 disabled:line-through disabled:cursor-not-allowed disabled:bg-red-500/5 disabled:border-red-500/10 disabled:text-red-500/40 relative ${
+                            selectedSlot === slot
+                              ? "bg-azure text-azure-foreground border-azure shadow-md shadow-azure/20 scale-105 cursor-pointer"
+                              : "border-border text-muted-foreground hover:border-azure/40 hover:text-foreground hover:bg-white/5 cursor-pointer"
+                          }`}
+                        >
+                          <Clock className="size-3" />
+                          {slot}
+                          {isBooked && (
+                            <span className="absolute -top-1.5 -right-1 text-[7px] bg-red-500/25 text-red-500 px-1 rounded border border-red-500/35">
+                              Taken
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
               {/* Summary pill */}
-              {selectedDay && selectedSlot && (
-                <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-azure/10 border border-azure/20">
+              {selectedDate && selectedSlot && (
+                <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-azure/10 border border-azure/20 animate-slideUp">
                   <CheckCircle2 className="size-3.5 text-azure shrink-0" />
                   <span className="text-xs text-foreground/80 font-light">
-                    <strong className="text-azure font-semibold">{selectedDay}</strong> at{" "}
-                    <strong className="text-azure font-semibold">{selectedSlot}</strong>
-                    {" "}· Dr. Henery
+                    Selected:{" "}
+                    <strong className="text-azure font-semibold">
+                      {formatDateForDisplay(selectedDate)}
+                    </strong>{" "}
+                    at <strong className="text-azure font-semibold">{selectedSlot}</strong> with Dr.
+                    Henry
                   </span>
                 </div>
               )}
@@ -288,11 +553,11 @@ function BookDemoPage() {
             <button
               id="book-demo-submit"
               type="submit"
-              disabled={loading || !selectedDay || !selectedSlot}
-              className="w-full bg-azure text-azure-foreground hover:bg-azure/90 px-8 py-4 font-mono font-bold uppercase tracking-widest text-xs rounded-xl transition-all duration-300 hover:shadow-[0_0_30px_rgba(212,175,55,0.2)] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center gap-2 cursor-pointer"
+              disabled={loading || !selectedDate || !selectedSlot}
+              className="w-full bg-azure text-azure-foreground hover:bg-azure/90 px-8 py-4 font-mono font-bold uppercase tracking-widest text-xs rounded-xl transition-all duration-300 hover:shadow-[0_0_30px_rgba(59,130,246,0.2)] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center gap-2 cursor-pointer"
             >
-              <Send className="size-4" />
-              {loading ? "Booking your demo…" : "Confirm Demo Booking"}
+              <ShieldCheck className="size-4" />
+              {loading ? "Initializing Secure Portal…" : "Pay Rs. 500 & Confirm Booking"}
             </button>
           </form>
         )}

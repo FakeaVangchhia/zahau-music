@@ -52,10 +52,10 @@ function Gallery() {
         {/* Glowing background blobs */}
         <div className="glowing-blob top-1/4 left-1/4 w-[500px] h-[500px] -translate-x-1/2 -translate-y-1/2" />
         <div className="glowing-blob-gold bottom-1/4 right-1/4 w-[400px] h-[400px]" />
-        
+
         {/* Bottom fade transition */}
         <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-background to-transparent pointer-events-none z-1" />
-        
+
         <div className="max-w-7xl mx-auto relative z-10">
           <p className="font-mono text-xs uppercase tracking-[0.3em] text-azure">Gallery</p>
           <h1 className="mt-4 font-display text-6xl md:text-8xl uppercase leading-none">
@@ -105,7 +105,9 @@ function Gallery() {
                 <span className="font-mono text-[10px] uppercase tracking-widest text-azure">
                   {item.cat}
                 </span>
-                <span className="mt-2 font-display text-xl uppercase leading-tight">{item.label}</span>
+                <span className="mt-2 font-display text-xl uppercase leading-tight">
+                  {item.label}
+                </span>
               </figcaption>
             </figure>
           ))}
@@ -144,7 +146,9 @@ function Gallery() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setActiveIndex((prev) => (prev !== null && prev > 0 ? prev - 1 : filteredItems.length - 1));
+                      setActiveIndex((prev) =>
+                        prev !== null && prev > 0 ? prev - 1 : filteredItems.length - 1,
+                      );
                     }}
                     className="absolute left-4 top-1/2 -translate-y-1/2 size-12 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full flex items-center justify-center text-white cursor-pointer hover:scale-105 transition-all duration-200"
                     aria-label="Previous image"
@@ -154,7 +158,9 @@ function Gallery() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setActiveIndex((prev) => (prev !== null && prev < filteredItems.length - 1 ? prev + 1 : 0));
+                      setActiveIndex((prev) =>
+                        prev !== null && prev < filteredItems.length - 1 ? prev + 1 : 0,
+                      );
                     }}
                     className="absolute right-4 top-1/2 -translate-y-1/2 size-12 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full flex items-center justify-center text-white cursor-pointer hover:scale-105 transition-all duration-200"
                     aria-label="Next image"
@@ -170,4 +176,3 @@ function Gallery() {
     </>
   );
 }
-

@@ -22,12 +22,18 @@ export function getVideoDetails(url: string | null | undefined): VideoDetails {
   // Matches: youtube.com, youtu.be, youtube-nocookie.com (any subdomain like www or music etc)
   const ytRegExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
   const ytMatch = trimmed.match(ytRegExp);
-  if ((trimmed.includes("youtube.com") || trimmed.includes("youtu.be") || trimmed.includes("youtube-nocookie.com")) && ytMatch && ytMatch[2].length === 11) {
+  if (
+    (trimmed.includes("youtube.com") ||
+      trimmed.includes("youtu.be") ||
+      trimmed.includes("youtube-nocookie.com")) &&
+    ytMatch &&
+    ytMatch[2].length === 11
+  ) {
     const videoId = ytMatch[2];
     return {
       type: "youtube",
       embedUrl: `https://www.youtube.com/embed/${videoId}`,
-      originalUrl: trimmed
+      originalUrl: trimmed,
     };
   }
 
@@ -38,13 +44,13 @@ export function getVideoDetails(url: string | null | undefined): VideoDetails {
   if ((trimmed.includes("vimeo.com") || trimmed.includes("player.vimeo.com")) && vimeoMatch) {
     const videoId = vimeoMatch[1];
     const hash = vimeoMatch[2];
-    const embedUrl = hash 
+    const embedUrl = hash
       ? `https://player.vimeo.com/video/${videoId}?h=${hash}`
       : `https://player.vimeo.com/video/${videoId}`;
     return {
       type: "vimeo",
       embedUrl,
-      originalUrl: trimmed
+      originalUrl: trimmed,
     };
   }
 
@@ -52,7 +58,6 @@ export function getVideoDetails(url: string | null | undefined): VideoDetails {
   return {
     type: "direct",
     embedUrl: null,
-    originalUrl: trimmed
+    originalUrl: trimmed,
   };
 }
-

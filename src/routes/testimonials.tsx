@@ -57,28 +57,35 @@ function T() {
         {/* Glowing background blobs */}
         <div className="glowing-blob top-1/4 left-1/4 w-[500px] h-[500px] -translate-x-1/2 -translate-y-1/2" />
         <div className="glowing-blob-gold bottom-1/4 right-1/4 w-[400px] h-[400px]" />
-        
+
         {/* Bottom fade transition */}
         <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-background to-transparent pointer-events-none z-1" />
-        
+
         <div className="max-w-7xl mx-auto relative z-10">
-          <span className="font-mono text-xs uppercase tracking-[0.3em] text-azure font-bold block mb-4">Voices</span>
+          <span className="font-mono text-xs uppercase tracking-[0.3em] text-azure font-bold block mb-4">
+            Voices
+          </span>
           <h1 className="font-display text-6xl md:text-8xl uppercase leading-[0.9] font-extrabold tracking-tight">
             Words
             <br />
             from our
             <br />
-            <span className="font-serif italic text-azure normal-case font-light lowercase">students.</span>
+            <span className="font-serif italic text-azure normal-case font-light lowercase">
+              students.
+            </span>
           </h1>
         </div>
       </section>
-      
+
       <section className="py-24 px-6 max-w-7xl mx-auto relative">
         <div className="glowing-blob top-1/2 left-1/2 w-[350px] h-[350px] -translate-x-1/2" />
-        
+
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10">
           {REVIEWS.map((r) => (
-            <figure key={r.who} className="glass-panel border border-border/60 hover-glow p-8 rounded-2xl flex flex-col justify-between hover:-translate-y-1 transition-all duration-300">
+            <figure
+              key={r.who}
+              className="glass-panel border border-border/60 hover-glow p-8 rounded-2xl flex flex-col justify-between hover:-translate-y-1 transition-all duration-300"
+            >
               <div>
                 <div className="flex gap-1 text-amber-500 mb-6">
                   {Array.from({ length: 5 }).map((_, i) => (

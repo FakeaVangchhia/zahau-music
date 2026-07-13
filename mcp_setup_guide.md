@@ -7,6 +7,7 @@ I have set up the Model Context Protocol (MCP) configuration for your project. T
 ## 🛠️ What has been configured
 
 1. **Config File Created:** A local [`.mcp.json`](file:///F:/Projects/zahau-music/.mcp.json) configuration has been created at the root of your project:
+
    ```json
    {
      "mcpServers": {
@@ -17,6 +18,7 @@ I have set up the Model Context Protocol (MCP) configuration for your project. T
      }
    }
    ```
+
    > [!NOTE]
    > The URL is automatically scoped to your project reference (`srxogdtbokmlfibjkvcw`) extracted from your [.env](file:///F:/Projects/zahau-music/.env) file.
 
@@ -43,7 +45,7 @@ Because the Supabase MCP server connects directly to your live database instance
 
 Once authenticated, your agent will gain access to these powerful tools:
 
-*   **`execute_sql`**: Safely execute SQL statements against your database (ideal for schema creation and verification).
-*   **`get_schema`**: Retrieve database schema diagrams, table structures, relationships, and metadata.
-*   **`get_advisors`**: Run Supabase database advisors to audit your database configuration, security, RLS, and indexes.
-*   **`search_docs`**: Fetch official, up-to-date documentation on Supabase auth, storage, database practices, and client SDKs.
+- **`execute_sql`**: Safely execute SQL statements against your database (ideal for schema creation and verification).
+- **`get_schema`**: Retrieve database schema diagrams, table structures, relationships, and metadata.
+- **`get_advisors`**: Run Supabase database advisors to audit your database configuration, security, RLS, and indexes.
+- **`search_docs`**: Fetch official, up-to-date documentation on Supabase auth, storage, database practices, and client SDKs.
