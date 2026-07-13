@@ -519,11 +519,11 @@ function Home() {
 
         <div className="relative z-10 px-6 md:px-12 max-w-7xl mx-auto w-full">
           <div
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass-panel border border-border/10 shadow-sm mb-8 animate-reveal"
+            className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full glass-panel border border-border/20 shadow-md mb-8 animate-reveal"
             style={{ animationDelay: "100ms" }}
           >
             <span className="size-2 rounded-full bg-azure animate-pulse" />
-            <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-foreground/95">
+            <span className="font-mono text-xs uppercase tracking-[0.2em] text-foreground font-semibold">
               Delhi · Online · India
             </span>
           </div>
@@ -591,6 +591,22 @@ function Home() {
           ))}
         </div>
       </div>
+
+      {/* Stats Counter Section */}
+      <ScrollReveal className="py-20 px-6 max-w-7xl mx-auto relative z-10 border-b border-border/40">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          {STATS.map((s) => (
+            <div key={s.l} className="text-center">
+              <span className="block font-display text-5xl md:text-6xl font-extrabold text-azure">
+                <AnimatedCounter value={s.k} />
+              </span>
+              <span className="block text-xs font-mono uppercase tracking-widest text-muted-foreground mt-2">
+                {s.l}
+              </span>
+            </div>
+          ))}
+        </div>
+      </ScrollReveal>
 
       {/* Featured Videos / Showcases */}
       <ScrollReveal className="py-28 px-6 max-w-7xl mx-auto relative">
