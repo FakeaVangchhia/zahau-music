@@ -7,9 +7,11 @@ import { getSupabaseClient } from "@/lib/supabase/client";
 export function CourseDetailClient({
   courseName,
   courseSlug,
+  courseDuration,
 }: {
   courseName: string;
   courseSlug: string;
+  courseDuration?: string;
 }) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -50,6 +52,25 @@ export function CourseDetailClient({
     );
   }
 
+  let matchedInstrument = "Piano";
+  const nameLower = courseName.toLowerCase();
+  const slugLower = courseSlug.toLowerCase();
+  if (nameLower.includes("piano") || slugLower.includes("piano")) {
+    matchedInstrument = "Piano";
+  } else if (nameLower.includes("keyboard") || slugLower.includes("keyboard")) {
+    matchedInstrument = "Keyboard";
+  } else if (nameLower.includes("guitar") || slugLower.includes("guitar")) {
+    matchedInstrument = "Guitar";
+  } else if (nameLower.includes("drum") || slugLower.includes("drum")) {
+    matchedInstrument = "Drums";
+  } else if (nameLower.includes("vocal") || slugLower.includes("vocal") || nameLower.includes("voice") || slugLower.includes("voice")) {
+    matchedInstrument = "Vocal (Western)";
+  } else if (nameLower.includes("theory") || slugLower.includes("theory")) {
+    matchedInstrument = "Music Theory";
+  }
+
+  const feesUrl = `/fees?plan=${encodeURIComponent(courseDuration || "")}&instrument=${encodeURIComponent(matchedInstrument)}`;
+
   return (
     <div className="bg-gradient-to-br from-azure to-blue-600 text-azure-foreground p-8 rounded-2xl border border-border shadow-2xl relative overflow-hidden">
       <div className="glowing-blob top-0 right-0 w-[200px] h-[200px]" />
@@ -58,13 +79,13 @@ export function CourseDetailClient({
           Enroll
         </h3>
         <p className="mt-3 text-sm text-white/80 font-light leading-relaxed">
-          Submit a quick interest form and we&apos;ll schedule a free trial class within 48 hours.
+          Select a tuition plan and complete your registration to start your musical journey.
         </p>
         <Link
-          href="/contact"
+          href={feesUrl}
           className="mt-8 w-full text-center inline-block bg-white text-azure hover:bg-white/95 py-3.5 text-[10px] font-mono font-bold uppercase tracking-widest rounded-xl hover:scale-105 active:scale-95 transition-all shadow-lg cursor-pointer"
         >
-          Book trial class
+          Buy Course & Enroll
         </Link>
       </div>
     </div>

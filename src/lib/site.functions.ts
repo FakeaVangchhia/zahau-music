@@ -1,5 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import type { User } from "@supabase/supabase-js";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { FALLBACK_PACKAGES } from "@/lib/fee-packages";
+import { DEMO_BOOKING_FEE_PAISE } from "@/lib/razorpay";
 
 const leadSchema = z.object({
   name: z.string().trim().min(1).max(120),
@@ -149,8 +153,12 @@ export const getPost = createServerFn({ method: "GET" })
   });
 
 export const getUserDemoBookings = createServerFn({ method: "GET" })
-  .validator((email: unknown) => z.string().email().parse(email))
-  .handler(async ({ data: email }) => {
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    // Email comes from the verified session token — never from client input,
+    // otherwise anyone could read another person's bookings.
+    const email = context.user.email;
+    if (!email) return [];
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin
       .from("leads")
@@ -163,18 +171,18 @@ export const getUserDemoBookings = createServerFn({ method: "GET" })
   });
 
 export const ensureAdminRole = createServerFn({ method: "POST" })
-  .validator((d: { userId: string; email: string }) => ({
-    userId: z.string().uuid().parse(d.userId),
-    email: z.string().email().parse(d.email),
-  }))
-  .handler(async ({ data }) => {
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    // Identity comes from the verified session token — trusting a
+    // client-supplied userId/email here would let anyone grant themselves admin.
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const allowedAdminEmails = ["henrysui7@gmail.com"];
+    const email = context.user.email?.toLowerCase() ?? "";
 
-    if (allowedAdminEmails.includes(data.email.toLowerCase())) {
+    if (allowedAdminEmails.includes(email)) {
       const { error } = await supabaseAdmin
         .from("user_roles")
-        .upsert({ user_id: data.userId, role: "admin" }, { onConflict: "user_id,role" });
+        .upsert({ user_id: context.userId, role: "admin" }, { onConflict: "user_id,role" });
       if (error) throw new Error(error.message);
       return { isAdmin: true };
     }
@@ -192,8 +200,13 @@ export const createRazorpayOrder = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data }) => {
-    const keyId = process.env.RAZORPAY_KEY_ID || "rzp_test_TCGjSQkih6IER5";
-    const keySecret = process.env.RAZORPAY_KEY_SECRET || "HMXziSst8nJp0wXQbcZvnwn1";
+    const keyId = process.env.RAZORPAY_KEY_ID;
+    const keySecret = process.env.RAZORPAY_KEY_SECRET;
+    if (!keyId || !keySecret) {
+      throw new Error(
+        "Payment gateway is not configured. Missing RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET environment variables.",
+      );
+    }
 
     const auth = Buffer.from(`${keyId}:${keySecret}`).toString("base64");
     const response = await fetch("https://api.razorpay.com/v1/orders", {
@@ -237,6 +250,7 @@ export const verifyRazorpayPayment = createServerFn({ method: "POST" })
         course_slug: string;
         package_title: string;
         amount_paid: number;
+        instrument?: string;
       } | null;
     }) =>
       z
@@ -261,6 +275,7 @@ export const verifyRazorpayPayment = createServerFn({ method: "POST" })
               course_slug: z.string(),
               package_title: z.string(),
               amount_paid: z.number(),
+              instrument: z.string().max(80).optional(),
             })
             .optional()
             .nullable(),
@@ -271,7 +286,12 @@ export const verifyRazorpayPayment = createServerFn({ method: "POST" })
     const crypto = await import("crypto");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const keySecret = process.env.RAZORPAY_KEY_SECRET || "HMXziSst8nJp0wXQbcZvnwn1";
+    const keySecret = process.env.RAZORPAY_KEY_SECRET;
+    if (!keySecret) {
+      throw new Error(
+        "Payment gateway is not configured. Missing RAZORPAY_KEY_SECRET environment variable.",
+      );
+    }
     const generatedSignature = crypto
       .createHmac("sha256", keySecret)
       .update(`${data.razorpay_order_id}|${data.razorpay_payment_id}`)
@@ -279,6 +299,49 @@ export const verifyRazorpayPayment = createServerFn({ method: "POST" })
 
     if (generatedSignature !== data.razorpay_signature) {
       throw new Error("Invalid payment signature. Verification failed.");
+    }
+
+    // Fetch the order from Razorpay to learn how much was ACTUALLY paid — the
+    // client controls order creation, so the claimed package/amount must be
+    // validated server-side or a Rs. 1 order could "buy" any package.
+    const keyId = process.env.RAZORPAY_KEY_ID;
+    if (!keyId) {
+      throw new Error(
+        "Payment gateway is not configured. Missing RAZORPAY_KEY_ID environment variable.",
+      );
+    }
+    const basicAuth = Buffer.from(`${keyId}:${keySecret}`).toString("base64");
+    const orderRes = await fetch(
+      `https://api.razorpay.com/v1/orders/${encodeURIComponent(data.razorpay_order_id)}`,
+      { headers: { Authorization: `Basic ${basicAuth}` } },
+    );
+    if (!orderRes.ok) {
+      throw new Error("Unable to verify the payment order with Razorpay.");
+    }
+    const paidOrder = (await orderRes.json()) as { amount: number; currency: string };
+
+    if (data.booking_details && paidOrder.amount !== DEMO_BOOKING_FEE_PAISE) {
+      throw new Error("Paid amount does not match the demo booking fee.");
+    }
+
+    if (data.enrollment_details) {
+      const packageTitle = data.enrollment_details.package_title;
+      const { data: feeRow, error: feeError } = await supabaseAdmin
+        .from("fees")
+        .select("raw_fees")
+        .eq("title", packageTitle)
+        .maybeSingle();
+      if (feeError) throw new Error(feeError.message);
+      const expectedRupees =
+        feeRow?.raw_fees ?? FALLBACK_PACKAGES.find((pkg) => pkg.title === packageTitle)?.rawFees;
+      if (expectedRupees === undefined) {
+        throw new Error(`Unknown package: ${packageTitle}`);
+      }
+      if (paidOrder.amount !== expectedRupees * 100) {
+        throw new Error("Paid amount does not match the selected package price.");
+      }
+      // Record the verified amount, not the client's claim
+      data.enrollment_details.amount_paid = expectedRupees;
     }
 
     // Save details to database
@@ -318,10 +381,18 @@ export const verifyRazorpayPayment = createServerFn({ method: "POST" })
         throw new Error(`Course not found for slug: ${data.enrollment_details.course_slug}`);
       }
 
-      const { data: userRows, error: userError } = await supabaseAdmin.auth.admin.listUsers();
-      const user = userRows?.users.find(
-        (u) => u.email?.toLowerCase() === data.enrollment_details!.email.toLowerCase(),
-      );
+      // listUsers is paginated — walk pages until the email is found
+      const targetEmail = data.enrollment_details.email.toLowerCase();
+      let user: User | undefined;
+      for (let page = 1; page <= 20 && !user; page++) {
+        const { data: userRows, error: listError } = await supabaseAdmin.auth.admin.listUsers({
+          page,
+          perPage: 1000,
+        });
+        if (listError) throw new Error(listError.message);
+        user = userRows.users.find((u) => u.email?.toLowerCase() === targetEmail);
+        if (userRows.users.length < 1000) break;
+      }
 
       if (!user) {
         throw new Error(
@@ -329,15 +400,39 @@ export const verifyRazorpayPayment = createServerFn({ method: "POST" })
         );
       }
 
-      const { error: enrollError } = await supabaseAdmin.from("enrollments").insert({
-        user_id: user.id,
-        course_id: courseRow.id,
-        level: "Beginner",
+      // Re-purchasing the same instrument updates the enrollment with the new
+      // package (UNIQUE (user_id, course_id) forbids a second row) while
+      // preserving the student's progress and level.
+      const purchaseDetails = {
         status: "active",
-        progress: 0,
-      });
+        package_title: data.enrollment_details.package_title,
+        instrument: data.enrollment_details.instrument ?? null,
+        amount_paid: data.enrollment_details.amount_paid,
+        payment_id: data.razorpay_payment_id,
+      };
 
-      if (enrollError && !enrollError.message.includes("duplicate")) {
+      const { data: existingEnrollment, error: existingError } = await supabaseAdmin
+        .from("enrollments")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("course_id", courseRow.id)
+        .maybeSingle();
+      if (existingError) throw new Error(existingError.message);
+
+      const { error: enrollError } = existingEnrollment
+        ? await supabaseAdmin
+            .from("enrollments")
+            .update({ ...purchaseDetails, enrolled_at: new Date().toISOString() })
+            .eq("id", existingEnrollment.id)
+        : await supabaseAdmin.from("enrollments").insert({
+            user_id: user.id,
+            course_id: courseRow.id,
+            level: "Beginner",
+            progress: 0,
+            ...purchaseDetails,
+          });
+
+      if (enrollError) {
         throw new Error(enrollError.message);
       }
 

@@ -2,6 +2,7 @@ import { Link, useRouter } from "@tanstack/react-router";
 import { Menu, X, Sun, Moon } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Session } from "@supabase/supabase-js";
 import logo from "@/assets/logo.png";
 
 const NAV = [
@@ -19,7 +20,7 @@ export function Header() {
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [session, setSession] = useState<boolean>(false);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
-  const [rawSession, setRawSession] = useState<any>(null);
+  const [rawSession, setRawSession] = useState<Session | null>(null);
   const [scrolled, setScrolled] = useState(false);
 
   const router = useRouter();
@@ -78,7 +79,9 @@ export function Header() {
     setTheme("light");
     try {
       localStorage.setItem("theme", "light");
-    } catch (e) {}
+    } catch {
+      // localStorage unavailable (private mode) — theme still applied below
+    }
     document.documentElement.classList.remove("dark");
   }, []);
 
@@ -135,7 +138,9 @@ export function Header() {
                   <span>{n.label}</span>
                   <span
                     className={`absolute -bottom-1 left-0 right-0 h-[2px] bg-azure rounded-full transition-all duration-300 origin-center transform ${
-                      isActive ? "scale-x-100 opacity-100" : "scale-x-0 opacity-0 group-hover:scale-x-50 group-hover:opacity-60"
+                      isActive
+                        ? "scale-x-100 opacity-100"
+                        : "scale-x-0 opacity-0 group-hover:scale-x-50 group-hover:opacity-60"
                     }`}
                   />
                 </span>

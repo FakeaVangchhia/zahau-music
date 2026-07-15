@@ -35,6 +35,9 @@ type Lesson = Database["public"]["Tables"]["lessons"]["Row"];
 type Fee = Database["public"]["Tables"]["fees"]["Row"];
 type Post = Database["public"]["Tables"]["posts"]["Row"];
 
+// Shape stored in the courses.curriculum JSONB column
+type CurriculumTerm = { term: string; topics: string[] };
+
 export function AdminDashboard({ email, signOut }: { email: string; signOut: () => void }) {
   const [activeTab, setActiveTab] = useState<
     "overview" | "appointments" | "courses" | "lessons" | "fees" | "leads" | "subscribers" | "posts"
@@ -99,14 +102,18 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
       const fileName = `${type}-${Math.random().toString(36).substring(2, 15)}-${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
 
-      const { data, error } = await supabase.storage.from("videos").upload(filePath, file, {
+      // onUploadProgress is honored by the transport but missing from
+      // supabase-js FileOptions typings — passed via a variable so the extra
+      // property survives excess-property checks.
+      const uploadOptions = {
         cacheControl: "3600",
         upsert: false,
-        onUploadProgress: (progress: any) => {
+        onUploadProgress: (progress: { loaded: number; total: number }) => {
           const percent = (progress.loaded / progress.total) * 100;
           setProgress(Math.round(percent));
         },
-      } as any);
+      };
+      const { error } = await supabase.storage.from("videos").upload(filePath, file, uploadOptions);
 
       if (error) throw error;
 
@@ -121,8 +128,8 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
         setEditingLesson((prev) => (prev ? { ...prev, video_url: publicUrl } : null));
         toast.success("Lesson video uploaded successfully!");
       }
-    } catch (err: any) {
-      toast.error(err.message || "Failed to upload video");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to upload video");
     } finally {
       setUploading(false);
       setProgress(0);
@@ -208,8 +215,8 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
         .order("date", { ascending: false });
       if (postsErr) throw postsErr;
       setPosts(postsData || []);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to load admin data");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to load admin data");
     } finally {
       setLoading(false);
     }
@@ -256,8 +263,8 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
       setCourseModalOpen(false);
       setEditingCourse(null);
       fetchData();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to save course");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save course");
     }
   }
 
@@ -269,8 +276,8 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
       if (error) throw error;
       toast.success("Course deleted successfully");
       fetchData();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to delete course");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete course");
     }
   }
 
@@ -304,8 +311,8 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
       setLessonModalOpen(false);
       setEditingLesson(null);
       fetchData();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to save lesson");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save lesson");
     }
   }
 
@@ -316,8 +323,8 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
       if (error) throw error;
       toast.success("Lesson deleted successfully");
       fetchData();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to delete lesson");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete lesson");
     }
   }
 
@@ -367,8 +374,8 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
       setFeeModalOpen(false);
       setEditingFee(null);
       fetchData();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to save fee package");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save fee package");
     }
   }
 
@@ -379,8 +386,8 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
       if (error) throw error;
       toast.success("Fee package deleted successfully");
       fetchData();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to delete fee package");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete fee package");
     }
   }
 
@@ -420,8 +427,8 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
       setPostModalOpen(false);
       setEditingPost(null);
       fetchData();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to save post");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save post");
     }
   }
 
@@ -433,8 +440,8 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
       if (error) throw error;
       toast.success("Post deleted successfully");
       fetchData();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to delete post");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete post");
     }
   }
 
@@ -446,18 +453,22 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
       if (error) throw error;
       toast.success("Lead record deleted successfully");
       fetchData();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to delete lead");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete lead");
     }
   }
 
   // Curriculum State Management helper
-  const handleCurriculumChange = (updatedCurriculum: any) => {
+  const handleCurriculumChange = (updatedCurriculum: CurriculumTerm[]) => {
     setEditingCourse((prev) => (prev ? { ...prev, curriculum: updatedCurriculum } : null));
   };
 
   // CSV Export utility
-  function exportToCSV(data: any[], filename: string, columns: { key: string; label: string }[]) {
+  function exportToCSV(
+    data: Record<string, unknown>[],
+    filename: string,
+    columns: { key: string; label: string }[],
+  ) {
     const csvContent = [
       columns.map((c) => `"${c.label.replace(/"/g, '""')}"`).join(","),
       ...data.map((row) =>
@@ -572,7 +583,7 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
               <button
                 key={tab.id}
                 onClick={() => {
-                  setActiveTab(tab.id as any);
+                  setActiveTab(tab.id);
                   setSearchTerm("");
                 }}
                 className={`relative flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider transition-all whitespace-nowrap rounded-md group ${
@@ -583,9 +594,9 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
               >
                 {tab.icon}
                 <span>{tab.label}</span>
-                {"badge" in tab && (tab as any).badge > 0 && (
+                {"badge" in tab && tab.badge > 0 && (
                   <span className="ml-1 bg-rose-600 text-foreground text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none">
-                    {(tab as any).badge}
+                    {tab.badge}
                   </span>
                 )}
                 {/* Active indicator underline */}
@@ -624,68 +635,70 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
 
                   {/* Stats Grid */}
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4 sm:gap-6">
-                    {[
-                      {
-                        id: "appointments",
-                        label: "Demo Bookings",
-                        val: appointments.length,
-                        color: "from-rose-50 to-rose-100/30 border-rose-200/80",
-                        icon: <CalendarCheck className="text-rose-600" />,
-                        textClr: "text-rose-900",
-                      },
-                      {
-                        id: "courses",
-                        label: "Active Courses",
-                        val: courses.length,
-                        color: "from-blue-50 to-blue-100/30 border-blue-200/80",
-                        icon: <BookOpen className="text-blue-600" />,
-                        textClr: "text-blue-900",
-                      },
-                      {
-                        id: "leads",
-                        label: "Student Leads",
-                        val: leads.length,
-                        color: "from-emerald-50 to-emerald-100/30 border-emerald-200/80",
-                        icon: <User className="text-emerald-600" />,
-                        textClr: "text-emerald-900",
-                      },
-                      {
-                        id: "subscribers",
-                        label: "Newsletter Subscribers",
-                        val: subscribers.length,
-                        color: "from-purple-50 to-purple-100/30 border-purple-200/80",
-                        icon: <Mail className="text-purple-600" />,
-                        textClr: "text-purple-900",
-                      },
-                      {
-                        id: "lessons",
-                        label: "Course Videos",
-                        val: lessons.length,
-                        color: "from-amber-50 to-amber-100/30 border-amber-200/80",
-                        icon: <Video className="text-amber-600" />,
-                        textClr: "text-amber-900",
-                      },
-                      {
-                        id: "fees",
-                        label: "Tuition Packages",
-                        val: fees.length,
-                        color: "from-indigo-50 to-indigo-100/30 border-indigo-200/80",
-                        icon: <Calculator className="text-indigo-600" />,
-                        textClr: "text-indigo-900",
-                      },
-                      {
-                        id: "posts",
-                        label: "Blog Posts",
-                        val: posts.length,
-                        color: "from-sky-50 to-sky-100/30 border-sky-200/80",
-                        icon: <PenTool className="text-sky-600" />,
-                        textClr: "text-sky-900",
-                      },
-                    ].map((s, idx) => (
+                    {(
+                      [
+                        {
+                          id: "appointments",
+                          label: "Demo Bookings",
+                          val: appointments.length,
+                          color: "from-rose-50 to-rose-100/30 border-rose-200/80",
+                          icon: <CalendarCheck className="text-rose-600" />,
+                          textClr: "text-rose-900",
+                        },
+                        {
+                          id: "courses",
+                          label: "Active Courses",
+                          val: courses.length,
+                          color: "from-blue-50 to-blue-100/30 border-blue-200/80",
+                          icon: <BookOpen className="text-blue-600" />,
+                          textClr: "text-blue-900",
+                        },
+                        {
+                          id: "leads",
+                          label: "Student Leads",
+                          val: leads.length,
+                          color: "from-emerald-50 to-emerald-100/30 border-emerald-200/80",
+                          icon: <User className="text-emerald-600" />,
+                          textClr: "text-emerald-900",
+                        },
+                        {
+                          id: "subscribers",
+                          label: "Newsletter Subscribers",
+                          val: subscribers.length,
+                          color: "from-purple-50 to-purple-100/30 border-purple-200/80",
+                          icon: <Mail className="text-purple-600" />,
+                          textClr: "text-purple-900",
+                        },
+                        {
+                          id: "lessons",
+                          label: "Course Videos",
+                          val: lessons.length,
+                          color: "from-amber-50 to-amber-100/30 border-amber-200/80",
+                          icon: <Video className="text-amber-600" />,
+                          textClr: "text-amber-900",
+                        },
+                        {
+                          id: "fees",
+                          label: "Tuition Packages",
+                          val: fees.length,
+                          color: "from-indigo-50 to-indigo-100/30 border-indigo-200/80",
+                          icon: <Calculator className="text-indigo-600" />,
+                          textClr: "text-indigo-900",
+                        },
+                        {
+                          id: "posts",
+                          label: "Blog Posts",
+                          val: posts.length,
+                          color: "from-sky-50 to-sky-100/30 border-sky-200/80",
+                          icon: <PenTool className="text-sky-600" />,
+                          textClr: "text-sky-900",
+                        },
+                      ] as const
+                    ).map((s, idx) => (
                       <button
                         key={idx}
                         onClick={() => {
-                          setActiveTab(s.id as any);
+                          setActiveTab(s.id);
                           setSearchTerm("");
                         }}
                         className={`bg-gradient-to-br ${s.color} border p-6 rounded-2xl relative overflow-hidden flex flex-col justify-between h-32 hover:scale-[1.02] hover:border-azure/30 transition-all duration-300 shadow-sm group cursor-pointer text-left w-full`}
@@ -1904,7 +1917,9 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
                     <button
                       type="button"
                       onClick={() => {
-                        const cur = [...((editingCourse.curriculum as any[]) || [])];
+                        const cur = [
+                          ...((editingCourse.curriculum as CurriculumTerm[] | null) || []),
+                        ];
                         cur.push({ term: `Term ${cur.length + 1}: Title`, topics: [] });
                         handleCurriculumChange(cur);
                       }}
@@ -1914,91 +1929,107 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
                     </button>
                   </div>
 
-                  {((editingCourse.curriculum as any[]) || []).length === 0 ? (
+                  {((editingCourse.curriculum as CurriculumTerm[] | null) || []).length === 0 ? (
                     <p className="text-xs text-muted-foreground/60 font-mono py-2 italic text-center bg-background/40 rounded border border-dashed border-border/60">
                       No chapters defined. Click the button above to start building the syllabus.
                     </p>
                   ) : (
                     <div className="space-y-4">
-                      {((editingCourse.curriculum as any[]) || []).map((term, tIdx) => (
-                        <div
-                          key={tIdx}
-                          className="bg-background border border-border/60 p-4 rounded-xl space-y-3 relative"
-                        >
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const cur = [...((editingCourse.curriculum as any[]) || [])];
-                              cur.splice(tIdx, 1);
-                              handleCurriculumChange(cur);
-                            }}
-                            className="absolute top-3 right-3 text-muted-foreground/60 hover:text-red-400"
-                            title="Delete Chapter"
+                      {((editingCourse.curriculum as CurriculumTerm[] | null) || []).map(
+                        (term, tIdx) => (
+                          <div
+                            key={tIdx}
+                            className="bg-background border border-border/60 p-4 rounded-xl space-y-3 relative"
                           >
-                            <Trash className="size-4" />
-                          </button>
-
-                          <div className="grid gap-1">
-                            <span className="font-mono text-[9px] text-muted-foreground/60">
-                              Chapter Title
-                            </span>
-                            <input
-                              type="text"
-                              value={term.term}
-                              onChange={(e) => {
-                                const cur = [...((editingCourse.curriculum as any[]) || [])];
-                                cur[tIdx].term = e.target.value;
-                                handleCurriculumChange(cur);
-                              }}
-                              className="bg-card border border-slate-850 focus:border-azure rounded px-3 py-1.5 text-xs text-foreground focus:outline-none w-[80%]"
-                              placeholder="e.g. Term 1: Foundations"
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <span className="font-mono text-[9px] text-muted-foreground/60 block">
-                              Topics / Lessons
-                            </span>
-                            {term.topics.map((topic: string, topIdx: number) => (
-                              <div key={topIdx} className="flex gap-2 items-center">
-                                <input
-                                  type="text"
-                                  value={topic}
-                                  onChange={(e) => {
-                                    const cur = [...((editingCourse.curriculum as any[]) || [])];
-                                    cur[tIdx].topics[topIdx] = e.target.value;
-                                    handleCurriculumChange(cur);
-                                  }}
-                                  className="flex-1 bg-card border border-slate-850 focus:border-azure rounded px-3 py-1 text-xs text-foreground focus:outline-none"
-                                  placeholder="e.g. Introduction to Major Keys"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const cur = [...((editingCourse.curriculum as any[]) || [])];
-                                    cur[tIdx].topics.splice(topIdx, 1);
-                                    handleCurriculumChange(cur);
-                                  }}
-                                  className="text-red-400 hover:text-red-500 text-xs px-2"
-                                >
-                                  ✕
-                                </button>
-                              </div>
-                            ))}
                             <button
                               type="button"
                               onClick={() => {
-                                const cur = [...((editingCourse.curriculum as any[]) || [])];
-                                cur[tIdx].topics.push("");
+                                const cur = [
+                                  ...((editingCourse.curriculum as CurriculumTerm[] | null) || []),
+                                ];
+                                cur.splice(tIdx, 1);
                                 handleCurriculumChange(cur);
                               }}
-                              className="text-azure hover:text-azure/85 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 pt-1.5"
+                              className="absolute top-3 right-3 text-muted-foreground/60 hover:text-red-400"
+                              title="Delete Chapter"
                             >
-                              <Plus className="size-3" /> Add Lesson
+                              <Trash className="size-4" />
                             </button>
+
+                            <div className="grid gap-1">
+                              <span className="font-mono text-[9px] text-muted-foreground/60">
+                                Chapter Title
+                              </span>
+                              <input
+                                type="text"
+                                value={term.term}
+                                onChange={(e) => {
+                                  const cur = [
+                                    ...((editingCourse.curriculum as CurriculumTerm[] | null) ||
+                                      []),
+                                  ];
+                                  cur[tIdx].term = e.target.value;
+                                  handleCurriculumChange(cur);
+                                }}
+                                className="bg-card border border-slate-850 focus:border-azure rounded px-3 py-1.5 text-xs text-foreground focus:outline-none w-[80%]"
+                                placeholder="e.g. Term 1: Foundations"
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <span className="font-mono text-[9px] text-muted-foreground/60 block">
+                                Topics / Lessons
+                              </span>
+                              {term.topics.map((topic: string, topIdx: number) => (
+                                <div key={topIdx} className="flex gap-2 items-center">
+                                  <input
+                                    type="text"
+                                    value={topic}
+                                    onChange={(e) => {
+                                      const cur = [
+                                        ...((editingCourse.curriculum as CurriculumTerm[] | null) ||
+                                          []),
+                                      ];
+                                      cur[tIdx].topics[topIdx] = e.target.value;
+                                      handleCurriculumChange(cur);
+                                    }}
+                                    className="flex-1 bg-card border border-slate-850 focus:border-azure rounded px-3 py-1 text-xs text-foreground focus:outline-none"
+                                    placeholder="e.g. Introduction to Major Keys"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const cur = [
+                                        ...((editingCourse.curriculum as CurriculumTerm[] | null) ||
+                                          []),
+                                      ];
+                                      cur[tIdx].topics.splice(topIdx, 1);
+                                      handleCurriculumChange(cur);
+                                    }}
+                                    className="text-red-400 hover:text-red-500 text-xs px-2"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              ))}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const cur = [
+                                    ...((editingCourse.curriculum as CurriculumTerm[] | null) ||
+                                      []),
+                                  ];
+                                  cur[tIdx].topics.push("");
+                                  handleCurriculumChange(cur);
+                                }}
+                                className="text-azure hover:text-azure/85 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 pt-1.5"
+                              >
+                                <Plus className="size-3" /> Add Lesson
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ),
+                      )}
                     </div>
                   )}
                 </div>

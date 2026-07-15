@@ -2,7 +2,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import { LeadForm } from "@/components/site/lead-form";
 import { Mail, MapPin, Phone, MessageCircle } from "lucide-react";
 
+type ContactSearch = {
+  course?: string;
+};
+
 export const Route = createFileRoute("/contact")({
+  validateSearch: (search: Record<string, unknown>): ContactSearch => ({
+    course: typeof search.course === "string" && search.course ? search.course : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Contact — Zahau Music School" },
@@ -18,6 +25,7 @@ export const Route = createFileRoute("/contact")({
 });
 
 function Contact() {
+  const { course } = Route.useSearch();
   return (
     <>
       <section className="bg-navy text-navy-foreground py-32 px-6 relative overflow-hidden">
@@ -56,7 +64,7 @@ function Contact() {
             We'll respond within one business day with a recommended faculty and trial class slot.
           </p>
           <div>
-            <LeadForm source="contact-page" />
+            <LeadForm source="contact-page" courseInterest={course} />
           </div>
         </div>
 

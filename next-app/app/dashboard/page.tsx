@@ -117,11 +117,7 @@ export default function DashboardPage() {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-[80vh] flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-azure border-t-transparent" />
-      </div>
-    );
+    return <div className="min-h-screen bg-background" />;
   }
 
   // If user is admin, render the professional admin console dashboard
@@ -381,10 +377,6 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="pt-4 border-t border-border/40 space-y-3">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">Attendance Rate</span>
-                    <span className="font-mono font-bold text-azure">100%</span>
-                  </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Class Status</span>
                     <span className="font-mono font-bold text-emerald-500 uppercase">Active</span>

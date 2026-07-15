@@ -20,9 +20,30 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getFees, createRazorpayOrder, verifyRazorpayPayment } from "@/lib/site.functions";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  loadRazorpayScript,
+  getRazorpayConstructor,
+  getRazorpayKeyId,
+  instrumentToSlug,
+  INSTRUMENTS,
+  type RazorpayResponse,
+} from "@/lib/razorpay";
+import { normalizeFeePackages, FALLBACK_PACKAGES, type FeePackage } from "@/lib/fee-packages";
 import { toast } from "sonner";
+import type { Session } from "@supabase/supabase-js";
+
+type FeesSearch = {
+  plan?: string;
+  instrument?: string;
+};
 
 export const Route = createFileRoute("/fees")({
+  validateSearch: (search: Record<string, unknown>): FeesSearch => {
+    return {
+      plan: search.plan as string | undefined,
+      instrument: search.instrument as string | undefined,
+    };
+  },
   head: () => ({
     meta: [
       { title: "Courses & Fees — Zahau Music School" },
@@ -37,103 +58,6 @@ export const Route = createFileRoute("/fees")({
   }),
   component: FeesPage,
 });
-
-const PACKAGES = [
-  {
-    title: "Monthly Enrolment",
-    fees: "Rs. 5,000",
-    rawFees: 5000,
-    duration: "1 Month",
-    mode: "In-Person & Online",
-    tagline: "Flexible pay-as-you-go learning",
-    features: [
-      "1 class per week (4 classes / month)",
-      "1 hour per class at convenient timings",
-      "Choice of instrument or vocal stream",
-      "Introduction to music theory",
-      "Access to practice materials",
-      "No lock-in — renew month to month",
-    ],
-    popular: false,
-    badge: "Flexible",
-  },
-  {
-    title: "3 Months Course",
-    fees: "Rs. 25,000",
-    rawFees: 25000,
-    duration: "3 Months",
-    mode: "In-Person & Online",
-    tagline: "Structured foundation program (until finish)",
-    features: [
-      "2 classes per week (24 classes total)",
-      "1 hour per class at convenient timings",
-      "Structured beginner syllabus",
-      "Choose Piano, Keyboard, Guitar, Drums, Voice or Theory",
-      "Regular progress assessments",
-      "Zahau Foundation Certificate on completion",
-    ],
-    popular: false,
-    badge: "Starter",
-  },
-  {
-    title: "6 Months Certificate",
-    fees: "Rs. 50,000",
-    rawFees: 50000,
-    duration: "6 Months",
-    mode: "In-Person & Online",
-    tagline: "Comprehensive certificate program (until finish)",
-    features: [
-      "2 classes per week (48 classes total)",
-      "1 hour per class at convenient timings",
-      "Intermediate to advanced repertoire",
-      "Deep dive into harmony, theory & ear training",
-      "Personalized faculty reviews & feedback",
-      "Performance Grade preparation & recitals",
-      "Zahau Certificate on completion",
-    ],
-    popular: true,
-    badge: "Best Value",
-  },
-  {
-    title: "1 Year Certificate Course",
-    fees: "Rs. 70,000",
-    rawFees: 70000,
-    duration: "12 Months",
-    mode: "In-Person & Online",
-    tagline: "Full-year professional certification",
-    features: [
-      "2 classes per week (96 classes total)",
-      "1 hour per class at convenient timings",
-      "Comprehensive technique & repertoire",
-      "Advanced music theory & composition",
-      "Stage performance & recital opportunities",
-      "Exam board preparation (ABRSM / Trinity)",
-      "Zahau Annual Certificate of Achievement",
-    ],
-    popular: false,
-    badge: "Certificate",
-  },
-  {
-    title: "Diploma in Music",
-    fees: "Rs. 1,40,000",
-    rawFees: 140000,
-    duration: "24 Months",
-    mode: "In-Person & Online",
-    tagline: "Professional 2-year music diploma",
-    features: [
-      "3 classes per week (288 classes total)",
-      "1 hour per class at convenient timings",
-      "Full performance & composition curriculum",
-      "Advanced ensembles & band sessions",
-      "Industry mentorship & masterclasses",
-      "International exam board certifications",
-      "Zahau Diploma in Music — graduate credential",
-      "Career guidance & performance portfolio",
-    ],
-    popular: false,
-    badge: "Diploma",
-  },
-];
 
 const HIRE_PACKAGES = [
   {
@@ -221,68 +145,28 @@ function FaqItem({ q, a }: { q: string; a: string }) {
   );
 }
 
-function loadRazorpayScript(): Promise<boolean> {
-  return new Promise((resolve) => {
-    if (typeof window === "undefined") {
-      resolve(false);
-      return;
-    }
-    if ((window as any).Razorpay) {
-      resolve(true);
-      return;
-    }
-    const script = document.createElement("script");
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.async = true;
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.body.appendChild(script);
-  });
-}
-
-const instrumentToSlug: Record<string, string> = {
-  Piano: "piano",
-  Keyboard: "keyboard",
-  Guitar: "guitar",
-  Ukulele: "guitar",
-  "Classical Guitar": "guitar",
-  "Electric Guitar": "guitar",
-  Drums: "drums",
-  "Vocal (Hindustani)": "voice",
-  "Vocal (Carnatic)": "voice",
-  "Vocal (Western)": "voice",
-  "Music Theory": "music-theory",
-};
-
 function FeesPage() {
   const navigate = useNavigate();
   const fetchFees = useServerFn(getFees);
   const createOrder = useServerFn(createRazorpayOrder);
   const verifyPayment = useServerFn(verifyRazorpayPayment);
 
+  const { plan, instrument } = Route.useSearch();
   const { data } = useQuery({ queryKey: ["fees-all"], queryFn: () => fetchFees() });
 
-  const packagesList = data && data.length > 0 ? data : PACKAGES;
-  const normalizedPackages = packagesList.map((p: any) => ({
-    title: p.title,
-    fees: p.fees,
-    rawFees: p.raw_fees !== undefined ? p.raw_fees : p.rawFees,
-    duration: p.duration,
-    mode: p.mode,
-    tagline: p.tagline,
-    features: (Array.isArray(p.features) ? p.features : []) as string[],
-    popular: !!p.popular,
-    badge: p.badge,
-  }));
+  const normalizedPackages =
+    data && data.length > 0 ? normalizeFeePackages(data) : FALLBACK_PACKAGES;
 
   const [showMonthlyRate, setShowMonthlyRate] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState(normalizedPackages[2] || normalizedPackages[0]);
+  const [selectedPlan, setSelectedPlan] = useState<FeePackage>(
+    normalizedPackages[2] || normalizedPackages[0],
+  );
   const [selectedInstrument, setSelectedInstrument] = useState("Piano");
   const [isMounted, setIsMounted] = useState(false);
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<Session | null>(null);
 
   // Enrollment checkout modal states
-  const [activeEnrollPlan, setActiveEnrollPlan] = useState<any | null>(null);
+  const [activeEnrollPlan, setActiveEnrollPlan] = useState<FeePackage | null>(null);
   const [phone, setPhone] = useState("");
   const [enrollInstrument, setEnrollInstrument] = useState("Piano");
   const [paymentSuccess, setPaymentSuccess] = useState(false);
@@ -308,33 +192,50 @@ function FeesPage() {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Preselect the study track from the ?plan= search param (set by course pages),
+  // and switch from the static fallback to DB packages once they load.
   useEffect(() => {
-    if (data && data.length > 0) {
-      const dbPackages = data.map((p: any) => ({
-        title: p.title,
-        fees: p.fees,
-        rawFees: p.raw_fees,
-        duration: p.duration,
-        mode: p.mode,
-        tagline: p.tagline,
-        features: Array.isArray(p.features) ? p.features : [],
-        popular: !!p.popular,
-        badge: p.badge,
-      }));
-      setSelectedPlan(dbPackages[2] || dbPackages[0]);
+    const packagesToUse = data && data.length > 0 ? normalizeFeePackages(data) : FALLBACK_PACKAGES;
+
+    if (plan) {
+      const matched = packagesToUse.find(
+        (p) =>
+          p.title.toLowerCase().includes(plan.toLowerCase()) ||
+          p.duration.toLowerCase().includes(plan.toLowerCase()),
+      );
+      if (matched) {
+        setSelectedPlan(matched);
+        return;
+      }
     }
-  }, [data]);
+    if (data && data.length > 0) {
+      setSelectedPlan(packagesToUse[2] || packagesToUse[0]);
+    }
+  }, [data, plan]);
+
+  // Preselect the instrument from the ?instrument= search param
+  useEffect(() => {
+    if (instrument) {
+      const matchedInstrument = INSTRUMENTS.find(
+        (i) => i.toLowerCase() === instrument.toLowerCase(),
+      );
+      if (matchedInstrument) {
+        setSelectedInstrument(matchedInstrument);
+      }
+    }
+  }, [instrument]);
 
   const durationMonths = parseInt(selectedPlan.duration) || 1;
   const estimatedMonthly = Math.round(selectedPlan.rawFees / durationMonths);
 
-  const handleEnrollClick = (pkg: any) => {
+  const handleEnrollClick = (pkg: FeePackage) => {
     if (!session) {
       toast.info("Please sign in or create an account to enroll and purchase this course.");
       navigate({ to: "/auth", search: { redirect: "/fees" } });
       return;
     }
     setActiveEnrollPlan(pkg);
+    setEnrollInstrument(selectedInstrument);
     setPaymentSuccess(false);
     setPaymentId("");
   };
@@ -362,13 +263,13 @@ function FeesPage() {
       });
 
       const options = {
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_TCGjSQkih6IER5",
+        key: getRazorpayKeyId(),
         amount: order.amount,
         currency: order.currency,
         name: "Zahau Music School",
         description: `Enrollment - ${activeEnrollPlan.title} (${enrollInstrument})`,
         order_id: order.id,
-        handler: async function (response: any) {
+        handler: async function (response: RazorpayResponse) {
           setLoadingPayment(true);
           try {
             const verifyResult = await verifyPayment({
@@ -377,10 +278,11 @@ function FeesPage() {
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_signature: response.razorpay_signature,
                 enrollment_details: {
-                  email: session.user.email,
+                  email: session.user.email ?? "",
                   course_slug: instrumentToSlug[enrollInstrument] || "piano",
                   package_title: activeEnrollPlan.title,
                   amount_paid: activeEnrollPlan.rawFees,
+                  instrument: enrollInstrument,
                 },
               },
             });
@@ -399,8 +301,8 @@ function FeesPage() {
           }
         },
         prefill: {
-          name: session.user.user_metadata?.full_name || session.user.email.split("@")[0],
-          email: session.user.email,
+          name: session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "",
+          email: session.user.email || "",
           contact: phone,
         },
         theme: {
@@ -414,8 +316,9 @@ function FeesPage() {
         },
       };
 
-      const rzp = new (window as any).Razorpay(options);
-      rzp.open();
+      const Razorpay = getRazorpayConstructor();
+      if (!Razorpay) throw new Error("Razorpay failed to initialize.");
+      new Razorpay(options).open();
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Payment initialization failed. Please try again.",
@@ -496,7 +399,7 @@ function FeesPage() {
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 relative z-10">
-          {normalizedPackages.map((pkg: any) => {
+          {normalizedPackages.map((pkg) => {
             const totalMonths = parseInt(pkg.duration) || 1;
             const pkgEstimatedMonthly = Math.round(pkg.rawFees / totalMonths);
             const displayedFee = showMonthlyRate
@@ -693,7 +596,7 @@ function FeesPage() {
                   1. Select Study Track
                 </label>
                 <div className="grid grid-cols-1 gap-3">
-                  {normalizedPackages.map((pkg: any) => (
+                  {normalizedPackages.map((pkg) => (
                     <button
                       key={pkg.title}
                       onClick={() => setSelectedPlan(pkg)}
@@ -725,19 +628,7 @@ function FeesPage() {
                     onChange={(e) => setSelectedInstrument(e.target.value)}
                     className="w-full bg-muted/60 dark:bg-card/30 border border-border/80 px-4 py-3.5 rounded-xl text-sm outline-none focus:border-azure focus:ring-4 focus:ring-azure/10 transition-all duration-200 text-foreground"
                   >
-                    {[
-                      "Piano",
-                      "Keyboard",
-                      "Guitar",
-                      "Ukulele",
-                      "Classical Guitar",
-                      "Electric Guitar",
-                      "Drums",
-                      "Vocal (Hindustani)",
-                      "Vocal (Carnatic)",
-                      "Vocal (Western)",
-                      "Music Theory",
-                    ].map((inst) => (
+                    {INSTRUMENTS.map((inst) => (
                       <option key={inst} value={inst} className="bg-background text-foreground">
                         {inst}
                       </option>
@@ -1001,19 +892,7 @@ function FeesPage() {
                       onChange={(e) => setEnrollInstrument(e.target.value)}
                       className="w-full bg-muted/60 dark:bg-card/25 border border-border/80 px-4 py-3 rounded-xl text-sm outline-none focus:border-azure focus:ring-4 focus:ring-azure/10 transition-all duration-200 text-foreground"
                     >
-                      {[
-                        "Piano",
-                        "Keyboard",
-                        "Guitar",
-                        "Ukulele",
-                        "Classical Guitar",
-                        "Electric Guitar",
-                        "Drums",
-                        "Vocal (Hindustani)",
-                        "Vocal (Carnatic)",
-                        "Vocal (Western)",
-                        "Music Theory",
-                      ].map((inst) => (
+                      {INSTRUMENTS.map((inst) => (
                         <option key={inst} value={inst} className="bg-background text-foreground">
                           {inst}
                         </option>

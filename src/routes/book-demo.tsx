@@ -1,6 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { createRazorpayOrder, verifyRazorpayPayment, getBookedSlots } from "@/lib/site.functions";
+import {
+  loadRazorpayScript,
+  getRazorpayConstructor,
+  getRazorpayKeyId,
+  DEMO_BOOKING_FEE_PAISE,
+  type RazorpayResponse,
+} from "@/lib/razorpay";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import {
@@ -33,25 +40,6 @@ export const Route = createFileRoute("/book-demo")({
   }),
   component: BookDemoPage,
 });
-
-function loadRazorpayScript(): Promise<boolean> {
-  return new Promise((resolve) => {
-    if (typeof window === "undefined") {
-      resolve(false);
-      return;
-    }
-    if ((window as any).Razorpay) {
-      resolve(true);
-      return;
-    }
-    const script = document.createElement("script");
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.async = true;
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.body.appendChild(script);
-  });
-}
 
 function toLocalDateString(date: Date) {
   const y = date.getFullYear();
@@ -172,10 +160,10 @@ function BookDemoPage() {
         throw new Error("Failed to load Razorpay payment gateway. Check your internet connection.");
       }
 
-      // 2. Create the Razorpay Order (Rs. 500 = 50000 paise booking deposit)
+      // 2. Create the Razorpay Order (Rs. 500 booking deposit)
       const order = await createOrder({
         data: {
-          amount: 50000,
+          amount: DEMO_BOOKING_FEE_PAISE,
           currency: "INR",
           receipt: `demo_${Date.now()}`,
         },
@@ -183,13 +171,13 @@ function BookDemoPage() {
 
       // 3. Open Razorpay Checkout modal
       const options = {
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_TCGjSQkih6IER5",
+        key: getRazorpayKeyId(),
         amount: order.amount,
         currency: order.currency,
         name: "Zahau Music School",
         description: "Trial / Demo Session Booking Fee",
         order_id: order.id,
-        handler: async function (response: any) {
+        handler: async function (response: RazorpayResponse) {
           setLoading(true);
           try {
             // Verify payment and insert booking details
@@ -237,8 +225,9 @@ function BookDemoPage() {
         },
       };
 
-      const rzp = new (window as any).Razorpay(options);
-      rzp.open();
+      const Razorpay = getRazorpayConstructor();
+      if (!Razorpay) throw new Error("Razorpay failed to initialize.");
+      new Razorpay(options).open();
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Booking initialization failed. Please try again.",

@@ -2,13 +2,27 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Eye, EyeOff, Lock, Mail, Music } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, Music, User } from "lucide-react";
+
+type AuthSearch = {
+  redirect?: string;
+};
 
 export const Route = createFileRoute("/auth")({
+  validateSearch: (search: Record<string, unknown>): AuthSearch => ({
+    // Only allow internal paths to avoid open redirects
+    redirect:
+      typeof search.redirect === "string" && search.redirect.startsWith("/")
+        ? search.redirect
+        : undefined,
+  }),
   head: () => ({
     meta: [
-      { title: "Admin Login — Zahau Music School" },
-      { name: "description", content: "Sign in to the Zahau Music School admin console." },
+      { title: "Sign In — Zahau Music School" },
+      {
+        name: "description",
+        content: "Sign in or create your Zahau Music School student account.",
+      },
       { property: "og:url", content: "/auth" },
       { name: "robots", content: "noindex" },
     ],
@@ -19,21 +33,24 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
+  const { redirect } = Route.useSearch();
+  const redirectTarget = redirect ?? "/dashboard";
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/dashboard", replace: true });
+      if (data.session) navigate({ to: redirectTarget, replace: true });
     });
-  }, [navigate]);
+  }, [navigate, redirectTarget]);
 
   async function signInWithGoogle() {
     setGoogleLoading(true);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin + "/dashboard" },
+      options: { redirectTo: window.location.origin + redirectTarget },
     });
     if (error) {
       toast.error(error.message);
@@ -49,9 +66,37 @@ function AuthPage() {
     const email = String(fd.get("email") ?? "");
     const password = String(fd.get("password") ?? "");
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      navigate({ to: "/dashboard", replace: true });
+      if (mode === "signup") {
+        const fullName = String(fd.get("full_name") ?? "").trim();
+        if (!fullName) throw new Error("Please enter your full name.");
+        if (password.length < 6) throw new Error("Password must be at least 6 characters.");
+
+        // A DB trigger (handle_new_user) creates the profile and assigns the
+        // student role from this metadata on signup.
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { full_name: fullName },
+            emailRedirectTo: window.location.origin + redirectTarget,
+          },
+        });
+        if (error) throw error;
+
+        if (data.session) {
+          // Email confirmation disabled — signed in immediately
+          toast.success("Account created! Welcome to Zahau Music School.");
+          navigate({ to: redirectTarget, replace: true });
+        } else {
+          // Email confirmation required
+          toast.success("Account created! Check your email to confirm your address, then sign in.");
+          setMode("signin");
+        }
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        navigate({ to: redirectTarget, replace: true });
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Authentication failed.");
     } finally {
@@ -79,7 +124,7 @@ function AuthPage() {
 
         <div>
           <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-azure/70 font-bold block mb-4">
-            Admin Console
+            Student & Admin Portal
           </span>
           <h1 className="font-display text-5xl xl:text-6xl uppercase leading-none font-extrabold tracking-tight text-foreground">
             Welcome
@@ -87,16 +132,16 @@ function AuthPage() {
             <span className="font-serif italic text-azure normal-case font-light">back.</span>
           </h1>
           <p className="mt-6 text-muted-foreground font-light leading-relaxed text-sm max-w-xs">
-            Manage courses, lessons, fees, student appointments, leads and more from your
-            centralised admin dashboard.
+            Track your enrollments, watch recorded lessons and manage demo bookings — or run the
+            school from the admin console.
           </p>
 
           <div className="mt-10 space-y-3">
             {[
-              "Course & Lesson Management",
-              "Student Appointments",
-              "Lead & Inquiry Tracking",
-              "Newsletter Subscribers",
+              "Course Enrollments & Progress",
+              "Recorded Video Lessons",
+              "Demo Class Bookings",
+              "Secure Online Payments",
             ].map((item) => (
               <div key={item} className="flex items-center gap-3">
                 <span className="size-1.5 rounded-full bg-azure shrink-0" />
@@ -129,17 +174,44 @@ function AuthPage() {
           <div className="bg-card border border-border/80 rounded-2xl p-8 sm:p-10 shadow-2xl">
             <div className="mb-8">
               <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-azure/70 font-bold block mb-2">
-                Restricted Access
+                {mode === "signin" ? "Welcome Back" : "Join the School"}
               </span>
               <h2 className="font-display text-3xl uppercase font-extrabold tracking-tight text-foreground">
-                Sign In
+                {mode === "signin" ? "Sign In" : "Create Account"}
               </h2>
               <p className="mt-2 text-sm text-muted-foreground font-light">
-                Admin credentials required to continue.
+                {mode === "signin"
+                  ? "Sign in to your student or admin account."
+                  : "Register to enroll in courses and track your progress."}
               </p>
             </div>
 
             <form onSubmit={onSubmit} className="space-y-5">
+              {/* Full name (signup only) */}
+              {mode === "signup" && (
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="signup-name"
+                    className="font-mono text-[10px] uppercase tracking-widest text-foreground/80 font-bold block"
+                  >
+                    Full Name
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/60" />
+                    <input
+                      id="signup-name"
+                      name="full_name"
+                      type="text"
+                      required
+                      maxLength={120}
+                      autoComplete="name"
+                      placeholder="John Doe"
+                      className="w-full bg-muted/40 border border-border focus:border-azure focus:ring-4 focus:ring-azure/10 px-4 py-3.5 pl-10 rounded-xl text-sm text-foreground placeholder:text-muted-foreground/50 outline-none transition-all duration-300"
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* Email */}
               <div className="space-y-1.5">
                 <label
@@ -156,7 +228,7 @@ function AuthPage() {
                     type="email"
                     required
                     autoComplete="email"
-                    placeholder="admin@zahaumusic.com"
+                    placeholder="you@example.com"
                     className="w-full bg-muted/40 border border-border focus:border-azure focus:ring-4 focus:ring-azure/10 px-4 py-3.5 pl-10 rounded-xl text-sm text-foreground placeholder:text-muted-foreground/50 outline-none transition-all duration-300"
                   />
                 </div>
@@ -177,7 +249,8 @@ function AuthPage() {
                     name="password"
                     type={showPassword ? "text" : "password"}
                     required
-                    autoComplete="current-password"
+                    autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                    minLength={6}
                     placeholder="••••••••"
                     className="w-full bg-muted/40 border border-border focus:border-azure focus:ring-4 focus:ring-azure/10 px-4 py-3.5 pl-10 pr-11 rounded-xl text-sm text-foreground placeholder:text-muted-foreground/50 outline-none transition-all duration-300"
                   />
@@ -202,10 +275,12 @@ function AuthPage() {
                 {loading ? (
                   <>
                     <span className="size-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                    Authenticating…
+                    {mode === "signin" ? "Authenticating…" : "Creating account…"}
                   </>
+                ) : mode === "signin" ? (
+                  "Sign In"
                 ) : (
-                  "Sign In to Console"
+                  "Create Account"
                 )}
               </button>
             </form>
@@ -256,11 +331,17 @@ function AuthPage() {
               Continue with Google
             </button>
 
-            <div className="mt-6 pt-6 border-t border-border flex items-center gap-2">
-              <span className="size-1.5 rounded-full bg-azure animate-pulse shrink-0" />
-              <p className="text-[11px] text-muted-foreground font-mono">
-                Secured · Zahau Music School Admin
+            <div className="mt-6 pt-6 border-t border-border flex items-center justify-between gap-2">
+              <p className="text-xs text-muted-foreground font-light">
+                {mode === "signin" ? "New to Zahau Music?" : "Already have an account?"}
               </p>
+              <button
+                type="button"
+                onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+                className="text-xs font-mono font-bold uppercase tracking-wider text-azure hover:text-azure/80 transition-colors cursor-pointer"
+              >
+                {mode === "signin" ? "Create an account" : "Sign in instead"}
+              </button>
             </div>
           </div>
         </div>
