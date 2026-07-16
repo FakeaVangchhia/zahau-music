@@ -192,7 +192,10 @@ function RootComponent() {
   }, [session]);
 
   const hideLayout =
-    pathname.startsWith("/dashboard") || pathname === "/book-demo" || pathname === "/auth";
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/admin") ||
+    pathname === "/book-demo" ||
+    pathname === "/auth";
 
   return (
     <QueryClientProvider client={queryClient}>

@@ -13,30 +13,16 @@ import {
   ExternalLink,
   Home,
   Check,
-  ShieldCheck,
   CheckCircle2,
 } from "lucide-react";
-import { AdminDashboard } from "@/components/admin/AdminDashboard";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import {
-  getUserDemoBookings,
-  ensureAdminRole,
-  getFees,
-  createRazorpayOrder,
-  verifyRazorpayPayment,
-} from "@/lib/site.functions";
+import { getUserDemoBookings, ensureAdminRole, getFees } from "@/lib/site.functions";
 import { getVideoDetails } from "@/lib/utils";
-import {
-  loadRazorpayScript,
-  getRazorpayConstructor,
-  getRazorpayKeyId,
-  instrumentToSlug,
-  INSTRUMENTS,
-  type RazorpayResponse,
-} from "@/lib/razorpay";
 import { normalizeFeePackages, FALLBACK_PACKAGES, type FeePackage } from "@/lib/fee-packages";
+import { EnrollmentCheckoutModal } from "@/components/site/enrollment-checkout-modal";
 import { toast } from "sonner";
+import type { Session } from "@supabase/supabase-js";
 
 type Lesson = {
   id: string;
@@ -77,7 +63,6 @@ function Dashboard() {
   const navigate = useNavigate();
   const [email, setEmail] = useState<string>("");
   const [username, setUsername] = useState<string>("");
-  const [role, setRole] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [demoBookings, setDemoBookings] = useState<DemoBooking[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
@@ -91,20 +76,22 @@ function Dashboard() {
   const fetchDemoBookings = useServerFn(getUserDemoBookings);
   const ensureAdmin = useServerFn(ensureAdminRole);
   const fetchFees = useServerFn(getFees);
-  const createOrder = useServerFn(createRazorpayOrder);
-  const verifyPayment = useServerFn(verifyRazorpayPayment);
 
   const { data: feesData } = useQuery({ queryKey: ["fees-all"], queryFn: () => fetchFees() });
 
-  const [activeEnrollPlan, setActiveEnrollPlan] = useState<FeePackage | null>(null);
-  const [phone, setPhone] = useState("");
-  const [enrollInstrument, setEnrollInstrument] = useState("Piano");
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
-  const [loadingPayment, setLoadingPayment] = useState(false);
-  const [paymentId, setPaymentId] = useState("");
+  const [activeEnroll, setActiveEnroll] = useState<{
+    plan: FeePackage;
+    instrument: string;
+    session: Session;
+  } | null>(null);
 
   const normalizedPackages =
     feesData && feesData.length > 0 ? normalizeFeePackages(feesData) : FALLBACK_PACKAGES;
+
+  const avgProgress =
+    enrollments.length > 0
+      ? Math.round(enrollments.reduce((sum, e) => sum + (e.progress ?? 0), 0) / enrollments.length)
+      : 0;
 
   const filteredLessons = lessons.filter((lesson) => {
     if (!searchTerm.trim()) return true;
@@ -115,113 +102,24 @@ function Dashboard() {
     );
   });
 
-  const handleEnrollClick = (pkg: FeePackage) => {
-    setActiveEnrollPlan(pkg);
-    setPaymentSuccess(false);
-    setPaymentId("");
-  };
-
-  const handlePayment = async () => {
+  const handleEnrollClick = async (pkg: FeePackage) => {
     const {
       data: { session },
     } = await supabase.auth.getSession();
-    if (!activeEnrollPlan || !session) {
+    if (!session) {
       toast.error("Please sign in to complete your enrollment.");
       return;
     }
-    setLoadingPayment(true);
-
-    try {
-      const scriptLoaded = await loadRazorpayScript();
-      if (!scriptLoaded) {
-        throw new Error(
-          "Failed to load Razorpay payment gateway. Please check your internet connection.",
-        );
-      }
-
-      const amountPaise = activeEnrollPlan.rawFees * 100;
-
-      const order = await createOrder({
-        data: {
-          amount: amountPaise,
-          currency: "INR",
-          receipt: `enroll_${Date.now()}`,
-        },
-      });
-
-      const options = {
-        key: getRazorpayKeyId(),
-        amount: order.amount,
-        currency: order.currency,
-        name: "Zahau Music School",
-        description: `Enrollment - ${activeEnrollPlan.title} (${enrollInstrument})`,
-        order_id: order.id,
-        handler: async function (response: RazorpayResponse) {
-          setLoadingPayment(true);
-          try {
-            const verifyResult = await verifyPayment({
-              data: {
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_signature: response.razorpay_signature,
-                enrollment_details: {
-                  email: session.user.email ?? "",
-                  course_slug: instrumentToSlug[enrollInstrument] || "piano",
-                  package_title: activeEnrollPlan.title,
-                  amount_paid: activeEnrollPlan.rawFees,
-                  instrument: enrollInstrument,
-                },
-              },
-            });
-
-            if (verifyResult.ok) {
-              setPaymentId(response.razorpay_payment_id);
-              setPaymentSuccess(true);
-              toast.success(`Enrolled successfully in ${activeEnrollPlan.title}!`);
-
-              // Refresh enrollments in UI
-              const { data: enrollData } = await supabase
-                .from("enrollments")
-                .select("*, courses(name, duration)")
-                .eq("user_id", session.user.id);
-              if (enrollData) {
-                setEnrollments(enrollData as Enrollment[]);
-              }
-            } else {
-              toast.error("Payment verification failed.");
-            }
-          } catch (err) {
-            toast.error(err instanceof Error ? err.message : "Payment verification failed.");
-          } finally {
-            setLoadingPayment(false);
-          }
-        },
-        prefill: {
-          name: session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "",
-          email: session.user.email || "",
-          contact: phone,
-        },
-        theme: {
-          color: "#0070f3",
-        },
-        modal: {
-          ondismiss: function () {
-            setLoadingPayment(false);
-            toast.info("Payment cancelled.");
-          },
-        },
-      };
-
-      const Razorpay = getRazorpayConstructor();
-      if (!Razorpay) throw new Error("Razorpay failed to initialize.");
-      new Razorpay(options).open();
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Payment initialization failed. Please try again.",
-      );
-      setLoadingPayment(false);
-    }
+    setActiveEnroll({ plan: pkg, instrument: "Piano", session });
   };
+
+  async function refreshEnrollments(userId: string) {
+    const { data: enrollData } = await supabase
+      .from("enrollments")
+      .select("*, courses(name, duration)")
+      .eq("user_id", userId);
+    if (enrollData) setEnrollments(enrollData as Enrollment[]);
+  }
 
   useEffect(() => {
     // Clean up trailing hash (#) and OAuth access tokens from URL safely after transition completes
@@ -254,33 +152,27 @@ function Dashboard() {
           setUsername(prefix.charAt(0).toUpperCase() + prefix.slice(1));
         }
 
-        const adminEmails = ["henrysui7@gmail.com"];
+        // Admins get their own console at /admin — this page is student-only.
         let userRole = "";
-
-        if (adminEmails.includes(emailStr.toLowerCase())) {
-          try {
-            await ensureAdmin();
-            userRole = "admin";
-            setRole("admin");
-          } catch (e) {
-            console.error("Failed to automatically promote admin email:", e);
-          }
+        try {
+          if ((await ensureAdmin()).isAdmin) userRole = "admin";
+        } catch (e) {
+          console.error("Admin check failed:", e);
         }
-
         if (!userRole) {
           const { data: roleData } = await supabase
             .from("user_roles")
             .select("role")
             .eq("user_id", data.user.id)
             .maybeSingle();
-          if (roleData) {
-            userRole = roleData.role;
-            setRole(roleData.role);
-          }
+          if (roleData) userRole = roleData.role;
+        }
+        if (userRole === "admin") {
+          navigate({ to: "/admin", replace: true });
+          return;
         }
 
-        // Fetch user's booked demos if student
-        if (userRole !== "admin") {
+        {
           try {
             const bookings = await fetchDemoBookings();
             setDemoBookings(bookings || []);
@@ -324,12 +216,14 @@ function Dashboard() {
   }
 
   if (loading) {
-    return <div className="min-h-screen bg-background" />;
-  }
-
-  // If user is admin, render the professional admin console dashboard
-  if (role === "admin" || email.toLowerCase() === "henrysui7@gmail.com") {
-    return <AdminDashboard email={email} signOut={signOut} />;
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-azure border-t-transparent" />
+          <p className="text-sm font-mono text-muted-foreground">Loading your portal…</p>
+        </div>
+      </div>
+    );
   }
 
   function parseDemoMessage(message: string | null) {
@@ -461,7 +355,7 @@ function Dashboard() {
                 {/* Welcome Header */}
                 <div>
                   <span className="font-mono text-xs uppercase tracking-[0.2em] text-azure font-bold block mb-2">
-                    LMS Student Portal
+                    Student Portal
                   </span>
                   <h1 className="font-display text-4xl sm:text-5xl uppercase font-extrabold text-foreground tracking-tight">
                     Welcome back,{" "}
@@ -470,51 +364,146 @@ function Dashboard() {
                     </span>
                   </h1>
                   <p className="text-sm text-muted-foreground mt-1.5 font-light">
-                    Registered student email:{" "}
-                    <span className="font-mono text-foreground/80 font-medium">{email}</span>
+                    Here is what is happening with your musical journey.
                   </p>
                 </div>
 
-                {/* Academic Status Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-                  <div className="bg-card border border-border/60 rounded-2xl p-6 relative overflow-hidden flex flex-col justify-between h-32 hover:scale-[1.01] transition-all shadow-sm">
-                    <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
-                      Student ID
+                {/* At-a-glance stats */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                  <button
+                    onClick={() => setActiveTab("purchase")}
+                    className="text-left bg-card border border-border/60 rounded-2xl p-6 flex flex-col justify-between h-32 hover:border-azure/50 hover:scale-[1.01] transition-all shadow-sm cursor-pointer group"
+                  >
+                    <span className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
+                      <BookOpen className="size-3.5 text-azure" /> My Courses
                     </span>
-                    <span className="font-mono text-base sm:text-lg font-bold text-foreground">
-                      ZMS-2026-STU
-                    </span>
-                  </div>
-
-                  <div className="bg-card border border-border/60 rounded-2xl p-6 relative overflow-hidden flex flex-col justify-between h-32 hover:scale-[1.01] transition-all shadow-sm">
-                    <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
-                      Enrolled Program
-                    </span>
-                    <span className="text-xs sm:text-sm font-semibold text-foreground leading-snug truncate">
-                      {enrollments.length > 0
-                        ? enrollments
-                            .map((e) =>
-                              e.package_title
-                                ? `${e.package_title}${e.instrument ? ` (${e.instrument})` : ""}`
-                                : e.courses?.name,
-                            )
-                            .filter(Boolean)
-                            .join(", ")
-                        : "No active enrollment yet"}
-                    </span>
-                  </div>
-
-                  <div className="bg-card border border-border/60 rounded-2xl p-6 relative overflow-hidden flex flex-col justify-between h-32 hover:scale-[1.01] transition-all shadow-sm">
-                    <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
-                      Class Status
-                    </span>
-                    <div>
-                      <span className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded">
-                        Active
+                    <span>
+                      <span className="font-display text-3xl font-extrabold text-foreground group-hover:text-azure transition-colors">
+                        {enrollments.length}
                       </span>
+                      <span className="block text-[11px] text-muted-foreground font-light mt-0.5">
+                        {enrollments.length === 1 ? "active enrollment" : "active enrollments"}
+                      </span>
+                    </span>
+                  </button>
+
+                  <div className="bg-card border border-border/60 rounded-2xl p-6 flex flex-col justify-between h-32 shadow-sm">
+                    <span className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
+                      <CheckCircle2 className="size-3.5 text-azure" /> Overall Progress
+                    </span>
+                    <span>
+                      <span className="font-display text-3xl font-extrabold text-foreground">
+                        {avgProgress}%
+                      </span>
+                      <span className="block w-full bg-muted/65 h-1.5 rounded-full overflow-hidden mt-2">
+                        <span
+                          className="block bg-azure h-full transition-all duration-700"
+                          style={{ width: `${avgProgress}%` }}
+                        />
+                      </span>
+                    </span>
+                  </div>
+
+                  <button
+                    onClick={() => setActiveTab("lessons")}
+                    className="text-left bg-card border border-border/60 rounded-2xl p-6 flex flex-col justify-between h-32 hover:border-azure/50 hover:scale-[1.01] transition-all shadow-sm cursor-pointer group"
+                  >
+                    <span className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
+                      <Video className="size-3.5 text-azure" /> Video Lessons
+                    </span>
+                    <span>
+                      <span className="font-display text-3xl font-extrabold text-foreground group-hover:text-azure transition-colors">
+                        {lessons.length}
+                      </span>
+                      <span className="block text-[11px] text-muted-foreground font-light mt-0.5">
+                        recordings to watch
+                      </span>
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab("purchase")}
+                    className="text-left bg-card border border-border/60 rounded-2xl p-6 flex flex-col justify-between h-32 hover:border-azure/50 hover:scale-[1.01] transition-all shadow-sm cursor-pointer group"
+                  >
+                    <span className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
+                      <Calendar className="size-3.5 text-azure" /> Demo Sessions
+                    </span>
+                    <span>
+                      <span className="font-display text-3xl font-extrabold text-foreground group-hover:text-azure transition-colors">
+                        {demoBookings.length}
+                      </span>
+                      <span className="block text-[11px] text-muted-foreground font-light mt-0.5">
+                        {demoBookings.length === 1 ? "session booked" : "sessions booked"}
+                      </span>
+                    </span>
+                  </button>
+                </div>
+
+                {/* Getting started — shown until the student enrolls */}
+                {enrollments.length === 0 && (
+                  <div className="bg-gradient-to-br from-azure/8 to-blue-600/5 border border-azure/25 rounded-2xl p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center gap-6">
+                    <div className="flex-1">
+                      <h2 className="font-display text-xl uppercase font-bold text-foreground tracking-tight">
+                        Start your musical journey
+                      </h2>
+                      <p className="text-sm text-muted-foreground font-light mt-1.5 max-w-lg">
+                        Pick an instrument and a tuition plan, or try a one-on-one demo class with
+                        Dr. Henry first — no commitment needed.
+                      </p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-3 shrink-0">
+                      <button
+                        onClick={() => setActiveTab("courses")}
+                        className="bg-azure hover:bg-azure/90 text-white font-mono font-bold uppercase tracking-widest text-[10px] px-6 py-3.5 rounded-xl transition-all duration-300 shadow-md shadow-azure/20 hover:scale-105 active:scale-95 cursor-pointer"
+                      >
+                        Browse Courses
+                      </button>
+                      <Link
+                        to="/book-demo"
+                        className="text-center border border-border/80 hover:border-azure hover:text-azure font-mono font-bold uppercase tracking-widest text-[10px] px-6 py-3.5 rounded-xl transition-all duration-300 cursor-pointer"
+                      >
+                        Book a Demo Class
+                      </Link>
                     </div>
                   </div>
-                </div>
+                )}
+
+                {/* Current program summary */}
+                {enrollments.length > 0 && (
+                  <div className="bg-card border border-border/60 rounded-2xl p-6 sm:p-8 space-y-4">
+                    <div className="flex items-center gap-3 border-b border-border/40 pb-4">
+                      <BookOpen className="size-5 text-azure" />
+                      <h2 className="font-display text-xl uppercase font-bold text-foreground tracking-tight">
+                        Your Program
+                      </h2>
+                    </div>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      {enrollments.map((enroll) => (
+                        <div
+                          key={enroll.id}
+                          className="flex items-center justify-between gap-4 p-5 rounded-xl border border-border/60 bg-muted/20"
+                        >
+                          <div className="min-w-0">
+                            <p className="font-display text-base font-bold uppercase text-foreground truncate">
+                              {enroll.package_title || enroll.courses?.name || "Music Course"}
+                            </p>
+                            <p className="text-xs text-muted-foreground font-light mt-0.5">
+                              {enroll.instrument || enroll.courses?.name || ""}
+                            </p>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <span className="font-mono text-sm font-bold text-azure">
+                              {enroll.progress ?? 0}%
+                            </span>
+                            <span className="block text-[10px] text-muted-foreground font-light">
+                              complete
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Booked Demo Session */}
                 {demoBookings.length > 0 && (
@@ -992,144 +981,18 @@ function Dashboard() {
       )}
 
       {/* ===== ENROLLMENT CHECKOUT MODAL ===== */}
-      {activeEnrollPlan && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-card border border-border/60 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col relative p-6 sm:p-8 space-y-6">
-            {!loadingPayment && (
-              <button
-                onClick={() => {
-                  setActiveEnrollPlan(null);
-                  setPaymentSuccess(false);
-                  setPaymentId("");
-                }}
-                className="absolute top-4 right-4 z-10 size-8 rounded-full bg-black/10 hover:bg-black/20 text-foreground flex items-center justify-center font-mono text-sm transition-all focus:outline-none cursor-pointer"
-              >
-                ✕
-              </button>
-            )}
-
-            {paymentSuccess ? (
-              <div className="flex flex-col items-center text-center gap-5 py-4 animate-fadeIn">
-                <div className="size-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-                  <CheckCircle2 className="size-8 text-emerald-500" />
-                </div>
-                <div>
-                  <h3 className="font-display text-2xl font-bold uppercase text-foreground">
-                    Enrollment Complete!
-                  </h3>
-                  <p className="text-sm text-muted-foreground mt-2 font-light">
-                    You have successfully enrolled in the{" "}
-                    <strong className="text-foreground">{activeEnrollPlan.title}</strong> program
-                    for <strong className="text-foreground">{enrollInstrument}</strong>.
-                  </p>
-                </div>
-                <div className="w-full bg-muted/40 p-4 rounded-xl border border-border/40 text-left font-mono text-[10px] space-y-2 text-muted-foreground">
-                  <p>
-                    <strong>Package:</strong> {activeEnrollPlan.title}
-                  </p>
-                  <p>
-                    <strong>Instrument:</strong> {enrollInstrument}
-                  </p>
-                  <p>
-                    <strong>Paid Amount:</strong> {activeEnrollPlan.fees}
-                  </p>
-                  <p className="truncate">
-                    <strong>Payment ID:</strong> {paymentId}
-                  </p>
-                </div>
-                <div className="flex flex-col sm:flex-row gap-3 w-full mt-2">
-                  <button
-                    onClick={() => {
-                      setActiveEnrollPlan(null);
-                      setActiveTab("purchase");
-                    }}
-                    className="flex-1 text-center bg-azure text-white py-3.5 text-xs font-mono font-bold uppercase tracking-widest rounded-xl hover:scale-102 active:scale-98 transition-all shadow-md shadow-azure/10 cursor-pointer"
-                  >
-                    Go to Purchase Section
-                  </button>
-                  <button
-                    onClick={() => setActiveEnrollPlan(null)}
-                    className="flex-1 text-center border border-border hover:bg-muted py-3.5 text-xs font-mono font-bold uppercase tracking-widest rounded-xl transition-all cursor-pointer"
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-5">
-                <div className="border-b border-border/40 pb-4">
-                  <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-azure font-bold block mb-1">
-                    Secure Checkout
-                  </span>
-                  <h3 className="font-display text-2xl font-extrabold uppercase text-foreground">
-                    Confirm Enrollment
-                  </h3>
-                </div>
-
-                <div className="bg-azure/5 border border-azure/20 p-4 rounded-xl space-y-1">
-                  <span className="text-[10px] font-mono text-azure uppercase font-bold tracking-wider">
-                    Selected Package
-                  </span>
-                  <div className="flex justify-between items-center">
-                    <p className="font-display font-bold uppercase text-foreground">
-                      {activeEnrollPlan.title}
-                    </p>
-                    <p className="font-display font-bold text-azure text-lg">
-                      {activeEnrollPlan.fees}
-                    </p>
-                  </div>
-                  <p className="text-xs text-muted-foreground font-light">
-                    {activeEnrollPlan.tagline}
-                  </p>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground/80 font-bold mb-2">
-                      Choose Instrument / Stream
-                    </label>
-                    <select
-                      value={enrollInstrument}
-                      onChange={(e) => setEnrollInstrument(e.target.value)}
-                      className="w-full bg-muted/60 dark:bg-card/25 border border-border/80 px-4 py-3 rounded-xl text-sm outline-none focus:border-azure focus:ring-4 focus:ring-azure/10 transition-all duration-200 text-foreground"
-                    >
-                      {INSTRUMENTS.map((inst) => (
-                        <option key={inst} value={inst} className="bg-background text-foreground">
-                          {inst}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground/80 font-bold mb-2">
-                      Phone Number (for Razorpay)
-                    </label>
-                    <input
-                      type="tel"
-                      required
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="e.g. 9876543210"
-                      className="w-full border border-border bg-card/20 focus:bg-card/40 px-4 py-3 text-sm rounded-xl focus:outline-none focus:border-azure focus:ring-4 focus:ring-azure/10 transition-all duration-300 placeholder:text-muted-foreground/40 text-foreground"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  onClick={handlePayment}
-                  disabled={loadingPayment || !phone}
-                  className="w-full bg-azure text-white hover:bg-azure/90 py-4 font-mono font-bold uppercase tracking-widest text-xs rounded-xl transition-all duration-300 hover:shadow-[0_4px_25px_rgba(59,130,246,0.25)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
-                >
-                  <ShieldCheck className="size-4 shrink-0" />
-                  {loadingPayment
-                    ? "Processing Secure Gateway…"
-                    : `Pay ${activeEnrollPlan.fees} & Enroll`}
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
+      {activeEnroll && (
+        <EnrollmentCheckoutModal
+          plan={activeEnroll.plan}
+          session={activeEnroll.session}
+          defaultInstrument={activeEnroll.instrument}
+          onClose={() => setActiveEnroll(null)}
+          onEnrolled={() => refreshEnrollments(activeEnroll.session.user.id)}
+          onGoToPurchases={() => {
+            setActiveEnroll(null);
+            setActiveTab("purchase");
+          }}
+        />
       )}
     </div>
   );

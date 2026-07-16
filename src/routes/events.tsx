@@ -169,11 +169,7 @@ function EventsPage() {
               <div className="mt-12 pt-8 border-t border-border/40">
                 <a
                   href="#inquire-events"
-                  className={`w-full py-4 rounded-xl font-mono text-[10px] uppercase tracking-widest font-bold flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.02] active:scale-100 ${
-                    pkg.popular
-                      ? "bg-azure text-azure-foreground hover:bg-azure/90 shadow-md shadow-azure/20"
-                      : "bg-navy text-navy-foreground hover:bg-azure hover:text-azure-foreground border border-transparent hover:border-azure"
-                  }`}
+                  className="w-full py-4 rounded-xl font-mono text-[10px] uppercase tracking-widest font-bold flex items-center justify-center gap-2 transition-all duration-300 hover:scale-[1.02] active:scale-100 bg-azure text-azure-foreground hover:bg-azure/90 shadow-md shadow-azure/20"
                 >
                   Select Package <ArrowRight className="size-3.5" />
                 </a>

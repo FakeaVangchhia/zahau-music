@@ -120,7 +120,7 @@ function Contact() {
             className="block glass-panel border border-border/60 p-6 rounded-2xl hover-glow hover:-translate-y-0.5 transition-all duration-300"
           >
             <div className="flex items-center gap-4">
-              <div className="size-10 rounded-xl bg-emerald-500/10 text-emerald-550 flex items-center justify-center border border-emerald-500/20 shrink-0">
+              <div className="size-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center border border-emerald-500/20 shrink-0">
                 <MessageCircle className="size-5" />
               </div>
               <div>

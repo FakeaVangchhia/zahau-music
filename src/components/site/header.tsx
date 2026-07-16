@@ -150,7 +150,7 @@ export function Header() {
         </nav>
         <div className="flex items-center gap-2">
           <Link
-            to={session ? "/dashboard" : "/auth"}
+            to={session ? (isAdmin ? "/admin" : "/dashboard") : "/auth"}
             className="hidden sm:inline-flex px-6 py-2.5 text-[10px] font-mono font-bold uppercase tracking-widest transition-all duration-300 rounded-xl hover:scale-105 active:scale-95 cursor-pointer bg-navy text-navy-foreground hover:bg-azure hover:text-azure-foreground shadow-md hover:shadow-lg"
           >
             {session ? (isAdmin ? "Admin Console" : "Dashboard") : "Login"}
@@ -178,7 +178,7 @@ export function Header() {
               </Link>
             ))}
             <Link
-              to={session ? "/dashboard" : "/auth"}
+              to={session ? (isAdmin ? "/admin" : "/dashboard") : "/auth"}
               onClick={() => setOpen(false)}
               className="py-3 text-sm font-bold uppercase tracking-widest text-foreground/80 hover:text-azure transition-colors"
             >

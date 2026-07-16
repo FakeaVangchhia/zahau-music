@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -6,6 +6,9 @@ import { Eye, EyeOff, Lock, Mail, Music, User } from "lucide-react";
 
 type AuthSearch = {
   redirect?: string;
+  plan?: string;
+  instrument?: string;
+  enroll?: string;
 };
 
 export const Route = createFileRoute("/auth")({
@@ -15,6 +18,10 @@ export const Route = createFileRoute("/auth")({
       typeof search.redirect === "string" && search.redirect.startsWith("/")
         ? search.redirect
         : undefined,
+    // Carried through to resume an in-progress /fees checkout after sign-in
+    plan: typeof search.plan === "string" ? search.plan : undefined,
+    instrument: typeof search.instrument === "string" ? search.instrument : undefined,
+    enroll: typeof search.enroll === "string" ? search.enroll : undefined,
   }),
   head: () => ({
     meta: [
@@ -33,8 +40,17 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
-  const { redirect } = Route.useSearch();
+  const { redirect, plan, instrument, enroll } = Route.useSearch();
   const redirectTarget = redirect ?? "/dashboard";
+  // Resumes an in-progress /fees checkout once the user is back and signed in.
+  const resumeSearch = enroll === "yes" ? { plan, instrument, enroll } : undefined;
+  // Google OAuth and email-confirmation redirects leave the SPA entirely, so the
+  // resume params must be appended to the raw URL rather than passed via navigate().
+  const resumeQuery = resumeSearch
+    ? `?${new URLSearchParams(
+        Object.entries(resumeSearch).filter((entry): entry is [string, string] => !!entry[1]),
+      ).toString()}`
+    : "";
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -42,15 +58,16 @@ function AuthPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: redirectTarget, replace: true });
+      if (data.session) navigate({ to: redirectTarget, search: resumeSearch, replace: true });
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate, redirectTarget]);
 
   async function signInWithGoogle() {
     setGoogleLoading(true);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin + redirectTarget },
+      options: { redirectTo: window.location.origin + redirectTarget + resumeQuery },
     });
     if (error) {
       toast.error(error.message);
@@ -78,7 +95,7 @@ function AuthPage() {
           password,
           options: {
             data: { full_name: fullName },
-            emailRedirectTo: window.location.origin + redirectTarget,
+            emailRedirectTo: window.location.origin + redirectTarget + resumeQuery,
           },
         });
         if (error) throw error;
@@ -86,7 +103,7 @@ function AuthPage() {
         if (data.session) {
           // Email confirmation disabled — signed in immediately
           toast.success("Account created! Welcome to Zahau Music School.");
-          navigate({ to: redirectTarget, replace: true });
+          navigate({ to: redirectTarget, search: resumeSearch, replace: true });
         } else {
           // Email confirmation required
           toast.success("Account created! Check your email to confirm your address, then sign in.");
@@ -95,7 +112,7 @@ function AuthPage() {
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        navigate({ to: redirectTarget, replace: true });
+        navigate({ to: redirectTarget, search: resumeSearch, replace: true });
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Authentication failed.");
@@ -113,14 +130,17 @@ function AuthPage() {
 
       {/* Left decorative panel */}
       <div className="hidden lg:flex flex-col justify-between w-[42%] border-r border-border bg-navy/80 p-14 relative z-10">
-        <div className="flex items-center gap-3">
+        <Link
+          to="/"
+          className="flex items-center gap-3 w-fit hover:opacity-80 transition-opacity cursor-pointer"
+        >
           <div className="size-9 rounded-full bg-azure/10 border border-azure/20 flex items-center justify-center">
             <Music className="size-4 text-azure" />
           </div>
           <span className="font-display text-xl uppercase tracking-tight text-foreground font-extrabold">
             Zahau <span className="font-serif italic font-light text-azure normal-case">music</span>
           </span>
-        </div>
+        </Link>
 
         <div>
           <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-azure/70 font-bold block mb-4">
@@ -160,7 +180,10 @@ function AuthPage() {
       <div className="flex-1 flex items-center justify-center px-6 py-12 relative z-10">
         <div className="w-full max-w-md">
           {/* Mobile logo */}
-          <div className="flex lg:hidden items-center gap-3 mb-10">
+          <Link
+            to="/"
+            className="flex lg:hidden items-center gap-3 mb-10 w-fit hover:opacity-80 transition-opacity cursor-pointer"
+          >
             <div className="size-9 rounded-full bg-azure/10 border border-azure/20 flex items-center justify-center">
               <Music className="size-4 text-azure" />
             </div>
@@ -168,7 +191,7 @@ function AuthPage() {
               Zahau{" "}
               <span className="font-serif italic font-light text-azure normal-case">music</span>
             </span>
-          </div>
+          </Link>
 
           {/* Card */}
           <div className="bg-card border border-border/80 rounded-2xl p-8 sm:p-10 shadow-2xl">
