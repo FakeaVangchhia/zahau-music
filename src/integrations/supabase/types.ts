@@ -94,28 +94,40 @@ export type Database = {
       };
       enrollments: {
         Row: {
+          amount_paid: number | null;
           course_id: string;
           enrolled_at: string;
           id: string;
+          instrument: string | null;
           level: string | null;
+          package_title: string | null;
+          payment_id: string | null;
           progress: number;
           status: string;
           user_id: string;
         };
         Insert: {
+          amount_paid?: number | null;
           course_id: string;
           enrolled_at?: string;
           id?: string;
+          instrument?: string | null;
           level?: string | null;
+          package_title?: string | null;
+          payment_id?: string | null;
           progress?: number;
           status?: string;
           user_id: string;
         };
         Update: {
+          amount_paid?: number | null;
           course_id?: string;
           enrolled_at?: string;
           id?: string;
+          instrument?: string | null;
           level?: string | null;
+          package_title?: string | null;
+          payment_id?: string | null;
           progress?: number;
           status?: string;
           user_id?: string;

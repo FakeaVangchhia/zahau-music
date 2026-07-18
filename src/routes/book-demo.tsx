@@ -1,6 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { createRazorpayOrder, verifyRazorpayPayment, getBookedSlots } from "@/lib/site.functions";
+import {
+  createRazorpayOrder,
+  verifyRazorpayPayment,
+  getBookedSlots,
+  submitDemoBooking,
+} from "@/lib/site.functions";
+import {
+  loadRazorpayScript,
+  getRazorpayConstructor,
+  getRazorpayKeyId,
+  DEMO_BOOKING_FEE_PAISE,
+  type RazorpayResponse,
+} from "@/lib/razorpay";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import {
@@ -16,7 +28,12 @@ import {
   ShieldCheck,
   ChevronLeft,
   ChevronRight,
+  AlertTriangle,
+  Lock,
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import type { Session } from "@supabase/supabase-js";
+import { getAccountDefaults, rememberPhoneOnAccount } from "@/lib/account";
 
 export const Route = createFileRoute("/book-demo")({
   head: () => ({
@@ -33,25 +50,6 @@ export const Route = createFileRoute("/book-demo")({
   }),
   component: BookDemoPage,
 });
-
-function loadRazorpayScript(): Promise<boolean> {
-  return new Promise((resolve) => {
-    if (typeof window === "undefined") {
-      resolve(false);
-      return;
-    }
-    if ((window as any).Razorpay) {
-      resolve(true);
-      return;
-    }
-    const script = document.createElement("script");
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.async = true;
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.body.appendChild(script);
-  });
-}
 
 function toLocalDateString(date: Date) {
   const y = date.getFullYear();
@@ -113,13 +111,23 @@ function BookDemoPage() {
   const createOrder = useServerFn(createRazorpayOrder);
   const verifyPayment = useServerFn(verifyRazorpayPayment);
   const getBooked = useServerFn(getBookedSlots);
+  const bookWithoutDeposit = useServerFn(submitDemoBooking);
 
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [bookedFree, setBookedFree] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [bookedSlots, setBookedSlots] = useState<Record<string, string[]>>({});
+  const [paymentUnavailable, setPaymentUnavailable] = useState(false);
+  const [reserving, setReserving] = useState(false);
+
+  const [session, setSession] = useState<Session | null>(null);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [courseInterest, setCourseInterest] = useState("");
 
   useEffect(() => {
     getBooked()
@@ -128,6 +136,32 @@ function BookDemoPage() {
       })
       .catch((err) => console.error("Failed to load booked slots:", err));
   }, []);
+
+  useEffect(() => {
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => setSession(session))
+      .catch((err) => console.error("Session fetch failed:", err));
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => setSession(session));
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Prefill from the account once signed in, so a returning student doesn't
+  // have to retype details we already know. Only fills fields still empty,
+  // so it never clobbers something the student has already typed.
+  useEffect(() => {
+    if (!session) return;
+    const defaults = getAccountDefaults(session);
+    setName((prev) => prev || defaults.name);
+    setEmail((prev) => prev || defaults.email);
+    setPhone((prev) => prev || defaults.phone);
+  }, [session]);
+
+  const isAccountEmail = !!session && email === session.user.email;
 
   // Calendar setup
   const daysInMonthList = getDaysInMonth(currentMonth);
@@ -157,12 +191,8 @@ function BookDemoPage() {
       return;
     }
     setLoading(true);
+    setPaymentUnavailable(false);
 
-    const fd = new FormData(e.currentTarget);
-    const name = String(fd.get("name") ?? "");
-    const email = String(fd.get("email") ?? "");
-    const phone = String(fd.get("phone") ?? "");
-    const course_interest = String(fd.get("course_interest") ?? "");
     const selectedDayStr = toLocalDateString(selectedDate);
 
     try {
@@ -172,10 +202,10 @@ function BookDemoPage() {
         throw new Error("Failed to load Razorpay payment gateway. Check your internet connection.");
       }
 
-      // 2. Create the Razorpay Order (Rs. 500 = 50000 paise booking deposit)
+      // 2. Create the Razorpay Order (Rs. 500 booking deposit)
       const order = await createOrder({
         data: {
-          amount: 50000,
+          amount: DEMO_BOOKING_FEE_PAISE,
           currency: "INR",
           receipt: `demo_${Date.now()}`,
         },
@@ -183,13 +213,13 @@ function BookDemoPage() {
 
       // 3. Open Razorpay Checkout modal
       const options = {
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_TCGjSQkih6IER5",
+        key: getRazorpayKeyId(),
         amount: order.amount,
         currency: order.currency,
         name: "Zahau Music School",
         description: "Trial / Demo Session Booking Fee",
         order_id: order.id,
-        handler: async function (response: any) {
+        handler: async function (response: RazorpayResponse) {
           setLoading(true);
           try {
             // Verify payment and insert booking details
@@ -202,7 +232,7 @@ function BookDemoPage() {
                   name,
                   email,
                   phone,
-                  course_interest,
+                  course_interest: courseInterest,
                   day: selectedDayStr,
                   slot: selectedSlot,
                 },
@@ -210,6 +240,7 @@ function BookDemoPage() {
             });
 
             if (verifyResult.ok) {
+              if (session) rememberPhoneOnAccount(phone);
               toast.success("Payment verified! Demo booking confirmed.");
               setSuccess(true);
             } else {
@@ -233,17 +264,50 @@ function BookDemoPage() {
           ondismiss: function () {
             setLoading(false);
             toast.info("Booking cancelled.");
+            // The checkout widget can also close itself after an internal
+            // failure (e.g. Razorpay's own gateway erroring) with no way for
+            // us to distinguish that from a manual cancel — always leave the
+            // no-deposit reservation option available once it closes.
+            setPaymentUnavailable(true);
           },
         },
       };
 
-      const rzp = new (window as any).Razorpay(options);
-      rzp.open();
+      const Razorpay = getRazorpayConstructor();
+      if (!Razorpay) throw new Error("Razorpay failed to initialize.");
+      new Razorpay(options).open();
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Booking initialization failed. Please try again.",
       );
+      // Deposit payment isn't usable right now (not configured, account not yet
+      // activated, etc.) — offer a no-deposit reservation instead of a dead end.
+      setPaymentUnavailable(true);
       setLoading(false);
+    }
+  }
+
+  async function handleReserveWithoutDeposit() {
+    if (!selectedDate || !selectedSlot) return;
+    setReserving(true);
+    try {
+      await bookWithoutDeposit({
+        data: {
+          name,
+          email,
+          phone,
+          course_interest: courseInterest,
+          day: toLocalDateString(selectedDate),
+          slot: selectedSlot,
+        },
+      });
+      if (session) rememberPhoneOnAccount(phone);
+      setBookedFree(true);
+      setSuccess(true);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Booking failed. Please try again.");
+    } finally {
+      setReserving(false);
     }
   }
 
@@ -323,7 +387,7 @@ function BookDemoPage() {
             </div>
             <div>
               <h2 className="font-display text-3xl font-extrabold uppercase tracking-tight mb-2 text-foreground">
-                Payment Successful!
+                {bookedFree ? "Demo Booked!" : "Payment Successful!"}
               </h2>
               <p className="text-muted-foreground text-sm font-light leading-relaxed">
                 Demo confirmed for{" "}
@@ -332,7 +396,9 @@ function BookDemoPage() {
                 </strong>
                 .
                 <br />
-                We have received your deposit and will send a confirmation email shortly.
+                {bookedFree
+                  ? "Online deposit payment wasn't available — we'll follow up by email to collect the Rs. 500 deposit and confirm your slot."
+                  : "We have received your deposit and will send a confirmation email shortly."}
               </p>
             </div>
             <div className="flex flex-wrap gap-3 justify-center mt-2">
@@ -355,9 +421,16 @@ function BookDemoPage() {
           <form onSubmit={onSubmit} className="w-full max-w-xl grid gap-5">
             {/* Personal details */}
             <div className="grid gap-4">
-              <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-azure/80 font-bold flex items-center gap-1.5">
-                <User className="size-3" /> Personal Details
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-azure/80 font-bold flex items-center gap-1.5">
+                  <User className="size-3" /> Personal Details
+                </span>
+                {session && (
+                  <span className="font-mono text-[9px] uppercase tracking-widest text-emerald-500 flex items-center gap-1.5">
+                    <CheckCircle2 className="size-3" /> Signed in as {session.user.email}
+                  </span>
+                )}
+              </div>
 
               {/* Name */}
               <div className="relative">
@@ -367,6 +440,8 @@ function BookDemoPage() {
                   name="name"
                   required
                   maxLength={120}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                   placeholder="Full Name *"
                   className="w-full border border-border bg-card/20 focus:bg-card/40 px-4 py-3 pl-10 text-sm rounded-xl focus:outline-none focus:border-azure focus:ring-4 focus:ring-azure/10 transition-all duration-300 placeholder:text-muted-foreground/40 text-foreground"
                 />
@@ -382,9 +457,19 @@ function BookDemoPage() {
                     type="email"
                     required
                     maxLength={255}
+                    // Only lock once the field's value actually is the
+                    // account's email — if the session resolves after the
+                    // user already typed something else, leave it editable
+                    // rather than "locking" a value that isn't their account.
+                    readOnly={isAccountEmail}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     placeholder="Email *"
-                    className="w-full border border-border bg-card/20 focus:bg-card/40 px-4 py-3 pl-10 text-sm rounded-xl focus:outline-none focus:border-azure focus:ring-4 focus:ring-azure/10 transition-all duration-300 placeholder:text-muted-foreground/40 text-foreground"
+                    className={`w-full border border-border px-4 py-3 pl-10 text-sm rounded-xl focus:outline-none focus:border-azure focus:ring-4 focus:ring-azure/10 transition-all duration-300 placeholder:text-muted-foreground/40 text-foreground ${isAccountEmail ? "bg-muted/30 cursor-not-allowed" : "bg-card/20 focus:bg-card/40"}`}
                   />
+                  {isAccountEmail && (
+                    <Lock className="absolute right-3.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground/40" />
+                  )}
                 </div>
                 <div className="relative">
                   <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/40" />
@@ -393,6 +478,8 @@ function BookDemoPage() {
                     name="phone"
                     type="tel"
                     maxLength={40}
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
                     placeholder="Phone Number"
                     className="w-full border border-border bg-card/20 focus:bg-card/40 px-4 py-3 pl-10 text-sm rounded-xl focus:outline-none focus:border-azure focus:ring-4 focus:ring-azure/10 transition-all duration-300 placeholder:text-muted-foreground/40 text-foreground"
                   />
@@ -406,6 +493,8 @@ function BookDemoPage() {
                   id="bd-course"
                   name="course_interest"
                   maxLength={80}
+                  value={courseInterest}
+                  onChange={(e) => setCourseInterest(e.target.value)}
                   placeholder="Course Interest (Piano, Guitar, Drums…)"
                   className="w-full border border-border bg-card/20 focus:bg-card/40 px-4 py-3 pl-10 text-sm rounded-xl focus:outline-none focus:border-azure focus:ring-4 focus:ring-azure/10 transition-all duration-300 placeholder:text-muted-foreground/40 text-foreground"
                 />
@@ -553,12 +642,32 @@ function BookDemoPage() {
             <button
               id="book-demo-submit"
               type="submit"
-              disabled={loading || !selectedDate || !selectedSlot}
+              disabled={loading || reserving || !selectedDate || !selectedSlot}
               className="w-full bg-azure text-azure-foreground hover:bg-azure/90 px-8 py-4 font-mono font-bold uppercase tracking-widest text-xs rounded-xl transition-all duration-300 hover:shadow-[0_0_30px_rgba(59,130,246,0.2)] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center gap-2 cursor-pointer"
             >
               <ShieldCheck className="size-4" />
               {loading ? "Initializing Secure Portal…" : "Pay Rs. 500 & Confirm Booking"}
             </button>
+
+            {paymentUnavailable && (
+              <div className="border border-amber-500/30 bg-amber-500/5 rounded-xl p-4 space-y-3 animate-slideUp">
+                <div className="flex gap-2.5 items-start text-xs text-amber-600 dark:text-amber-400">
+                  <AlertTriangle className="size-4 shrink-0 mt-0.5" />
+                  <span>
+                    Online deposit payment isn't available right now. You can reserve this slot
+                    without paying the deposit — we'll follow up to collect it and confirm.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleReserveWithoutDeposit}
+                  disabled={loading || reserving}
+                  className="w-full border border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-500/10 py-3 font-mono font-bold uppercase tracking-widest text-[10px] rounded-xl transition-all duration-300 cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+                >
+                  {reserving ? "Reserving…" : "Reserve Slot (No Deposit)"}
+                </button>
+              </div>
+            )}
           </form>
         )}
       </main>

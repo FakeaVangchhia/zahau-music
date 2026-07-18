@@ -25,6 +25,7 @@ import {
 import { LeadForm } from "@/components/site/lead-form";
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Session } from "@supabase/supabase-js";
 import useEmblaCarousel from "embla-carousel-react";
 
 const INSTRUMENTS = [
@@ -105,10 +106,10 @@ function AnimatedCounter({ value }: { value: string }) {
     const target = parseFloat(match[1]);
     const isFloat = value.includes(".");
 
-    let observer = new IntersectionObserver(
+    const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
-          let start = 0;
+          const start = 0;
           const duration = 1500;
           const startTime = performance.now();
 
@@ -334,7 +335,7 @@ function Home() {
   const { data: courses } = useQuery({ queryKey: ["courses-home"], queryFn: () => fetchCourses() });
   const featured = (courses ?? []).slice(0, 6);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [playingVideos, setPlayingVideos] = useState<Record<string, boolean>>({});
 
   const heroRef = useRef<HTMLDivElement>(null);
@@ -372,7 +373,7 @@ function Home() {
     const particles: Particle[] = [];
     const symbols = ["♩", "♪", "♫", "♬", "♭", "♮", "♯"];
 
-    let mouse = { x: 0, y: 0, active: false };
+    const mouse = { x: 0, y: 0, active: false };
 
     const handleMouseMove = (e: MouseEvent) => {
       const rect = hero.getBoundingClientRect();

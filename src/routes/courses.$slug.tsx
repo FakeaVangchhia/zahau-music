@@ -3,6 +3,7 @@ import { getCourse } from "@/lib/site.functions";
 import { LeadForm } from "@/components/site/lead-form";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Session } from "@supabase/supabase-js";
 import { getVideoDetails } from "@/lib/utils";
 
 export const Route = createFileRoute("/courses/$slug")({
@@ -59,7 +60,29 @@ function CoursePage() {
     topics: string[];
   }[];
   const [isAdmin, setIsAdmin] = useState(false);
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<Session | null>(null);
+
+  let matchedInstrument = "Piano";
+  const nameLower = c.name.toLowerCase();
+  const slugLower = c.slug.toLowerCase();
+  if (nameLower.includes("piano") || slugLower.includes("piano")) {
+    matchedInstrument = "Piano";
+  } else if (nameLower.includes("keyboard") || slugLower.includes("keyboard")) {
+    matchedInstrument = "Keyboard";
+  } else if (nameLower.includes("guitar") || slugLower.includes("guitar")) {
+    matchedInstrument = "Guitar";
+  } else if (nameLower.includes("drum") || slugLower.includes("drum")) {
+    matchedInstrument = "Drums";
+  } else if (
+    nameLower.includes("vocal") ||
+    slugLower.includes("vocal") ||
+    nameLower.includes("voice") ||
+    slugLower.includes("voice")
+  ) {
+    matchedInstrument = "Vocal (Western)";
+  } else if (nameLower.includes("theory") || slugLower.includes("theory")) {
+    matchedInstrument = "Music Theory";
+  }
 
   useEffect(() => {
     supabase.auth
@@ -265,14 +288,15 @@ function CoursePage() {
                   Enroll
                 </h3>
                 <p className="mt-3 text-sm text-white/80 font-light leading-relaxed">
-                  Submit a quick interest form and we'll schedule a free trial class within 48
-                  hours.
+                  Select a tuition plan and complete your registration to start your musical
+                  journey.
                 </p>
                 <Link
-                  to="/book-demo"
+                  to="/fees"
+                  search={{ plan: c.duration ?? undefined, instrument: matchedInstrument }}
                   className="mt-8 w-full text-center inline-block bg-white text-azure hover:bg-white/95 py-3.5 text-[10px] font-mono font-bold uppercase tracking-widest rounded-xl hover:scale-105 active:scale-95 transition-all shadow-lg cursor-pointer"
                 >
-                  Book trial class
+                  Buy Course & Enroll
                 </Link>
               </div>
             </div>

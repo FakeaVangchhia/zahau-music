@@ -10,6 +10,7 @@ import {
 import { useEffect, useState, type ReactNode } from "react";
 import { Toaster } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import type { Session } from "@supabase/supabase-js";
 
 import appCss from "../styles.css?url";
 import { Header } from "@/components/site/header";
@@ -143,7 +144,7 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const [isAdmin, setIsAdmin] = useState(false);
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const router = useRouter();
   const pathname = router.state.location.pathname;
   const isPending = router.state.status === "pending";
@@ -191,7 +192,10 @@ function RootComponent() {
   }, [session]);
 
   const hideLayout =
-    pathname.startsWith("/dashboard") || pathname === "/book-demo" || pathname === "/auth";
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/admin") ||
+    pathname === "/book-demo" ||
+    pathname === "/auth";
 
   return (
     <QueryClientProvider client={queryClient}>

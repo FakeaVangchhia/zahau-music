@@ -5,6 +5,7 @@ import { getLessons } from "@/lib/site.functions";
 import { Video, ExternalLink, FileText, Plus, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Session } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import { getVideoDetails } from "@/lib/utils";
 
@@ -36,7 +37,7 @@ function Lessons() {
 
   // Admin States
   const [isAdmin, setIsAdmin] = useState(false);
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -102,14 +103,18 @@ function Lessons() {
       const fileName = `lesson-${Math.random().toString(36).substring(2, 15)}-${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
 
-      const { error } = await supabase.storage.from("videos").upload(filePath, file, {
+      // onUploadProgress is honored by the transport but missing from
+      // supabase-js FileOptions typings — passed via a variable so the extra
+      // property survives excess-property checks.
+      const uploadOptions = {
         cacheControl: "3600",
         upsert: false,
-        onUploadProgress: (progress: any) => {
+        onUploadProgress: (progress: { loaded: number; total: number }) => {
           const percent = (progress.loaded / progress.total) * 100;
           setUploadProgress(Math.round(percent));
         },
-      } as any);
+      };
+      const { error } = await supabase.storage.from("videos").upload(filePath, file, uploadOptions);
 
       if (error) throw error;
 
@@ -119,8 +124,8 @@ function Lessons() {
 
       setVideoUrl(publicUrl);
       toast.success("Video uploaded to server storage successfully!");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to upload video file");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to upload video file");
     } finally {
       setUploading(false);
       setUploadProgress(0);
@@ -156,8 +161,8 @@ function Lessons() {
       setDisplayOrder(lessons.length + 2);
       setShowUploadForm(false);
       queryClient.invalidateQueries({ queryKey: ["lessons-all"] });
-    } catch (err: any) {
-      toast.error(err.message || "Failed to publish lesson");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to publish lesson");
     } finally {
       setCreating(false);
     }
@@ -170,8 +175,8 @@ function Lessons() {
       if (error) throw error;
       toast.success("Lesson deleted successfully");
       queryClient.invalidateQueries({ queryKey: ["lessons-all"] });
-    } catch (err: any) {
-      toast.error(err.message || "Failed to delete lesson");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete lesson");
     }
   }
 

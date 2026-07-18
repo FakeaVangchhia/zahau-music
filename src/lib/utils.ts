@@ -20,7 +20,7 @@ export function getVideoDetails(url: string | null | undefined): VideoDetails {
 
   // YouTube match
   // Matches: youtube.com, youtu.be, youtube-nocookie.com (any subdomain like www or music etc)
-  const ytRegExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const ytRegExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
   const ytMatch = trimmed.match(ytRegExp);
   if (
     (trimmed.includes("youtube.com") ||

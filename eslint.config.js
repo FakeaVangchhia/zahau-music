@@ -6,7 +6,23 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", ".output", ".vinxi"] },
+  {
+    ignores: [
+      "dist",
+      ".output",
+      ".vinxi",
+      ".tanstack",
+      ".nitro",
+      "next-app",
+      "src/routeTree.gen.ts",
+      // Root-level scratch/debug scripts and scraped data — not part of the app build
+      "live_bundle.js",
+      "*.cjs",
+      "parse_bundle.js",
+      "scratch_update_db.js",
+      "page.tsx",
+    ],
+  },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],

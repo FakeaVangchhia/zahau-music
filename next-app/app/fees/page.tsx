@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import {
   Clock,
   BookOpen,
@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
 import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "next/navigation";
 
 const PACKAGES = [
   {
@@ -225,8 +226,11 @@ async function fetchFees() {
   return res.json();
 }
 
-export default function FeesPage() {
+function FeesPageContent() {
   const { data } = useQuery({ queryKey: ["fees-all"], queryFn: fetchFees });
+  const searchParams = useSearchParams();
+  const planParam = searchParams?.get("plan") || null;
+  const instrumentParam = searchParams?.get("instrument") || null;
 
   const packagesList = data && data.length > 0 ? data : PACKAGES;
   const normalizedPackages = packagesList.map((p: any) => ({
@@ -251,10 +255,46 @@ export default function FeesPage() {
   }, []);
 
   useEffect(() => {
-    if (normalizedPackages.length > 0 && !selectedPlan) {
-      setSelectedPlan(normalizedPackages[2] || normalizedPackages[0]);
+    if (normalizedPackages.length > 0) {
+      if (planParam) {
+        const matched = normalizedPackages.find((p: any) => 
+          p.title.toLowerCase().includes(planParam.toLowerCase()) || 
+          p.duration.toLowerCase().includes(planParam.toLowerCase())
+        );
+        if (matched) {
+          setSelectedPlan(matched);
+        } else if (!selectedPlan) {
+          setSelectedPlan(normalizedPackages[2] || normalizedPackages[0]);
+        }
+      } else if (!selectedPlan) {
+        setSelectedPlan(normalizedPackages[2] || normalizedPackages[0]);
+      }
     }
-  }, [normalizedPackages, selectedPlan]);
+  }, [normalizedPackages, selectedPlan, planParam]);
+
+  useEffect(() => {
+    if (instrumentParam) {
+      const validInstruments = [
+        "Piano",
+        "Keyboard",
+        "Guitar",
+        "Ukulele",
+        "Classical Guitar",
+        "Electric Guitar",
+        "Drums",
+        "Vocal (Hindustani)",
+        "Vocal (Carnatic)",
+        "Vocal (Western)",
+        "Music Theory",
+      ];
+      const matchedInstrument = validInstruments.find(
+        (i) => i.toLowerCase() === instrumentParam.toLowerCase()
+      );
+      if (matchedInstrument) {
+        setSelectedInstrument(matchedInstrument);
+      }
+    }
+  }, [instrumentParam]);
 
   const activePlan = selectedPlan || normalizedPackages[2] || normalizedPackages[0];
   const durationMonths = parseInt(activePlan?.duration) || 1;
@@ -722,5 +762,14 @@ export default function FeesPage() {
         </div>
       </section>
     </>
+  );
+}
+
+// useSearchParams() must be inside a Suspense boundary for prerendering
+export default function FeesPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background" />}>
+      <FeesPageContent />
+    </Suspense>
   );
 }

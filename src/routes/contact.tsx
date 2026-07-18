@@ -2,7 +2,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import { LeadForm } from "@/components/site/lead-form";
 import { Mail, MapPin, Phone, MessageCircle } from "lucide-react";
 
+type ContactSearch = {
+  course?: string;
+};
+
 export const Route = createFileRoute("/contact")({
+  validateSearch: (search: Record<string, unknown>): ContactSearch => ({
+    course: typeof search.course === "string" && search.course ? search.course : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Contact — Zahau Music School" },
@@ -18,6 +25,7 @@ export const Route = createFileRoute("/contact")({
 });
 
 function Contact() {
+  const { course } = Route.useSearch();
   return (
     <>
       <section className="bg-navy text-navy-foreground py-32 px-6 relative overflow-hidden">
@@ -56,7 +64,7 @@ function Contact() {
             We'll respond within one business day with a recommended faculty and trial class slot.
           </p>
           <div>
-            <LeadForm source="contact-page" />
+            <LeadForm source="contact-page" courseInterest={course} />
           </div>
         </div>
 
@@ -112,7 +120,7 @@ function Contact() {
             className="block glass-panel border border-border/60 p-6 rounded-2xl hover-glow hover:-translate-y-0.5 transition-all duration-300"
           >
             <div className="flex items-center gap-4">
-              <div className="size-10 rounded-xl bg-emerald-500/10 text-emerald-550 flex items-center justify-center border border-emerald-500/20 shrink-0">
+              <div className="size-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center border border-emerald-500/20 shrink-0">
                 <MessageCircle className="size-5" />
               </div>
               <div>
