@@ -11,8 +11,6 @@ This repo contains **two parallel, independently-runnable implementations of the
 
 When making a change that affects site behavior (a form, a page, a data query, an auth flow), check whether the equivalent needs to change in **both** apps — e.g. `src/routes/courses.$slug.tsx` and `next-app/app/courses/[slug]/page.tsx` + `course-detail-client.tsx` are two implementations of the same course-detail page, and `src/lib/site.functions.ts` (TanStack server functions) mirrors `next-app/app/api/*/route.ts` (Next API routes) — both call the same Supabase tables.
 
-Root-level scratch/one-off scripts (`fetch_live_data.cjs`, `parse_bundle.js`, `query_courses.cjs`, `scratch_update_db.js`/`.cjs`, `test_signin.cjs`, `test_claims.cjs`, `live_bundle.js`, `live_courses.json`, `live_site.html`) are ad hoc data/debugging scripts, not part of either app's build.
-
 ## Commands
 
 Run from the repository root for the TanStack Start app:
