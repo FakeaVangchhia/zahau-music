@@ -1,15 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { createClient } from "@/utils/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
-import { z } from "zod";
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
-    const email = z.string().email().parse(req.nextUrl.searchParams.get("email"));
+    const cookieStore = await cookies();
+    const supabaseSession = createClient(cookieStore);
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseSession.auth.getUser();
+
+    if (authError || !user || !user.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const supabase = getSupabaseAdmin();
     const { data, error } = await supabase
       .from("leads")
       .select("*")
-      .eq("email", email)
+      .eq("email", user.email)
       .eq("source", "book_demo")
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);

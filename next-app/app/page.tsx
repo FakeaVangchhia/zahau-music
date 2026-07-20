@@ -452,7 +452,7 @@ export default function Home() {
           >
             <span className="size-2 rounded-full bg-azure animate-pulse" />
             <span className="font-mono text-xs uppercase tracking-[0.2em] text-foreground font-semibold">
-              Delhi · Online · India
+              Delhi · Bangalore · Hyderabad · Mumbai
             </span>
           </div>
 

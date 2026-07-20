@@ -64,11 +64,7 @@ export default function DashboardPage() {
 
         if (adminEmails.includes(emailStr.toLowerCase())) {
           try {
-            const res = await fetch("/api/admin/ensure-admin", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ userId: data.user.id, email: emailStr }),
-            });
+            const res = await fetch("/api/admin/ensure-admin", { method: "POST" });
             if (res.ok) {
               const body = await res.json();
               if (body.isAdmin) {
@@ -95,7 +91,7 @@ export default function DashboardPage() {
         // Fetch user's booked demos if student
         if (userRole !== "admin") {
           try {
-            const res = await fetch(`/api/demo-bookings?email=${encodeURIComponent(emailStr)}`);
+            const res = await fetch("/api/demo-bookings");
             if (res.ok) {
               const bookings = await res.json();
               setDemoBookings(bookings || []);
