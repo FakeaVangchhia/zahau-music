@@ -76,6 +76,28 @@ export default function Contact() {
           </a>
 
           <a
+            href="tel:+919911053332"
+            className="block glass-panel border border-border/60 p-6 rounded-2xl hover-glow hover:-translate-y-0.5 transition-all duration-300"
+          >
+            <div className="flex items-center gap-4">
+              <div className="size-10 rounded-xl bg-azure/10 text-azure flex items-center justify-center border border-azure/20 shrink-0">
+                <Phone className="size-5" />
+              </div>
+              <div>
+                <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground block font-bold">
+                  Mobile
+                </span>
+                <span className="font-mono font-bold text-sm text-foreground block mt-1">
+                  +91 99110 53332
+                </span>
+              </div>
+            </div>
+            <p className="mt-3 text-xs text-muted-foreground font-light">
+              Available for calls Monday to Saturday, 10 AM – 6 PM IST.
+            </p>
+          </a>
+
+          <a
             href="mailto:hello@zahau.school"
             className="block glass-panel border border-border/60 p-6 rounded-2xl hover-glow hover:-translate-y-0.5 transition-all duration-300"
           >

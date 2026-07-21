@@ -1,43 +1,31 @@
-import { createFileRoute } from "@tanstack/react-router";
+"use client";
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
-import { getLessons } from "@/lib/site.functions";
 import { Video, ExternalLink, FileText, Plus, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import type { Session } from "@supabase/supabase-js";
+import { getSupabaseClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { getVideoDetails } from "@/lib/utils";
 
-export const Route = createFileRoute("/lessons")({
-  head: () => ({
-    meta: [
-      { title: "Recorded Lessons — Zahau Music School" },
-      {
-        name: "description",
-        content:
-          "Access video lessons, learning resources, and sheet music uploaded by Zahau Music School faculty.",
-      },
-      { property: "og:url", content: "/lessons" },
-    ],
-    links: [{ rel: "canonical", href: "/lessons" }],
-  }),
-  component: Lessons,
-});
+async function fetchLessons() {
+  const res = await fetch("/api/lessons");
+  if (!res.ok) throw new Error("Failed to fetch lessons");
+  return res.json();
+}
 
-function Lessons() {
-  const fetchLessons = useServerFn(getLessons);
+export default function LessonsPage() {
   const queryClient = useQueryClient();
   const { data, isLoading, isError } = useQuery({
     queryKey: ["lessons-all"],
-    queryFn: () => fetchLessons(),
-    retry: 1, // Only retry once to fail fast if there's a network issue
+    queryFn: fetchLessons,
+    retry: 1,
   });
   const lessons = data ?? [];
+  const supabase = getSupabaseClient();
 
   // Admin States
   const [isAdmin, setIsAdmin] = useState(false);
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<any>(null);
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -65,7 +53,7 @@ function Lessons() {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [supabase]);
 
   useEffect(() => {
     async function checkAdmin() {
@@ -86,7 +74,7 @@ function Lessons() {
       }
     }
     checkAdmin();
-  }, [session]);
+  }, [session, supabase]);
 
   async function handleVideoUpload(file: File) {
     if (!file) return;
@@ -103,18 +91,14 @@ function Lessons() {
       const fileName = `lesson-${Math.random().toString(36).substring(2, 15)}-${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
 
-      // onUploadProgress is honored by the transport but missing from
-      // supabase-js FileOptions typings — passed via a variable so the extra
-      // property survives excess-property checks.
-      const uploadOptions = {
+      const { error } = await supabase.storage.from("videos").upload(filePath, file, {
         cacheControl: "3600",
         upsert: false,
-        onUploadProgress: (progress: { loaded: number; total: number }) => {
+        onUploadProgress: (progress: any) => {
           const percent = (progress.loaded / progress.total) * 100;
           setUploadProgress(Math.round(percent));
         },
-      };
-      const { error } = await supabase.storage.from("videos").upload(filePath, file, uploadOptions);
+      } as any);
 
       if (error) throw error;
 
@@ -124,8 +108,8 @@ function Lessons() {
 
       setVideoUrl(publicUrl);
       toast.success("Video uploaded to server storage successfully!");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to upload video file");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to upload video file");
     } finally {
       setUploading(false);
       setUploadProgress(0);
@@ -161,8 +145,8 @@ function Lessons() {
       setDisplayOrder(lessons.length + 2);
       setShowUploadForm(false);
       queryClient.invalidateQueries({ queryKey: ["lessons-all"] });
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to publish lesson");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to publish lesson");
     } finally {
       setCreating(false);
     }
@@ -175,20 +159,17 @@ function Lessons() {
       if (error) throw error;
       toast.success("Lesson deleted successfully");
       queryClient.invalidateQueries({ queryKey: ["lessons-all"] });
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete lesson");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete lesson");
     }
   }
 
   return (
     <>
       <section className="bg-navy text-navy-foreground py-32 px-6 relative overflow-hidden">
-        {/* Glowing background blobs */}
         <div className="glowing-blob top-1/4 left-1/4 w-[500px] h-[500px] -translate-x-1/2 -translate-y-1/2" />
         <div className="glowing-blob-gold bottom-1/4 right-1/4 w-[400px] h-[400px]" />
-
-        {/* Bottom fade transition */}
-        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-background to-transparent pointer-events-none z-1" />
+        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-background to-transparent pointer-events-none z-[1]" />
 
         <div className="max-w-7xl mx-auto relative z-10">
           <span className="font-mono text-xs uppercase tracking-[0.3em] text-azure font-bold block mb-4">
@@ -215,30 +196,29 @@ function Lessons() {
             {!showUploadForm ? (
               <button
                 onClick={() => setShowUploadForm(true)}
-                className="bg-azure hover:bg-azure/90 text-white font-bold uppercase tracking-wider text-xs px-5 py-3.5 rounded-xl flex items-center gap-2 transition-all shadow-md shadow-azure/20 cursor-pointer"
+                className="bg-azure hover:bg-azure/90 text-white font-bold uppercase tracking-wider text-xs px-5 py-3.5 rounded-xl flex items-center gap-2 transition-all shadow-md shadow-azure/20 cursor-pointer animate-fade-in"
               >
                 <Plus className="size-4" /> Add Lesson Upload
               </button>
             ) : (
               <form
                 onSubmit={handleCreateLesson}
-                className="glass-panel border border-azure/30 p-8 rounded-3xl max-w-3xl space-y-6 animate-fadeIn"
+                className="glass-panel border border-azure/30 p-8 rounded-3xl max-w-3xl space-y-6 animate-fade-in"
               >
                 <div className="flex justify-between items-center border-b border-border/40 pb-4">
-                  <h3 className="font-display text-xl uppercase text-white font-bold">
+                  <h3 className="font-display text-xl uppercase text-foreground font-bold">
                     New Lesson Resource
                   </h3>
                   <button
                     type="button"
                     onClick={() => setShowUploadForm(false)}
-                    className="text-slate-400 hover:text-white font-mono text-xs cursor-pointer"
+                    className="text-slate-400 hover:text-foreground font-mono text-xs cursor-pointer"
                   >
                     Cancel
                   </button>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-6">
-                  {/* Title */}
                   <div className="grid gap-1.5">
                     <label className="font-mono text-[10px] uppercase tracking-widest text-slate-400">
                       Lesson Title
@@ -247,12 +227,11 @@ function Lessons() {
                       type="text"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
-                      className="bg-[#060B18] border border-border/80 focus:border-azure rounded-xl p-3 text-sm text-white focus:outline-none"
+                      className="bg-[#060B18]/50 border border-border/80 focus:border-azure rounded-xl p-3 text-sm text-foreground focus:outline-none"
                       placeholder="e.g. Intermediate Guitar Fingerpicking Patterns"
                     />
                   </div>
 
-                  {/* Display Order */}
                   <div className="grid gap-1.5">
                     <label className="font-mono text-[10px] uppercase tracking-widest text-slate-400">
                       Display Order
@@ -261,12 +240,11 @@ function Lessons() {
                       type="number"
                       value={displayOrder}
                       onChange={(e) => setDisplayOrder(Number(e.target.value))}
-                      className="bg-[#060B18] border border-border/80 focus:border-azure rounded-xl p-3 text-sm text-white focus:outline-none"
+                      className="bg-[#060B18]/50 border border-border/80 focus:border-azure rounded-xl p-3 text-sm text-foreground focus:outline-none"
                     />
                   </div>
                 </div>
 
-                {/* Description */}
                 <div className="grid gap-1.5 md:col-span-2">
                   <label className="font-mono text-[10px] uppercase tracking-widest text-slate-400">
                     Description / Details
@@ -275,18 +253,16 @@ function Lessons() {
                     rows={3}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="bg-[#060B18] border border-border/80 focus:border-azure rounded-xl p-3 text-sm text-white focus:outline-none"
+                    className="bg-[#060B18]/50 border border-border/80 focus:border-azure rounded-xl p-3 text-sm text-foreground focus:outline-none"
                     placeholder="Provide short details or instructions for students..."
                   />
                 </div>
 
-                {/* Video URL Selection */}
                 <div className="grid gap-4 md:col-span-2 border border-border/40 bg-card/20 p-5 rounded-2xl">
                   <label className="font-mono text-[10px] uppercase tracking-widest text-azure flex items-center gap-1.5 font-bold">
                     <Video className="size-4" /> Lesson Video Link or File Upload
                   </label>
                   <div className="grid md:grid-cols-2 gap-4">
-                    {/* Paste YouTube URL */}
                     <div className="space-y-2">
                       <span className="font-mono text-[9px] text-slate-400 block">
                         OPTION A: PASTE VIDEO URL
@@ -295,14 +271,13 @@ function Lessons() {
                         type="text"
                         value={videoUrl}
                         onChange={(e) => setVideoUrl(e.target.value)}
-                        className="w-full bg-[#060B18] border border-border/80 focus:border-azure rounded-xl p-3 text-sm text-white focus:outline-none"
+                        className="w-full bg-[#060B18]/50 border border-border/80 focus:border-azure rounded-xl p-3 text-sm text-foreground focus:outline-none"
                         placeholder="e.g. https://www.youtube.com/watch?v=..."
                       />
                       <p className="text-[9px] text-slate-500 font-mono">
                         YouTube/Vimeo embed or direct video file url.
                       </p>
                     </div>
-                    {/* Upload File */}
                     <div className="space-y-2">
                       <span className="font-mono text-[9px] text-slate-400 block">
                         OPTION B: UPLOAD VIDEO FILE (MAX 100MB)
@@ -362,7 +337,6 @@ function Lessons() {
                   )}
                 </div>
 
-                {/* Supplementary Material Link */}
                 <div className="grid gap-1.5 md:col-span-2">
                   <label className="font-mono text-[10px] uppercase tracking-widest text-slate-400">
                     Supplementary Material Link (e.g. Sheet Music PDF)
@@ -371,7 +345,7 @@ function Lessons() {
                     type="text"
                     value={linkUrl}
                     onChange={(e) => setLinkUrl(e.target.value)}
-                    className="bg-[#060B18] border border-border/80 focus:border-azure rounded-xl p-3 text-sm text-white focus:outline-none"
+                    className="bg-[#060B18]/50 border border-border/80 focus:border-azure rounded-xl p-3 text-sm text-foreground focus:outline-none"
                     placeholder="e.g. Google Drive Link or PDF URL"
                   />
                 </div>
@@ -421,7 +395,7 @@ function Lessons() {
         )}
 
         <div className="grid md:grid-cols-2 gap-8 relative z-10">
-          {lessons.map((l) => {
+          {lessons.map((l: any) => {
             const videoDetails = getVideoDetails(l.video_url);
 
             return (
@@ -465,7 +439,7 @@ function Lessons() {
                 </div>
 
                 {(l.link_url || isAdmin) && (
-                  <div className="mt-8 pt-6 border-t border-border/40 flex justify-between items-center flex-wrap gap-2">
+                  <div className="mt-8 pt-6 border-t border-border/40 flex justify-between items-center flex-wrap gap-2 animate-fade-in">
                     {l.link_url ? (
                       <span className="inline-flex items-center gap-2 text-xs font-mono text-muted-foreground">
                         <FileText className="size-4 text-azure" />

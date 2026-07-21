@@ -189,7 +189,11 @@ export default async function CourseDetailPage({ params }: Props) {
               </p>
             </div>
           )}
-          <CourseDetailClient courseName={c.name} courseSlug={c.slug} courseDuration={c.duration} />
+          <CourseDetailClient
+            courseName={c.name}
+            courseSlug={c.slug}
+            courseDuration={c.duration ?? undefined}
+          />
         </aside>
       </section>
 

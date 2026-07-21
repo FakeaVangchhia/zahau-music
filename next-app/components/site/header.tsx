@@ -127,7 +127,9 @@ export function Header() {
                   <span>{n.label}</span>
                   <span
                     className={`absolute -bottom-1 left-0 right-0 h-[2px] bg-azure rounded-full transition-all duration-300 origin-center transform ${
-                      isActive ? "scale-x-100 opacity-100" : "scale-x-0 opacity-0 group-hover:scale-x-50 group-hover:opacity-60"
+                      isActive
+                        ? "scale-x-100 opacity-100"
+                        : "scale-x-0 opacity-0 group-hover:scale-x-50 group-hover:opacity-60"
                     }`}
                   />
                 </span>

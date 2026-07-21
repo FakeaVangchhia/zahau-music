@@ -20,7 +20,6 @@ export default tseslint.config(
       "*.cjs",
       "parse_bundle.js",
       "scratch_update_db.js",
-      "page.tsx",
     ],
   },
   {

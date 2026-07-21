@@ -1164,7 +1164,7 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
                                         <a
                                           href={course.video_url}
                                           target="_blank"
-                                          rel="noreferrer"
+                                          rel="noreferrer noopener"
                                           className="text-muted-foreground hover:text-foreground shrink-0"
                                         >
                                           <ExternalLink className="size-3" />
@@ -1443,7 +1443,7 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
                                       <a
                                         href={lesson.video_url}
                                         target="_blank"
-                                        rel="noreferrer"
+                                        rel="noreferrer noopener"
                                         className="hover:underline flex items-center gap-1"
                                       >
                                         {lesson.video_url}{" "}
@@ -1458,7 +1458,7 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
                                       <a
                                         href={lesson.link_url}
                                         target="_blank"
-                                        rel="noreferrer"
+                                        rel="noreferrer noopener"
                                         className="hover:underline flex items-center gap-1"
                                       >
                                         {lesson.link_url}{" "}

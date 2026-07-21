@@ -63,7 +63,12 @@ export function CourseDetailClient({
     matchedInstrument = "Guitar";
   } else if (nameLower.includes("drum") || slugLower.includes("drum")) {
     matchedInstrument = "Drums";
-  } else if (nameLower.includes("vocal") || slugLower.includes("vocal") || nameLower.includes("voice") || slugLower.includes("voice")) {
+  } else if (
+    nameLower.includes("vocal") ||
+    slugLower.includes("vocal") ||
+    nameLower.includes("voice") ||
+    slugLower.includes("voice")
+  ) {
     matchedInstrument = "Vocal (Western)";
   } else if (nameLower.includes("theory") || slugLower.includes("theory")) {
     matchedInstrument = "Music Theory";

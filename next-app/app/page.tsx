@@ -308,7 +308,7 @@ export default function Home() {
     const particles: Particle[] = [];
     const symbols = ["♩", "♪", "♫", "♬", "♭", "♮", "♯"];
 
-    let mouse = { x: 0, y: 0, active: false };
+    const mouse = { x: 0, y: 0, active: false };
 
     const handleMouseMove = (e: MouseEvent) => {
       const rect = hero.getBoundingClientRect();

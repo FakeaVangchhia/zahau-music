@@ -9,12 +9,6 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "img.youtube.com" },
     ],
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
 };
 
 export default nextConfig;

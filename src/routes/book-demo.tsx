@@ -135,7 +135,7 @@ function BookDemoPage() {
         setBookedSlots(data || {});
       })
       .catch((err) => console.error("Failed to load booked slots:", err));
-  }, []);
+  }, [getBooked]);
 
   useEffect(() => {
     supabase.auth

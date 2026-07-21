@@ -7,6 +7,7 @@ import { Toaster } from "sonner";
 import { QueryProvider } from "@/components/providers/query-provider";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
   title: "Zahau Music School — Premier Online Music Academy",
   description:
     "Piano, Keyboard, Guitar (Ukulele, Classical, Electric), Drum, Vocal Performance (Hindustani, Carnatic, Western) and Music Theory at Zahau Music School.",
@@ -50,7 +51,6 @@ export default function RootLayout({
             `,
           }}
         />
-        <link rel="icon" href="/logo.png" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link
