@@ -66,7 +66,6 @@ export function Footer() {
               Connect
             </span>
             {[
-              { to: "/lessons", label: "Lessons" },
               { to: "/gallery", label: "Gallery" },
               { to: "/testimonials", label: "Testimonials" },
               { to: "/contact", label: "Contact" },

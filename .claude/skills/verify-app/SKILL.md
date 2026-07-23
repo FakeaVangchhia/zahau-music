@@ -54,15 +54,18 @@ browser). High-value flows and their checkpoints:
   return to `/fees`.
 - **Contact prefill**: `/contact?course=X` must prefill the course-interest
   input (`value="X"` in SSR HTML).
-- **Student dashboard** (`/dashboard`, auth required, `ssr: false`): four tabs
-  — Overview, Purchase, Courses, Recorded Lessons. Lessons tab needs rows in
-  the `lessons` table to show cards; the video modal handles YouTube/Vimeo/
-  direct URLs via `getVideoDetails`.
-- **Payments**: Razorpay opens only when `VITE_RAZORPAY_KEY_ID` (client) and
-  `RAZORPAY_KEY_ID`/`RAZORPAY_KEY_SECRET` (server) are set in `.env` — there
-  are deliberately no fallback keys in source. Use Razorpay test-mode keys;
-  card `4111 1111 1111 1111` works in test mode. A verified payment inserts a
-  `leads` row and (for enrollments) an `enrollments` row.
+- **Student dashboard** (`/dashboard`, auth required, `ssr: false`): three tabs
+  — Overview, Purchase, Courses. Pending UPI payments show an amber "Under
+  review" badge in the Purchase tab; approved ones flip to `active`.
+- **Payments (manual UPI QR — no gateway)**: the checkout modal (`/fees` and
+  dashboard) and `/book-demo` render a UPI QR from `payment_settings`
+  (`upi_vpa` + `payee_name`, set in admin → Payments). No QR renders while
+  `upi_vpa` is empty — the UI falls back to reserve/contact. A submission
+  inserts a `pending` `payment_submissions` row (+ a `pending` enrollment or a
+  slot-holding `leads` row); admin Approve (or UTR auto-match via
+  `POST /api/upi-sms`, secret `UPI_WEBHOOK_SECRET`) activates it. The UTR
+  field accepts only 12-digit references. Verify a non-admin cannot write
+  `enrollments`/`payment_submissions` directly — all writes are service-role.
 
 ## 4. Database-touching changes
 
@@ -71,4 +74,6 @@ edit past migrations. After changing schema, regenerate
 `src/integrations/supabase/types.ts` (marked auto-generated) rather than
 hand-editing it. The Supabase MCP server (`.mcp.json`) can run read-only
 queries to confirm seeded data — e.g. course slugs must stay in sync with
-`instrumentToSlug` in `src/lib/razorpay.ts`.
+`instrumentToSlug` in `src/lib/payments.ts`. Note: the live DB was seeded from
+the base schema, not the full migration chain — verify a table/column/policy
+exists in the live DB before relying on it.

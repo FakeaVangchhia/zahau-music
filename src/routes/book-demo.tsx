@@ -1,20 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import {
-  createRazorpayOrder,
-  verifyRazorpayPayment,
-  getBookedSlots,
-  submitDemoBooking,
-} from "@/lib/site.functions";
-import {
-  loadRazorpayScript,
-  getRazorpayConstructor,
-  getRazorpayKeyId,
-  DEMO_BOOKING_FEE_PAISE,
-  type RazorpayResponse,
-} from "@/lib/razorpay";
+import { getBookedSlots, getPaymentSettings, submitDemoPayment } from "@/lib/site.functions";
+import { buildUpiUri, DEMO_BOOKING_FEE_PAISE, isValidUtr } from "@/lib/payments";
+import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   User,
   Mail,
@@ -22,7 +12,6 @@ import {
   Music,
   Calendar,
   Clock,
-  Send,
   CheckCircle2,
   ArrowLeft,
   ShieldCheck,
@@ -108,26 +97,29 @@ function formatDateForDisplay(date: Date) {
 }
 
 function BookDemoPage() {
-  const createOrder = useServerFn(createRazorpayOrder);
-  const verifyPayment = useServerFn(verifyRazorpayPayment);
   const getBooked = useServerFn(getBookedSlots);
-  const bookWithoutDeposit = useServerFn(submitDemoBooking);
+  const loadSettings = useServerFn(getPaymentSettings);
+  const submitPayment = useServerFn(submitDemoPayment);
 
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [bookedFree, setBookedFree] = useState(false);
+  const [demoVerified, setDemoVerified] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
+  const [upiRef, setUpiRef] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [bookedSlots, setBookedSlots] = useState<Record<string, string[]>>({});
-  const [paymentUnavailable, setPaymentUnavailable] = useState(false);
-  const [reserving, setReserving] = useState(false);
+  const [settings, setSettings] = useState<{ upi_vpa: string; payee_name: string } | null>(null);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   const [session, setSession] = useState<Session | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [courseInterest, setCourseInterest] = useState("");
+
+  const DEMO_FEE_RUPEES = DEMO_BOOKING_FEE_PAISE / 100;
 
   useEffect(() => {
     getBooked()
@@ -136,6 +128,13 @@ function BookDemoPage() {
       })
       .catch((err) => console.error("Failed to load booked slots:", err));
   }, [getBooked]);
+
+  useEffect(() => {
+    loadSettings()
+      .then((s) => setSettings({ upi_vpa: s.upi_vpa, payee_name: s.payee_name }))
+      .catch((err) => console.error("Failed to load payment settings:", err))
+      .finally(() => setSettingsLoaded(true));
+  }, [loadSettings]);
 
   useEffect(() => {
     supabase.auth
@@ -184,114 +183,42 @@ function BookDemoPage() {
     setCurrentMonth(next);
   };
 
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+  const upiUri = useMemo(() => {
+    if (!settings?.upi_vpa || !selectedDate || !selectedSlot) return "";
+    return buildUpiUri({
+      vpa: settings.upi_vpa,
+      payee: settings.payee_name || "Zahau Music School",
+      amount: DEMO_FEE_RUPEES,
+      note: `Demo — ${toLocalDateString(selectedDate)} ${selectedSlot}`,
+    });
+  }, [settings, selectedDate, selectedSlot, DEMO_FEE_RUPEES]);
+
+  // Step 1: validate the form, then reveal the QR payment step.
+  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!name.trim() || !email.trim()) {
+      toast.error("Please enter your name and email.");
+      return;
+    }
     if (!selectedDate || !selectedSlot) {
       toast.error("Please select a day and time slot.");
       return;
     }
-    setLoading(true);
-    setPaymentUnavailable(false);
-
-    const selectedDayStr = toLocalDateString(selectedDate);
-
-    try {
-      // 1. Load Razorpay checkout script
-      const scriptLoaded = await loadRazorpayScript();
-      if (!scriptLoaded) {
-        throw new Error("Failed to load Razorpay payment gateway. Check your internet connection.");
-      }
-
-      // 2. Create the Razorpay Order (Rs. 500 booking deposit)
-      const order = await createOrder({
-        data: {
-          amount: DEMO_BOOKING_FEE_PAISE,
-          currency: "INR",
-          receipt: `demo_${Date.now()}`,
-        },
-      });
-
-      // 3. Open Razorpay Checkout modal
-      const options = {
-        key: getRazorpayKeyId(),
-        amount: order.amount,
-        currency: order.currency,
-        name: "Zahau Music School",
-        description: "Trial / Demo Session Booking Fee",
-        order_id: order.id,
-        handler: async function (response: RazorpayResponse) {
-          setLoading(true);
-          try {
-            // Verify payment and insert booking details
-            const verifyResult = await verifyPayment({
-              data: {
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_signature: response.razorpay_signature,
-                booking_details: {
-                  name,
-                  email,
-                  phone,
-                  course_interest: courseInterest,
-                  day: selectedDayStr,
-                  slot: selectedSlot,
-                },
-              },
-            });
-
-            if (verifyResult.ok) {
-              if (session) rememberPhoneOnAccount(phone);
-              toast.success("Payment verified! Demo booking confirmed.");
-              setSuccess(true);
-            } else {
-              toast.error("Payment verification failed.");
-            }
-          } catch (err) {
-            toast.error(err instanceof Error ? err.message : "Payment verification failed.");
-          } finally {
-            setLoading(false);
-          }
-        },
-        prefill: {
-          name,
-          email,
-          contact: phone,
-        },
-        theme: {
-          color: "#0070f3",
-        },
-        modal: {
-          ondismiss: function () {
-            setLoading(false);
-            toast.info("Booking cancelled.");
-            // The checkout widget can also close itself after an internal
-            // failure (e.g. Razorpay's own gateway erroring) with no way for
-            // us to distinguish that from a manual cancel — always leave the
-            // no-deposit reservation option available once it closes.
-            setPaymentUnavailable(true);
-          },
-        },
-      };
-
-      const Razorpay = getRazorpayConstructor();
-      if (!Razorpay) throw new Error("Razorpay failed to initialize.");
-      new Razorpay(options).open();
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Booking initialization failed. Please try again.",
-      );
-      // Deposit payment isn't usable right now (not configured, account not yet
-      // activated, etc.) — offer a no-deposit reservation instead of a dead end.
-      setPaymentUnavailable(true);
-      setLoading(false);
-    }
+    setShowPayment(true);
   }
 
-  async function handleReserveWithoutDeposit() {
+  // Step 2: student has paid via UPI — record the deposit for admin verification.
+  async function handleConfirmBooking() {
     if (!selectedDate || !selectedSlot) return;
-    setReserving(true);
+    if (upiRef.trim() && !isValidUtr(upiRef)) {
+      toast.error(
+        "That UTR doesn't look right — it's the 12-digit number on your payment receipt. Fix it or leave it blank.",
+      );
+      return;
+    }
+    setSubmitting(true);
     try {
-      await bookWithoutDeposit({
+      const result = await submitPayment({
         data: {
           name,
           email,
@@ -299,15 +226,16 @@ function BookDemoPage() {
           course_interest: courseInterest,
           day: toLocalDateString(selectedDate),
           slot: selectedSlot,
+          upi_reference: upiRef.trim(),
         },
       });
       if (session) rememberPhoneOnAccount(phone);
-      setBookedFree(true);
+      setDemoVerified(!!result.autoApproved);
       setSuccess(true);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Booking failed. Please try again.");
     } finally {
-      setReserving(false);
+      setSubmitting(false);
     }
   }
 
@@ -387,18 +315,18 @@ function BookDemoPage() {
             </div>
             <div>
               <h2 className="font-display text-3xl font-extrabold uppercase tracking-tight mb-2 text-foreground">
-                {bookedFree ? "Demo Booked!" : "Payment Successful!"}
+                {demoVerified ? "Demo Confirmed!" : "Booking Received!"}
               </h2>
               <p className="text-muted-foreground text-sm font-light leading-relaxed">
-                Demo confirmed for{" "}
+                Your slot is{" "}
                 <strong className="text-foreground">
                   {selectedDate ? formatDateForDisplay(selectedDate) : ""} at {selectedSlot}
                 </strong>
                 .
                 <br />
-                {bookedFree
-                  ? "Online deposit payment wasn't available — we'll follow up by email to collect the Rs. 500 deposit and confirm your slot."
-                  : "We have received your deposit and will send a confirmation email shortly."}
+                {demoVerified
+                  ? "Your Rs. 500 deposit was verified automatically — a confirmation email is on its way. See you with Dr. Henry!"
+                  : "We're verifying your Rs. 500 deposit — once confirmed, you'll get a confirmation email for your demo with Dr. Henry."}
               </p>
             </div>
             <div className="flex flex-wrap gap-3 justify-center mt-2">
@@ -638,34 +566,107 @@ function BookDemoPage() {
               )}
             </div>
 
-            {/* Submit */}
-            <button
-              id="book-demo-submit"
-              type="submit"
-              disabled={loading || reserving || !selectedDate || !selectedSlot}
-              className="w-full bg-azure text-azure-foreground hover:bg-azure/90 px-8 py-4 font-mono font-bold uppercase tracking-widest text-xs rounded-xl transition-all duration-300 hover:shadow-[0_0_30px_rgba(59,130,246,0.2)] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <ShieldCheck className="size-4" />
-              {loading ? "Initializing Secure Portal…" : "Pay Rs. 500 & Confirm Booking"}
-            </button>
+            {/* Step 1: continue to payment */}
+            {!showPayment && (
+              <button
+                id="book-demo-submit"
+                type="submit"
+                disabled={!selectedDate || !selectedSlot}
+                className="w-full bg-azure text-azure-foreground hover:bg-azure/90 px-8 py-4 font-mono font-bold uppercase tracking-widest text-xs rounded-xl transition-all duration-300 hover:shadow-[0_0_30px_rgba(59,130,246,0.2)] hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <ShieldCheck className="size-4" />
+                Continue to Payment
+              </button>
+            )}
 
-            {paymentUnavailable && (
-              <div className="border border-amber-500/30 bg-amber-500/5 rounded-xl p-4 space-y-3 animate-slideUp">
-                <div className="flex gap-2.5 items-start text-xs text-amber-600 dark:text-amber-400">
-                  <AlertTriangle className="size-4 shrink-0 mt-0.5" />
-                  <span>
-                    Online deposit payment isn't available right now. You can reserve this slot
-                    without paying the deposit — we'll follow up to collect it and confirm.
+            {/* Step 2: scan-to-pay + submit proof */}
+            {showPayment && (
+              <div className="border border-border/60 bg-card/20 rounded-2xl p-5 space-y-4 animate-slideUp">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-azure/80 font-bold flex items-center gap-1.5">
+                    <ShieldCheck className="size-3" /> Pay Rs. {DEMO_FEE_RUPEES} Deposit
                   </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowPayment(false)}
+                    className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground hover:text-foreground cursor-pointer"
+                  >
+                    Edit details
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleReserveWithoutDeposit}
-                  disabled={loading || reserving}
-                  className="w-full border border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-500/10 py-3 font-mono font-bold uppercase tracking-widest text-[10px] rounded-xl transition-all duration-300 cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
-                >
-                  {reserving ? "Reserving…" : "Reserve Slot (No Deposit)"}
-                </button>
+
+                {!settingsLoaded ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    Loading payment details…
+                  </p>
+                ) : settings?.upi_vpa ? (
+                  <>
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="bg-white p-3 rounded-xl">
+                        <QRCodeSVG value={upiUri} size={170} includeMargin={false} />
+                      </div>
+                      <div className="text-center">
+                        <p className="font-mono text-xs text-foreground">{settings.upi_vpa}</p>
+                        <p className="text-[10px] text-muted-foreground font-light">
+                          {settings.payee_name}
+                        </p>
+                      </div>
+                      <a
+                        href={upiUri}
+                        className="text-[10px] font-mono uppercase tracking-widest text-azure hover:underline sm:hidden"
+                      >
+                        Open in a UPI app →
+                      </a>
+                      <p className="text-[10px] text-muted-foreground/70 font-light text-center leading-relaxed">
+                        Pay Rs. {DEMO_FEE_RUPEES} with any UPI app, enter the transaction ID from
+                        your receipt below, then tap “I’ve Paid”.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground/80 font-bold mb-2">
+                        UPI Transaction ID (UTR){" "}
+                        <span className="text-muted-foreground/50 normal-case font-normal">
+                          — optional, confirms you instantly
+                        </span>
+                      </label>
+                      <input
+                        value={upiRef}
+                        onChange={(e) => setUpiRef(e.target.value)}
+                        inputMode="numeric"
+                        placeholder="12-digit number from your payment receipt"
+                        className={`w-full border bg-card/20 focus:bg-card/40 px-4 py-3 text-sm rounded-xl focus:outline-none focus:ring-4 transition-all duration-300 placeholder:text-muted-foreground/40 text-foreground ${
+                          upiRef.trim() && !isValidUtr(upiRef)
+                            ? "border-red-500/60 focus:border-red-500 focus:ring-red-500/10"
+                            : "border-border focus:border-azure focus:ring-azure/10"
+                        }`}
+                      />
+                      {upiRef.trim() && !isValidUtr(upiRef) && (
+                        <p className="mt-1.5 text-[10px] text-red-500 font-mono">
+                          A UTR is exactly 12 digits — check your payment receipt.
+                        </p>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleConfirmBooking}
+                      disabled={submitting}
+                      className="w-full bg-azure text-azure-foreground hover:bg-azure/90 px-8 py-4 font-mono font-bold uppercase tracking-widest text-xs rounded-xl transition-all duration-300 disabled:opacity-40 disabled:pointer-events-none flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <ShieldCheck className="size-4" />
+                      {submitting ? "Submitting…" : "I've Paid — Confirm Booking"}
+                    </button>
+                  </>
+                ) : (
+                  <div className="flex gap-2.5 items-start text-xs text-amber-600 dark:text-amber-400">
+                    <AlertTriangle className="size-4 shrink-0 mt-0.5" />
+                    <span>
+                      Online deposit payment isn't set up right now. Please contact us to book your
+                      demo — we'll arrange the deposit and confirm your slot.
+                    </span>
+                  </div>
+                )}
               </div>
             )}
           </form>

@@ -12,7 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TestimonialsRouteImport } from './routes/testimonials'
 import { Route as ScheduleRouteImport } from './routes/schedule'
 import { Route as OnlineRouteImport } from './routes/online'
-import { Route as LessonsRouteImport } from './routes/lessons'
 import { Route as LearningLevelsRouteImport } from './routes/learning-levels'
 import { Route as GalleryRouteImport } from './routes/gallery'
 import { Route as FeesRouteImport } from './routes/fees'
@@ -25,6 +24,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CoursesIndexRouteImport } from './routes/courses.index'
 import { Route as CoursesSlugRouteImport } from './routes/courses.$slug'
+import { Route as ApiUpiSmsRouteImport } from './routes/api/upi-sms'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 
@@ -41,11 +41,6 @@ const ScheduleRoute = ScheduleRouteImport.update({
 const OnlineRoute = OnlineRouteImport.update({
   id: '/online',
   path: '/online',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LessonsRoute = LessonsRouteImport.update({
-  id: '/lessons',
-  path: '/lessons',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LearningLevelsRoute = LearningLevelsRouteImport.update({
@@ -107,6 +102,11 @@ const CoursesSlugRoute = CoursesSlugRouteImport.update({
   path: '/courses/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiUpiSmsRoute = ApiUpiSmsRouteImport.update({
+  id: '/api/upi-sms',
+  path: '/api/upi-sms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -128,12 +128,12 @@ export interface FileRoutesByFullPath {
   '/fees': typeof FeesRoute
   '/gallery': typeof GalleryRoute
   '/learning-levels': typeof LearningLevelsRoute
-  '/lessons': typeof LessonsRoute
   '/online': typeof OnlineRoute
   '/schedule': typeof ScheduleRoute
   '/testimonials': typeof TestimonialsRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/api/upi-sms': typeof ApiUpiSmsRoute
   '/courses/$slug': typeof CoursesSlugRoute
   '/courses/': typeof CoursesIndexRoute
 }
@@ -147,12 +147,12 @@ export interface FileRoutesByTo {
   '/fees': typeof FeesRoute
   '/gallery': typeof GalleryRoute
   '/learning-levels': typeof LearningLevelsRoute
-  '/lessons': typeof LessonsRoute
   '/online': typeof OnlineRoute
   '/schedule': typeof ScheduleRoute
   '/testimonials': typeof TestimonialsRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/api/upi-sms': typeof ApiUpiSmsRoute
   '/courses/$slug': typeof CoursesSlugRoute
   '/courses': typeof CoursesIndexRoute
 }
@@ -168,12 +168,12 @@ export interface FileRoutesById {
   '/fees': typeof FeesRoute
   '/gallery': typeof GalleryRoute
   '/learning-levels': typeof LearningLevelsRoute
-  '/lessons': typeof LessonsRoute
   '/online': typeof OnlineRoute
   '/schedule': typeof ScheduleRoute
   '/testimonials': typeof TestimonialsRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/api/upi-sms': typeof ApiUpiSmsRoute
   '/courses/$slug': typeof CoursesSlugRoute
   '/courses/': typeof CoursesIndexRoute
 }
@@ -189,12 +189,12 @@ export interface FileRouteTypes {
     | '/fees'
     | '/gallery'
     | '/learning-levels'
-    | '/lessons'
     | '/online'
     | '/schedule'
     | '/testimonials'
     | '/admin'
     | '/dashboard'
+    | '/api/upi-sms'
     | '/courses/$slug'
     | '/courses/'
   fileRoutesByTo: FileRoutesByTo
@@ -208,12 +208,12 @@ export interface FileRouteTypes {
     | '/fees'
     | '/gallery'
     | '/learning-levels'
-    | '/lessons'
     | '/online'
     | '/schedule'
     | '/testimonials'
     | '/admin'
     | '/dashboard'
+    | '/api/upi-sms'
     | '/courses/$slug'
     | '/courses'
   id:
@@ -228,12 +228,12 @@ export interface FileRouteTypes {
     | '/fees'
     | '/gallery'
     | '/learning-levels'
-    | '/lessons'
     | '/online'
     | '/schedule'
     | '/testimonials'
     | '/_authenticated/admin'
     | '/_authenticated/dashboard'
+    | '/api/upi-sms'
     | '/courses/$slug'
     | '/courses/'
   fileRoutesById: FileRoutesById
@@ -249,10 +249,10 @@ export interface RootRouteChildren {
   FeesRoute: typeof FeesRoute
   GalleryRoute: typeof GalleryRoute
   LearningLevelsRoute: typeof LearningLevelsRoute
-  LessonsRoute: typeof LessonsRoute
   OnlineRoute: typeof OnlineRoute
   ScheduleRoute: typeof ScheduleRoute
   TestimonialsRoute: typeof TestimonialsRoute
+  ApiUpiSmsRoute: typeof ApiUpiSmsRoute
   CoursesSlugRoute: typeof CoursesSlugRoute
   CoursesIndexRoute: typeof CoursesIndexRoute
 }
@@ -278,13 +278,6 @@ declare module '@tanstack/react-router' {
       path: '/online'
       fullPath: '/online'
       preLoaderRoute: typeof OnlineRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/lessons': {
-      id: '/lessons'
-      path: '/lessons'
-      fullPath: '/lessons'
-      preLoaderRoute: typeof LessonsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/learning-levels': {
@@ -371,6 +364,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CoursesSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/upi-sms': {
+      id: '/api/upi-sms'
+      path: '/api/upi-sms'
+      fullPath: '/api/upi-sms'
+      preLoaderRoute: typeof ApiUpiSmsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -412,10 +412,10 @@ const rootRouteChildren: RootRouteChildren = {
   FeesRoute: FeesRoute,
   GalleryRoute: GalleryRoute,
   LearningLevelsRoute: LearningLevelsRoute,
-  LessonsRoute: LessonsRoute,
   OnlineRoute: OnlineRoute,
   ScheduleRoute: ScheduleRoute,
   TestimonialsRoute: TestimonialsRoute,
+  ApiUpiSmsRoute: ApiUpiSmsRoute,
   CoursesSlugRoute: CoursesSlugRoute,
   CoursesIndexRoute: CoursesIndexRoute,
 }

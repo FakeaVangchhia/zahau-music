@@ -295,3 +295,106 @@ USING (
   public.has_role(auth.uid(), 'admin'::public.app_role)
 );
 
+
+-- 6. MANUAL UPI QR PAYMENTS (replaces Razorpay) — see
+-- migrations/20260723000000_create_payments_qr.sql for the full rationale.
+
+-- payment_settings — single-row admin config for the QR
+CREATE TABLE IF NOT EXISTS public.payment_settings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  upi_vpa TEXT NOT NULL DEFAULT '',
+  payee_name TEXT NOT NULL DEFAULT 'Zahau Music School',
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+GRANT SELECT ON public.payment_settings TO anon, authenticated;
+GRANT INSERT, UPDATE ON public.payment_settings TO authenticated;
+GRANT ALL ON public.payment_settings TO service_role;
+ALTER TABLE public.payment_settings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "PaySettings: public read" ON public.payment_settings
+  FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "PaySettings: admin write" ON public.payment_settings
+  FOR ALL TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'))
+  WITH CHECK (public.has_role(auth.uid(), 'admin'));
+INSERT INTO public.payment_settings (upi_vpa, payee_name) VALUES ('', 'Zahau Music School');
+
+-- payment_submissions — student payments awaiting admin approval
+CREATE TABLE IF NOT EXISTS public.payment_submissions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  kind TEXT NOT NULL DEFAULT 'enrollment',
+  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  course_id UUID REFERENCES public.courses(id) ON DELETE SET NULL,
+  package_title TEXT,
+  instrument TEXT,
+  day TEXT,
+  slot TEXT,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT,
+  amount INTEGER NOT NULL,
+  upi_reference TEXT NOT NULL,
+  screenshot_url TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  admin_note TEXT,
+  reviewed_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  reviewed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS payment_submissions_status_idx ON public.payment_submissions (status);
+CREATE INDEX IF NOT EXISTS payment_submissions_user_idx ON public.payment_submissions (user_id);
+GRANT SELECT ON public.payment_submissions TO authenticated;
+GRANT ALL ON public.payment_submissions TO service_role;
+ALTER TABLE public.payment_submissions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Payments: owner read" ON public.payment_submissions
+  FOR SELECT TO authenticated USING (auth.uid() = user_id);
+CREATE POLICY "Payments: admin read" ON public.payment_submissions
+  FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'admin'));
+
+-- payment-proofs storage bucket (PRIVATE)
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('payment-proofs', 'payment-proofs', false)
+ON CONFLICT (id) DO NOTHING;
+CREATE POLICY "Proofs: owner insert"
+ON storage.objects FOR INSERT TO authenticated
+WITH CHECK (
+  bucket_id = 'payment-proofs' AND
+  (storage.foldername(name))[1] = auth.uid()::text
+);
+CREATE POLICY "Proofs: owner read"
+ON storage.objects FOR SELECT TO authenticated
+USING (
+  bucket_id = 'payment-proofs' AND
+  (storage.foldername(name))[1] = auth.uid()::text
+);
+CREATE POLICY "Proofs: admin read"
+ON storage.objects FOR SELECT TO authenticated
+USING (
+  bucket_id = 'payment-proofs' AND
+  public.has_role(auth.uid(), 'admin'::public.app_role)
+);
+
+
+-- 7. UPI AUTO-VERIFICATION (KYC-free, via bank-SMS webhook) — see
+-- migrations/20260723010000_create_bank_transactions_auto_verify.sql.
+CREATE TABLE IF NOT EXISTS public.bank_transactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  utr TEXT NOT NULL UNIQUE,
+  amount INTEGER NOT NULL,
+  sender TEXT,
+  raw_message TEXT,
+  matched_submission_id UUID REFERENCES public.payment_submissions(id) ON DELETE SET NULL,
+  received_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS bank_transactions_matched_idx ON public.bank_transactions (matched_submission_id);
+GRANT SELECT ON public.bank_transactions TO authenticated;
+GRANT ALL ON public.bank_transactions TO service_role;
+ALTER TABLE public.bank_transactions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "BankTxn: admin read" ON public.bank_transactions
+  FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'admin'));
+
+ALTER TABLE public.payment_submissions
+  ADD COLUMN IF NOT EXISTS verified_via TEXT,
+  ADD COLUMN IF NOT EXISTS bank_txn_id UUID
+    REFERENCES public.bank_transactions(id) ON DELETE SET NULL;
+

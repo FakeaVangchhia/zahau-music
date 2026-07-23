@@ -1,38 +1,14 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  BookOpen,
-  Calendar,
-  LogOut,
-  Video,
-  Clock,
-  LayoutDashboard,
-  Search,
-  Play,
-  ExternalLink,
-  Home,
-  Check,
-  CheckCircle2,
-} from "lucide-react";
+import { BookOpen, Calendar, LogOut, Clock, LayoutDashboard, Home, Check } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { getUserDemoBookings, ensureAdminRole, getFees } from "@/lib/site.functions";
-import { getVideoDetails } from "@/lib/utils";
 import { normalizeFeePackages, FALLBACK_PACKAGES, type FeePackage } from "@/lib/fee-packages";
 import { EnrollmentCheckoutModal } from "@/components/site/enrollment-checkout-modal";
 import { toast } from "sonner";
 import type { Session } from "@supabase/supabase-js";
-
-type Lesson = {
-  id: string;
-  title: string;
-  description: string | null;
-  video_url: string | null;
-  link_url: string | null;
-  display_order: number | null;
-  created_at: string;
-};
 
 type Enrollment = {
   id: string;
@@ -65,13 +41,8 @@ function Dashboard() {
   const [username, setUsername] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [demoBookings, setDemoBookings] = useState<DemoBooking[]>([]);
-  const [lessons, setLessons] = useState<Lesson[]>([]);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
-  const [activeTab, setActiveTab] = useState<"overview" | "purchase" | "courses" | "lessons">(
-    "overview",
-  );
-  const [searchTerm, setSearchTerm] = useState<string>("");
-  const [activeVideo, setActiveVideo] = useState<{ url: string; title: string } | null>(null);
+  const [activeTab, setActiveTab] = useState<"overview" | "purchase" | "courses">("overview");
 
   const fetchDemoBookings = useServerFn(getUserDemoBookings);
   const ensureAdmin = useServerFn(ensureAdminRole);
@@ -87,20 +58,6 @@ function Dashboard() {
 
   const normalizedPackages =
     feesData && feesData.length > 0 ? normalizeFeePackages(feesData) : FALLBACK_PACKAGES;
-
-  const avgProgress =
-    enrollments.length > 0
-      ? Math.round(enrollments.reduce((sum, e) => sum + (e.progress ?? 0), 0) / enrollments.length)
-      : 0;
-
-  const filteredLessons = lessons.filter((lesson) => {
-    if (!searchTerm.trim()) return true;
-    const term = searchTerm.toLowerCase();
-    return (
-      lesson.title.toLowerCase().includes(term) ||
-      (lesson.description ?? "").toLowerCase().includes(term)
-    );
-  });
 
   const handleEnrollClick = async (pkg: FeePackage) => {
     const {
@@ -178,17 +135,6 @@ function Dashboard() {
             setDemoBookings(bookings || []);
           } catch (e) {
             console.error("Failed to load user demo bookings:", e);
-          }
-
-          // Fetch recorded class lessons/videos
-          try {
-            const { data: lessonsData } = await supabase
-              .from("lessons")
-              .select("*")
-              .order("display_order", { ascending: true });
-            setLessons((lessonsData as Lesson[]) || []);
-          } catch (e) {
-            console.error("Failed to load recorded lessons:", e);
           }
 
           // Fetch student enrollments
@@ -270,7 +216,6 @@ function Dashboard() {
       badge: demoBookings.length + enrollments.length,
     },
     { id: "courses", label: "Courses", icon: <BookOpen className="size-4" /> },
-    { id: "lessons", label: "Recorded Lessons", icon: <Video className="size-4" /> },
   ] as const;
 
   return (
@@ -316,10 +261,7 @@ function Dashboard() {
             {studentNavTabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => {
-                  setActiveTab(tab.id);
-                  setSearchTerm("");
-                }}
+                onClick={() => setActiveTab(tab.id)}
                 className={`relative flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider transition-all whitespace-nowrap rounded-md group ${
                   activeTab === tab.id
                     ? "text-foreground font-bold"
@@ -369,7 +311,7 @@ function Dashboard() {
                 </div>
 
                 {/* At-a-glance stats */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <button
                     onClick={() => setActiveTab("purchase")}
                     className="text-left bg-card border border-border/60 rounded-2xl p-6 flex flex-col justify-between h-32 hover:border-azure/50 hover:scale-[1.01] transition-all shadow-sm cursor-pointer group"
@@ -383,40 +325,6 @@ function Dashboard() {
                       </span>
                       <span className="block text-[11px] text-muted-foreground font-light mt-0.5">
                         {enrollments.length === 1 ? "active enrollment" : "active enrollments"}
-                      </span>
-                    </span>
-                  </button>
-
-                  <div className="bg-card border border-border/60 rounded-2xl p-6 flex flex-col justify-between h-32 shadow-sm">
-                    <span className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
-                      <CheckCircle2 className="size-3.5 text-azure" /> Overall Progress
-                    </span>
-                    <span>
-                      <span className="font-display text-3xl font-extrabold text-foreground">
-                        {avgProgress}%
-                      </span>
-                      <span className="block w-full bg-muted/65 h-1.5 rounded-full overflow-hidden mt-2">
-                        <span
-                          className="block bg-azure h-full transition-all duration-700"
-                          style={{ width: `${avgProgress}%` }}
-                        />
-                      </span>
-                    </span>
-                  </div>
-
-                  <button
-                    onClick={() => setActiveTab("lessons")}
-                    className="text-left bg-card border border-border/60 rounded-2xl p-6 flex flex-col justify-between h-32 hover:border-azure/50 hover:scale-[1.01] transition-all shadow-sm cursor-pointer group"
-                  >
-                    <span className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
-                      <Video className="size-3.5 text-azure" /> Video Lessons
-                    </span>
-                    <span>
-                      <span className="font-display text-3xl font-extrabold text-foreground group-hover:text-azure transition-colors">
-                        {lessons.length}
-                      </span>
-                      <span className="block text-[11px] text-muted-foreground font-light mt-0.5">
-                        recordings to watch
                       </span>
                     </span>
                   </button>
@@ -654,8 +562,18 @@ function Dashboard() {
                                     </div>
                                   </td>
                                   <td className="p-4">
-                                    <span className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[10px] font-mono font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full">
-                                      {enroll.status || "active"}
+                                    <span
+                                      className={`text-[10px] font-mono font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full border ${
+                                        enroll.status === "pending"
+                                          ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                                          : enroll.status === "rejected"
+                                            ? "bg-red-500/10 text-red-500 border-red-500/20"
+                                            : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                                      }`}
+                                    >
+                                      {enroll.status === "pending"
+                                        ? "Under review"
+                                        : enroll.status || "active"}
                                     </span>
                                   </td>
                                 </tr>
@@ -820,165 +738,9 @@ function Dashboard() {
                 </div>
               </div>
             )}
-
-            {/* TAB CONTENT: RECORDED LESSONS */}
-            {activeTab === "lessons" && (
-              <div className="space-y-8 animate-fadeIn">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border/40 pb-4">
-                  <div>
-                    <h2 className="font-display text-3xl uppercase text-foreground">
-                      Recorded Lessons
-                    </h2>
-                    <p className="text-muted-foreground text-sm mt-1">
-                      Watch class recordings and step-by-step video lessons at your own pace.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Search */}
-                <div className="relative max-w-md">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/60" />
-                  <input
-                    type="search"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search lessons by title or description..."
-                    className="w-full bg-card border border-border/60 rounded-xl py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-azure transition-all"
-                  />
-                </div>
-
-                {filteredLessons.length === 0 ? (
-                  <div className="bg-card border border-border/60 rounded-2xl p-12 text-center max-w-xl mx-auto space-y-4 shadow-sm">
-                    <div className="size-16 rounded-full bg-azure/10 flex items-center justify-center mx-auto border border-azure/20">
-                      <Video className="size-8 text-azure" />
-                    </div>
-                    <h3 className="font-display text-xl font-bold text-foreground">
-                      {searchTerm ? "No lessons match your search" : "No recorded lessons yet"}
-                    </h3>
-                    <p className="text-sm text-muted-foreground font-light max-w-md mx-auto">
-                      {searchTerm
-                        ? "Try a different search term."
-                        : "New class recordings will appear here as soon as they are published."}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredLessons.map((lesson) => (
-                      <div
-                        key={lesson.id}
-                        className="bg-card border border-border/60 rounded-2xl p-6 flex flex-col justify-between shadow-sm hover-glow transition-all duration-300"
-                      >
-                        <div>
-                          <div className="flex items-center gap-2 mb-3">
-                            <div className="size-9 rounded-xl bg-azure/10 border border-azure/20 flex items-center justify-center shrink-0">
-                              <Video className="size-4 text-azure" />
-                            </div>
-                            <h3 className="font-display text-base font-bold text-foreground leading-snug">
-                              {lesson.title}
-                            </h3>
-                          </div>
-                          {lesson.description && (
-                            <p className="text-xs text-muted-foreground font-light leading-relaxed line-clamp-3 mb-4">
-                              {lesson.description}
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 mt-2">
-                          {lesson.video_url && (
-                            <button
-                              onClick={() =>
-                                setActiveVideo({ url: lesson.video_url!, title: lesson.title })
-                              }
-                              className="flex-1 flex items-center justify-center gap-2 bg-azure hover:bg-azure/90 text-white font-mono font-bold uppercase tracking-widest text-[10px] px-4 py-2.5 rounded-xl transition-all duration-300 cursor-pointer"
-                            >
-                              <Play className="size-3.5" /> Watch
-                            </button>
-                          )}
-                          {lesson.link_url && (
-                            <a
-                              href={lesson.link_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex-1 flex items-center justify-center gap-2 border border-border/80 hover:border-azure hover:text-azure font-mono font-bold uppercase tracking-widest text-[10px] px-4 py-2.5 rounded-xl transition-all duration-300 cursor-pointer"
-                            >
-                              <ExternalLink className="size-3.5" /> Resources
-                            </a>
-                          )}
-                          {!lesson.video_url && !lesson.link_url && (
-                            <span className="text-[10px] font-mono uppercase text-muted-foreground/50 py-2.5">
-                              Content coming soon
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         </div>
       </main>
-
-      {/* ===== OVERLAY VIDEO PLAYER MODAL ===== */}
-      {activeVideo && activeVideo.url && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-card border border-border/60 rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col relative">
-            {/* Close Button */}
-            <button
-              onClick={() => setActiveVideo(null)}
-              className="absolute top-4 right-4 z-10 size-8 rounded-full bg-black/50 hover:bg-black/85 text-white flex items-center justify-center font-mono text-sm transition-all focus:outline-none cursor-pointer"
-              aria-label="Close video player"
-            >
-              ✕
-            </button>
-
-            {/* Video Title */}
-            <div className="bg-muted/40 px-6 py-4 border-b border-border/60">
-              <h3 className="font-display text-lg font-bold text-foreground truncate pr-8">
-                {activeVideo.title || "Watch Lesson Video"}
-              </h3>
-            </div>
-
-            {/* Aspect Ratio Video Container */}
-            <div className="relative aspect-video w-full bg-black">
-              {(() => {
-                const details = getVideoDetails(activeVideo.url);
-                if (details.type === "youtube" && details.embedUrl) {
-                  return (
-                    <iframe
-                      src={`${details.embedUrl}?autoplay=1`}
-                      title={activeVideo.title}
-                      className="absolute inset-0 w-full h-full border-0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
-                  );
-                } else if (details.type === "vimeo" && details.embedUrl) {
-                  return (
-                    <iframe
-                      src={`${details.embedUrl}${details.embedUrl.includes("?") ? "&" : "?"}autoplay=1`}
-                      title={activeVideo.title}
-                      className="absolute inset-0 w-full h-full border-0"
-                      allow="autoplay; fullscreen; picture-in-picture"
-                      allowFullScreen
-                    />
-                  );
-                } else {
-                  return (
-                    <video
-                      src={activeVideo.url}
-                      controls
-                      autoPlay
-                      className="absolute inset-0 w-full h-full object-contain"
-                    />
-                  );
-                }
-              })()}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ===== ENROLLMENT CHECKOUT MODAL ===== */}
       {activeEnroll && (

@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { User } from "@supabase/supabase-js";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { FALLBACK_PACKAGES } from "@/lib/fee-packages";
-import { DEMO_BOOKING_FEE_PAISE } from "@/lib/razorpay";
+import { DEMO_BOOKING_FEE_PAISE, isValidUtr, normalizeUtr } from "@/lib/payments";
 
 const leadSchema = z.object({
   name: z.string().trim().min(1).max(120),
@@ -170,13 +170,39 @@ export const getUserDemoBookings = createServerFn({ method: "GET" })
     return data ?? [];
   });
 
+// Emails that are always treated as admins, mirroring ensureAdminRole and the
+// Next.js allowlist. Beyond these, admin status is whatever's in user_roles.
+const ALLOWED_ADMIN_EMAILS = [
+  "henrysui7@gmail.com",
+  "henrysui@zahaumusic.com",
+  "fakeavangchhia@gmail.com",
+];
+
+// Guard for admin-only server actions. supabaseAdmin bypasses RLS, so any
+// mutation it performs on a caller's behalf MUST verify the caller is an admin
+// here — there is no generic admin-mutation middleware. Identity comes from the
+// verified session token in `context`, never from client input.
+async function assertAdmin(context: { userId: string; user: User }): Promise<void> {
+  const email = context.user.email?.toLowerCase() ?? "";
+  if (ALLOWED_ADMIN_EMAILS.includes(email)) return;
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", context.userId)
+    .eq("role", "admin")
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Forbidden: admin access required.");
+}
+
 export const ensureAdminRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     // Identity comes from the verified session token — trusting a
     // client-supplied userId/email here would let anyone grant themselves admin.
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const allowedAdminEmails = ["henrysui7@gmail.com"];
+    const allowedAdminEmails = ["henrysui7@gmail.com", "henrysui@zahaumusic.com"];
     const email = context.user.email?.toLowerCase() ?? "";
 
     if (allowedAdminEmails.includes(email)) {
@@ -189,264 +215,320 @@ export const ensureAdminRole = createServerFn({ method: "POST" })
     return { isAdmin: false };
   });
 
-export const createRazorpayOrder = createServerFn({ method: "POST" })
-  .validator((d: { amount: number; currency: string; receipt: string }) =>
-    z
-      .object({
-        amount: z.number().int().positive(),
-        currency: z.string().min(3).max(3),
-        receipt: z.string().min(1).max(80),
-      })
-      .parse(d),
-  )
-  .handler(async ({ data }) => {
-    const keyId = process.env.RAZORPAY_KEY_ID;
-    const keySecret = process.env.RAZORPAY_KEY_SECRET;
-    if (!keyId || !keySecret) {
-      throw new Error(
-        "Payment gateway is not configured. Missing RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET environment variables.",
-      );
-    }
+// ── Manual UPI QR payments (replaces Razorpay) ──────────────────────────────
 
-    const auth = Buffer.from(`${keyId}:${keySecret}`).toString("base64");
-    const response = await fetch("https://api.razorpay.com/v1/orders", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Basic ${auth}`,
-      },
-      body: JSON.stringify({
-        amount: data.amount,
-        currency: data.currency,
-        receipt: data.receipt,
-      }),
-    });
+// Public: the UPI id + payee name used to render the payment QR. The VPA is a
+// public payment address, so this is safe to read unauthenticated (needed on
+// /book-demo where the visitor may not be signed in).
+export const getPaymentSettings = createServerFn({ method: "GET" }).handler(async () => {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin
+    .from("payment_settings")
+    .select("upi_vpa, payee_name, is_active")
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ?? { upi_vpa: "", payee_name: "Zahau Music School", is_active: true };
+});
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Razorpay Order creation failed: ${errorText}`);
-    }
+const paymentProofSchema = z.object({
+  course_slug: z.string().trim().max(80).optional().nullable(),
+  package_title: z.string().trim().min(1).max(120),
+  instrument: z.string().trim().max(80).optional().nullable(),
+  name: z.string().trim().min(1).max(120),
+  phone: z.string().trim().max(40).optional().or(z.literal("")),
+  // Optional — a student can just tap "I've Paid". When provided it enables
+  // instant auto-verification against the bank credit.
+  upi_reference: z.string().trim().max(60).optional().or(z.literal("")),
+  screenshot_url: z.string().trim().max(500).optional().or(z.literal("")),
+});
 
-    const order = await response.json();
-    return order;
-  });
-
-export const verifyRazorpayPayment = createServerFn({ method: "POST" })
-  .validator(
-    (d: {
-      razorpay_payment_id: string;
-      razorpay_order_id: string;
-      razorpay_signature: string;
-      booking_details?: {
-        name: string;
-        email: string;
-        phone?: string;
-        course_interest?: string;
-        day: string;
-        slot: string;
-      } | null;
-      enrollment_details?: {
-        email: string;
-        course_slug: string;
-        package_title: string;
-        amount_paid: number;
-        instrument?: string;
-      } | null;
-    }) =>
-      z
-        .object({
-          razorpay_payment_id: z.string().min(1),
-          razorpay_order_id: z.string().min(1),
-          razorpay_signature: z.string().min(1),
-          booking_details: z
-            .object({
-              name: z.string(),
-              email: z.string().email(),
-              phone: z.string().optional().nullable(),
-              course_interest: z.string().optional().nullable(),
-              day: z.string(),
-              slot: z.string(),
-            })
-            .optional()
-            .nullable(),
-          enrollment_details: z
-            .object({
-              email: z.string().email(),
-              course_slug: z.string(),
-              package_title: z.string(),
-              amount_paid: z.number(),
-              instrument: z.string().max(80).optional(),
-            })
-            .optional()
-            .nullable(),
-        })
-        .parse(d),
-  )
-  .handler(async ({ data }) => {
-    const crypto = await import("crypto");
+// Student submits proof of a UPI payment for a course enrollment. Identity and
+// amount are derived server-side — the client never dictates who is paying or
+// how much is owed, so a doctored request can't self-grant a paid enrollment
+// (mirrors the enrollments write lock-down). Requires a signed-in student.
+export const submitPaymentProof = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((data: unknown) => paymentProofSchema.parse(data))
+  .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const keySecret = process.env.RAZORPAY_KEY_SECRET;
-    if (!keySecret) {
+    const email = context.user.email;
+    if (!email) throw new Error("Your account has no email address on file.");
+
+    const packageTitle = data.package_title.trim();
+    // Server-authoritative price — look up the fee the student actually owes
+    // rather than trusting any client-supplied amount.
+    const { data: feeRow, error: feeError } = await supabaseAdmin
+      .from("fees")
+      .select("raw_fees")
+      .eq("title", packageTitle)
+      .maybeSingle();
+    if (feeError) throw new Error(feeError.message);
+    const expectedRupees =
+      feeRow?.raw_fees ?? FALLBACK_PACKAGES.find((pkg) => pkg.title === packageTitle)?.rawFees;
+    if (expectedRupees === undefined) throw new Error(`Unknown package: ${packageTitle}`);
+    const amount = expectedRupees;
+
+    const slug = data.course_slug?.trim() || "piano";
+    const { data: courseRow, error: courseError } = await supabaseAdmin
+      .from("courses")
+      .select("id")
+      .eq("slug", slug)
+      .maybeSingle();
+    if (courseError) throw new Error(courseError.message);
+    if (!courseRow) throw new Error(`Course not found for slug: ${slug}`);
+    const courseId = courseRow.id;
+
+    // UTR is optional, but when given it must be a real 12-digit UPI reference —
+    // store the normalized form so auto-matching against bank credits is exact.
+    const rawUtr = data.upi_reference?.trim() || "";
+    if (rawUtr && !isValidUtr(rawUtr)) {
       throw new Error(
-        "Payment gateway is not configured. Missing RAZORPAY_KEY_SECRET environment variable.",
+        "That doesn't look like a valid UPI reference (UTR) — it's the 12-digit number on your payment receipt. Leave it blank if you're not sure.",
       );
     }
-    const generatedSignature = crypto
-      .createHmac("sha256", keySecret)
-      .update(`${data.razorpay_order_id}|${data.razorpay_payment_id}`)
-      .digest("hex");
+    const utr = rawUtr ? normalizeUtr(rawUtr) : "";
 
-    if (generatedSignature !== data.razorpay_signature) {
-      throw new Error("Invalid payment signature. Verification failed.");
-    }
+    const { data: submission, error: insertError } = await supabaseAdmin
+      .from("payment_submissions")
+      .insert({
+        kind: "enrollment",
+        user_id: context.userId,
+        course_id: courseId,
+        package_title: packageTitle,
+        instrument: data.instrument || null,
+        name: data.name,
+        email,
+        phone: data.phone || null,
+        amount,
+        upi_reference: utr,
+        screenshot_url: data.screenshot_url || null,
+        status: "pending",
+      })
+      .select("*")
+      .single();
+    if (insertError) throw new Error(insertError.message);
 
-    // Fetch the order from Razorpay to learn how much was ACTUALLY paid — the
-    // client controls order creation, so the claimed package/amount must be
-    // validated server-side or a Rs. 1 order could "buy" any package.
-    const keyId = process.env.RAZORPAY_KEY_ID;
-    if (!keyId) {
-      throw new Error(
-        "Payment gateway is not configured. Missing RAZORPAY_KEY_ID environment variable.",
-      );
-    }
-    const basicAuth = Buffer.from(`${keyId}:${keySecret}`).toString("base64");
-    const orderRes = await fetch(
-      `https://api.razorpay.com/v1/orders/${encodeURIComponent(data.razorpay_order_id)}`,
-      { headers: { Authorization: `Basic ${basicAuth}` } },
-    );
-    if (!orderRes.ok) {
-      throw new Error("Unable to verify the payment order with Razorpay.");
-    }
-    const paidOrder = (await orderRes.json()) as { amount: number; currency: string };
+    // The matching bank credit may already have arrived — if so, activate now.
+    const { tryAutoVerifySubmission } = await import("@/lib/payments.server");
+    const autoApproved = await tryAutoVerifySubmission(submission);
 
-    if (data.booking_details && paidOrder.amount !== DEMO_BOOKING_FEE_PAISE) {
-      throw new Error("Paid amount does not match the demo booking fee.");
-    }
-
-    if (data.enrollment_details) {
-      const packageTitle = data.enrollment_details.package_title;
-      const { data: feeRow, error: feeError } = await supabaseAdmin
-        .from("fees")
-        .select("raw_fees")
-        .eq("title", packageTitle)
-        .maybeSingle();
-      if (feeError) throw new Error(feeError.message);
-      const expectedRupees =
-        feeRow?.raw_fees ?? FALLBACK_PACKAGES.find((pkg) => pkg.title === packageTitle)?.rawFees;
-      if (expectedRupees === undefined) {
-        throw new Error(`Unknown package: ${packageTitle}`);
-      }
-      if (paidOrder.amount !== expectedRupees * 100) {
-        throw new Error("Paid amount does not match the selected package price.");
-      }
-      // Record the verified amount, not the client's claim
-      data.enrollment_details.amount_paid = expectedRupees;
-    }
-
-    // Save details to database
-    if (data.booking_details) {
-      const { error } = await supabaseAdmin.from("leads").insert({
-        name: data.booking_details.name,
-        email: data.booking_details.email,
-        phone: data.booking_details.phone || null,
-        course_interest: data.booking_details.course_interest || null,
-        message: `Paid Demo booking — Day: ${data.booking_details.day}, Time: ${data.booking_details.slot}. Payment ID: ${data.razorpay_payment_id}`,
-        source: "book_demo",
-      });
-      if (error) throw new Error(error.message);
-
-      try {
-        const { sendDemoConfirmationEmail } = await import("@/lib/email.server");
-        await sendDemoConfirmationEmail({
-          to: data.booking_details.email,
-          name: data.booking_details.name,
-          day: data.booking_details.day,
-          slot: data.booking_details.slot,
-          courseInterest: data.booking_details.course_interest || undefined,
-        });
-      } catch (emailErr) {
-        console.error("[BookDemo] Email send failed:", emailErr);
-      }
-    }
-
-    if (data.enrollment_details) {
-      const { data: courseRow } = await supabaseAdmin
-        .from("courses")
-        .select("id")
-        .eq("slug", data.enrollment_details.course_slug)
-        .maybeSingle();
-
-      if (!courseRow) {
-        throw new Error(`Course not found for slug: ${data.enrollment_details.course_slug}`);
-      }
-
-      // listUsers is paginated — walk pages until the email is found
-      const targetEmail = data.enrollment_details.email.toLowerCase();
-      let user: User | undefined;
-      for (let page = 1; page <= 20 && !user; page++) {
-        const { data: userRows, error: listError } = await supabaseAdmin.auth.admin.listUsers({
-          page,
-          perPage: 1000,
-        });
-        if (listError) throw new Error(listError.message);
-        user = userRows.users.find((u) => u.email?.toLowerCase() === targetEmail);
-        if (userRows.users.length < 1000) break;
-      }
-
-      if (!user) {
-        throw new Error(
-          `User account not found for email: ${data.enrollment_details.email}. Please register or log in first.`,
-        );
-      }
-
-      // Re-purchasing the same instrument updates the enrollment with the new
-      // package (UNIQUE (user_id, course_id) forbids a second row) while
-      // preserving the student's progress and level.
-      const purchaseDetails = {
-        status: "active",
-        package_title: data.enrollment_details.package_title,
-        instrument: data.enrollment_details.instrument ?? null,
-        amount_paid: data.enrollment_details.amount_paid,
-        payment_id: data.razorpay_payment_id,
-      };
-
-      const { data: existingEnrollment, error: existingError } = await supabaseAdmin
+    if (!autoApproved) {
+      // Surface a pending enrollment in the student's dashboard, but never
+      // downgrade an already-active enrollment (e.g. a renewal payment) — that
+      // would revoke access until an admin gets around to approving.
+      const { data: existing, error: existingError } = await supabaseAdmin
         .from("enrollments")
         .select("id")
-        .eq("user_id", user.id)
-        .eq("course_id", courseRow.id)
+        .eq("user_id", context.userId)
+        .eq("course_id", courseId)
         .maybeSingle();
       if (existingError) throw new Error(existingError.message);
 
-      const { error: enrollError } = existingEnrollment
-        ? await supabaseAdmin
-            .from("enrollments")
-            .update({ ...purchaseDetails, enrolled_at: new Date().toISOString() })
-            .eq("id", existingEnrollment.id)
-        : await supabaseAdmin.from("enrollments").insert({
-            user_id: user.id,
-            course_id: courseRow.id,
-            level: "Beginner",
-            progress: 0,
-            ...purchaseDetails,
-          });
-
-      if (enrollError) {
-        throw new Error(enrollError.message);
+      if (!existing) {
+        const { error: enrollError } = await supabaseAdmin.from("enrollments").insert({
+          user_id: context.userId,
+          course_id: courseId,
+          level: "Beginner",
+          progress: 0,
+          status: "pending",
+          package_title: packageTitle,
+          instrument: data.instrument || null,
+          amount_paid: amount,
+          payment_id: utr ? `UPI:${utr}` : "UPI",
+        });
+        if (enrollError) throw new Error(enrollError.message);
       }
-
-      await supabaseAdmin.from("leads").insert({
-        name: user.user_metadata?.full_name || user.email!.split("@")[0],
-        email: user.email!,
-        phone: user.phone || null,
-        course_interest: data.enrollment_details.package_title,
-        message: `Course Enrollment Purchase — Package: ${data.enrollment_details.package_title}, Amount: Rs. ${data.enrollment_details.amount_paid}. Payment ID: ${data.razorpay_payment_id}`,
-        source: "course_purchase",
-      });
     }
 
-    return { ok: true, paymentId: data.razorpay_payment_id };
+    return { ok: true, submissionId: submission.id, autoApproved };
+  });
+
+const demoPaymentSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  email: z.string().trim().email().max(255),
+  phone: z.string().trim().max(40).optional().or(z.literal("")),
+  course_interest: z.string().trim().max(80).optional().or(z.literal("")),
+  day: z.string().trim().min(1).max(20),
+  slot: z.string().trim().min(1).max(20),
+  upi_reference: z.string().trim().max(60).optional().or(z.literal("")),
+});
+
+// Public: a Rs. 500 demo-deposit payment for admin verification. Unlike
+// enrollment, /book-demo allows visitors who aren't signed in, so this has no
+// auth middleware and no screenshot upload (the private bucket needs auth). The
+// deposit amount is fixed and set server-side.
+export const submitDemoPayment = createServerFn({ method: "POST" })
+  .validator((data: unknown) => demoPaymentSchema.parse(data))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const amount = DEMO_BOOKING_FEE_PAISE / 100;
+    // Same rule as enrollment: optional, but must be a real 12-digit UTR if given.
+    const rawUtr = data.upi_reference?.trim() || "";
+    if (rawUtr && !isValidUtr(rawUtr)) {
+      throw new Error(
+        "That doesn't look like a valid UPI reference (UTR) — it's the 12-digit number on your payment receipt. Leave it blank if you're not sure.",
+      );
+    }
+    const utr = rawUtr ? normalizeUtr(rawUtr) : "";
+
+    const { data: submission, error: insertError } = await supabaseAdmin
+      .from("payment_submissions")
+      .insert({
+        kind: "demo",
+        package_title: data.course_interest || null,
+        day: data.day,
+        slot: data.slot,
+        name: data.name,
+        email: data.email,
+        phone: data.phone || null,
+        amount,
+        upi_reference: utr,
+        status: "pending",
+      })
+      .select("*")
+      .single();
+    if (insertError) throw new Error(insertError.message);
+
+    // Hold the slot immediately so it can't be double-booked while under review.
+    // The "Day: … Time: …" phrasing is what getBookedSlots parses.
+    const { error: leadError } = await supabaseAdmin.from("leads").insert({
+      name: data.name,
+      email: data.email,
+      phone: data.phone || null,
+      course_interest: data.course_interest || null,
+      message: `Demo booking (payment pending review) — Day: ${data.day}, Time: ${data.slot}. UTR: ${utr || "—"}`,
+      source: "book_demo",
+    });
+    if (leadError) throw new Error(leadError.message);
+
+    // The matching Rs. 500 credit may already have arrived — confirm instantly if so.
+    const { tryAutoVerifySubmission } = await import("@/lib/payments.server");
+    const autoApproved = await tryAutoVerifySubmission(submission);
+
+    return { ok: true, autoApproved };
+  });
+
+// Student: own payment submissions, for the dashboard "under review" state.
+export const getMyPaymentSubmissions = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
+      .from("payment_submissions")
+      .select(
+        "id, kind, package_title, instrument, day, slot, amount, upi_reference, status, created_at",
+      )
+      .eq("user_id", context.userId)
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
+// Admin: every submission, each with a short-lived signed URL for its private
+// screenshot so the reviewer can eyeball the proof.
+export const listPaymentSubmissions = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
+      .from("payment_submissions")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+
+    const rows = data ?? [];
+    const withUrls = await Promise.all(
+      rows.map(async (row) => {
+        let screenshot_signed_url: string | null = null;
+        if (row.screenshot_url) {
+          const { data: signed } = await supabaseAdmin.storage
+            .from("payment-proofs")
+            .createSignedUrl(row.screenshot_url, 60 * 60);
+          screenshot_signed_url = signed?.signedUrl ?? null;
+        }
+        return { ...row, screenshot_signed_url };
+      }),
+    );
+    return withUrls;
+  });
+
+const reviewSchema = z.object({
+  id: z.string().uuid(),
+  action: z.enum(["approve", "reject"]),
+  admin_note: z.string().trim().max(500).optional().or(z.literal("")),
+});
+
+// Admin: approve or reject a submission. Approval is the only path that grants a
+// paid enrollment / confirms a demo — gated by assertAdmin.
+export const reviewPaymentSubmission = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((data: unknown) => reviewSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: submission, error: fetchError } = await supabaseAdmin
+      .from("payment_submissions")
+      .select("*")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (fetchError) throw new Error(fetchError.message);
+    if (!submission) throw new Error("Payment submission not found.");
+
+    if (data.action === "approve") {
+      // Same activation path as automatic verification, tagged as a manual review.
+      const { applyApproval } = await import("@/lib/payments.server");
+      await applyApproval(submission, {
+        via: "manual",
+        reviewedBy: context.userId,
+        adminNote: data.admin_note || null,
+      });
+      return { ok: true };
+    }
+
+    // Reject: clear away only a still-pending enrollment created by this
+    // submission; never touch an already-active one from a prior purchase.
+    if (submission.kind === "enrollment" && submission.course_id && submission.user_id) {
+      await supabaseAdmin
+        .from("enrollments")
+        .update({ status: "rejected" })
+        .eq("user_id", submission.user_id)
+        .eq("course_id", submission.course_id)
+        .eq("status", "pending");
+    }
+
+    const { error: updateError } = await supabaseAdmin
+      .from("payment_submissions")
+      .update({
+        status: "rejected",
+        admin_note: data.admin_note || null,
+        reviewed_by: context.userId,
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq("id", data.id);
+    if (updateError) throw new Error(updateError.message);
+
+    return { ok: true };
+  });
+
+// Admin: the raw bank-credit ledger, for reconciling payments that arrived but
+// didn't auto-match (e.g. the student typed the wrong UTR or paid the wrong
+// amount).
+export const listBankTransactions = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
+      .from("bank_transactions")
+      .select("*")
+      .order("received_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return data ?? [];
   });
 
 export const getBookedSlots = createServerFn({ method: "GET" }).handler(async () => {

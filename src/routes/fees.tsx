@@ -16,7 +16,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getFees } from "@/lib/site.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { INSTRUMENTS } from "@/lib/razorpay";
+import { INSTRUMENTS } from "@/lib/payments";
 import { normalizeFeePackages, FALLBACK_PACKAGES, type FeePackage } from "@/lib/fee-packages";
 import { EnrollmentCheckoutModal } from "@/components/site/enrollment-checkout-modal";
 import { toast } from "sonner";

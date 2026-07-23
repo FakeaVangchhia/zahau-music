@@ -268,6 +268,148 @@ export type Database = {
         };
         Relationships: [];
       };
+      payment_settings: {
+        Row: {
+          id: string;
+          is_active: boolean;
+          payee_name: string;
+          updated_at: string;
+          upi_vpa: string;
+        };
+        Insert: {
+          id?: string;
+          is_active?: boolean;
+          payee_name?: string;
+          updated_at?: string;
+          upi_vpa?: string;
+        };
+        Update: {
+          id?: string;
+          is_active?: boolean;
+          payee_name?: string;
+          updated_at?: string;
+          upi_vpa?: string;
+        };
+        Relationships: [];
+      };
+      bank_transactions: {
+        Row: {
+          amount: number;
+          id: string;
+          matched_submission_id: string | null;
+          raw_message: string | null;
+          received_at: string;
+          sender: string | null;
+          utr: string;
+        };
+        Insert: {
+          amount: number;
+          id?: string;
+          matched_submission_id?: string | null;
+          raw_message?: string | null;
+          received_at?: string;
+          sender?: string | null;
+          utr: string;
+        };
+        Update: {
+          amount?: number;
+          id?: string;
+          matched_submission_id?: string | null;
+          raw_message?: string | null;
+          received_at?: string;
+          sender?: string | null;
+          utr?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "bank_transactions_matched_submission_id_fkey";
+            columns: ["matched_submission_id"];
+            isOneToOne: false;
+            referencedRelation: "payment_submissions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      payment_submissions: {
+        Row: {
+          admin_note: string | null;
+          amount: number;
+          bank_txn_id: string | null;
+          course_id: string | null;
+          created_at: string;
+          day: string | null;
+          email: string;
+          id: string;
+          instrument: string | null;
+          kind: string;
+          name: string;
+          package_title: string | null;
+          phone: string | null;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+          screenshot_url: string | null;
+          slot: string | null;
+          status: string;
+          upi_reference: string;
+          user_id: string | null;
+          verified_via: string | null;
+        };
+        Insert: {
+          admin_note?: string | null;
+          amount: number;
+          bank_txn_id?: string | null;
+          course_id?: string | null;
+          created_at?: string;
+          day?: string | null;
+          email: string;
+          id?: string;
+          instrument?: string | null;
+          kind?: string;
+          name: string;
+          package_title?: string | null;
+          phone?: string | null;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          screenshot_url?: string | null;
+          slot?: string | null;
+          status?: string;
+          upi_reference: string;
+          user_id?: string | null;
+          verified_via?: string | null;
+        };
+        Update: {
+          admin_note?: string | null;
+          amount?: number;
+          bank_txn_id?: string | null;
+          course_id?: string | null;
+          created_at?: string;
+          day?: string | null;
+          email?: string;
+          id?: string;
+          instrument?: string | null;
+          kind?: string;
+          name?: string;
+          package_title?: string | null;
+          phone?: string | null;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          screenshot_url?: string | null;
+          slot?: string | null;
+          status?: string;
+          upi_reference?: string;
+          user_id?: string | null;
+          verified_via?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "payment_submissions_course_id_fkey";
+            columns: ["course_id"];
+            isOneToOne: false;
+            referencedRelation: "courses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       profiles: {
         Row: {
           avatar_url: string | null;

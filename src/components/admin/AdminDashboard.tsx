@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
   BookOpen,
@@ -25,11 +26,22 @@ import {
   Home,
   Menu,
   X,
+  Wallet,
   LayoutDashboard,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import type { Database } from "@/integrations/supabase/types";
+import {
+  listPaymentSubmissions,
+  reviewPaymentSubmission,
+  listBankTransactions,
+} from "@/lib/site.functions";
 import { getVideoDetails } from "@/lib/utils";
+
+type PaymentSubmission = Database["public"]["Tables"]["payment_submissions"]["Row"] & {
+  screenshot_signed_url?: string | null;
+};
+type BankTxn = Database["public"]["Tables"]["bank_transactions"]["Row"];
 
 type Course = Database["public"]["Tables"]["courses"]["Row"];
 type Lead = Database["public"]["Tables"]["leads"]["Row"];
@@ -43,7 +55,15 @@ type CurriculumTerm = { term: string; topics: string[] };
 
 export function AdminDashboard({ email, signOut }: { email: string; signOut: () => void }) {
   const [activeTab, setActiveTab] = useState<
-    "overview" | "appointments" | "courses" | "lessons" | "fees" | "leads" | "subscribers" | "posts"
+    | "overview"
+    | "appointments"
+    | "courses"
+    | "lessons"
+    | "fees"
+    | "leads"
+    | "subscribers"
+    | "posts"
+    | "payments"
   >("overview");
 
   // Data States
@@ -53,6 +73,18 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [fees, setFees] = useState<Fee[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
+  const [payments, setPayments] = useState<PaymentSubmission[]>([]);
+  const [bankTxns, setBankTxns] = useState<BankTxn[]>([]);
+
+  // Payment settings form
+  const [payVpa, setPayVpa] = useState("");
+  const [payPayee, setPayPayee] = useState("");
+  const [savingPaySettings, setSavingPaySettings] = useState(false);
+  const [reviewingId, setReviewingId] = useState<string | null>(null);
+
+  const listPayments = useServerFn(listPaymentSubmissions);
+  const reviewPayment = useServerFn(reviewPaymentSubmission);
+  const listBankTxns = useServerFn(listBankTransactions);
 
   // Loading & Search States
   const [loading, setLoading] = useState(true);
@@ -219,10 +251,74 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
         .order("date", { ascending: false });
       if (postsErr) throw postsErr;
       setPosts(postsData || []);
+
+      // Fetch payment settings (public read via RLS)
+      const { data: settingsRow } = await supabase
+        .from("payment_settings")
+        .select("upi_vpa, payee_name")
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      setPayVpa(settingsRow?.upi_vpa ?? "");
+      setPayPayee(settingsRow?.payee_name ?? "");
+
+      await refreshPayments();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to load admin data");
     } finally {
       setLoading(false);
+    }
+  }
+
+  // Payment submissions carry signed screenshot URLs, so they come from an
+  // admin-gated server function rather than the browser client.
+  async function refreshPayments() {
+    try {
+      const [rows, txns] = await Promise.all([listPayments(), listBankTxns()]);
+      setPayments(rows as PaymentSubmission[]);
+      setBankTxns(txns as BankTxn[]);
+    } catch (err) {
+      console.error("Failed to load payment submissions:", err);
+    }
+  }
+
+  async function savePaymentSettings(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingPaySettings(true);
+    try {
+      // Single-row config — update the existing row if present, else insert.
+      const { data: existing } = await supabase
+        .from("payment_settings")
+        .select("id")
+        .limit(1)
+        .maybeSingle();
+      const payload = {
+        upi_vpa: payVpa.trim(),
+        payee_name: payPayee.trim() || "Zahau Music School",
+        updated_at: new Date().toISOString(),
+      };
+      const { error } = existing
+        ? await supabase.from("payment_settings").update(payload).eq("id", existing.id)
+        : await supabase.from("payment_settings").insert([payload]);
+      if (error) throw error;
+      toast.success("Payment settings saved.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save payment settings");
+    } finally {
+      setSavingPaySettings(false);
+    }
+  }
+
+  async function handleReviewPayment(id: string, action: "approve" | "reject") {
+    setReviewingId(id);
+    try {
+      await reviewPayment({ data: { id, action } });
+      toast.success(action === "approve" ? "Payment approved." : "Payment rejected.");
+      await refreshPayments();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Action failed. Please try again.");
+    } finally {
+      setReviewingId(null);
     }
   }
 
@@ -251,6 +347,7 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
         video_url: editingCourse.video_url || "",
         curriculum: editingCourse.curriculum || [],
         outcomes: parsedOutcomes,
+        levels: editingCourse.levels || [],
         display_order: Number(editingCourse.display_order || 0),
       };
 
@@ -549,6 +646,12 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
           label: "Appointments",
           icon: <CalendarCheck className="size-4" />,
           badge: appointments.length,
+        },
+        {
+          id: "payments",
+          label: "Payments",
+          icon: <Wallet className="size-4" />,
+          badge: payments.filter((p) => p.status === "pending").length,
         },
         { id: "leads", label: "Leads & Inquiries", icon: <User className="size-4" /> },
         { id: "subscribers", label: "Subscribers", icon: <Mail className="size-4" /> },
@@ -1074,7 +1177,7 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
                           });
                           setCourseModalOpen(true);
                         }}
-                        className="bg-azure hover:bg-azure/90 text-foreground font-bold uppercase tracking-wider text-xs px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all shadow-md shadow-azure/20"
+                        className="bg-azure hover:bg-azure/90 text-azure-foreground font-bold uppercase tracking-wider text-xs px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all shadow-md shadow-azure/20"
                       >
                         <Plus className="size-4" /> Add Course
                       </button>
@@ -1363,6 +1466,257 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
                   </div>
                 )}
 
+                {/* TAB CONTENT: PAYMENTS */}
+                {activeTab === "payments" && (
+                  <div className="space-y-6">
+                    <div>
+                      <h2 className="font-display text-3xl uppercase text-foreground">Payments</h2>
+                      <p className="text-muted-foreground text-sm mt-1">
+                        Verify UPI payments against your bank statement, then approve to activate
+                        enrollments and confirm demo bookings.
+                      </p>
+                    </div>
+
+                    {/* UPI settings */}
+                    <form
+                      onSubmit={savePaymentSettings}
+                      className="bg-card border border-border/60 rounded-xl p-5 space-y-4"
+                    >
+                      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-azure font-bold">
+                        UPI QR Settings
+                      </p>
+                      <div className="grid sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground/80 font-bold mb-2">
+                            UPI ID (VPA)
+                          </label>
+                          <input
+                            value={payVpa}
+                            onChange={(e) => setPayVpa(e.target.value)}
+                            placeholder="e.g. zahaumusic@okaxis"
+                            className="w-full bg-card border border-border/60 rounded-xl py-3 px-4 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-azure transition-all"
+                          />
+                        </div>
+                        <div>
+                          <label className="block font-mono text-[10px] uppercase tracking-wider text-muted-foreground/80 font-bold mb-2">
+                            Payee Name
+                          </label>
+                          <input
+                            value={payPayee}
+                            onChange={(e) => setPayPayee(e.target.value)}
+                            placeholder="Zahau Music School"
+                            className="w-full bg-card border border-border/60 rounded-xl py-3 px-4 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-azure transition-all"
+                          />
+                        </div>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground/70 font-light">
+                        Students see a QR built from this UPI ID with the exact package amount
+                        pre-filled. Leave the UPI ID blank to hide online payment.
+                      </p>
+                      <button
+                        type="submit"
+                        disabled={savingPaySettings}
+                        className="bg-azure text-azure-foreground hover:bg-azure/90 font-bold uppercase tracking-wider text-xs px-5 py-2.5 rounded-lg transition-all cursor-pointer disabled:opacity-40"
+                      >
+                        {savingPaySettings ? "Saving…" : "Save Settings"}
+                      </button>
+                    </form>
+
+                    {/* Search */}
+                    <div className="relative">
+                      <Search className="absolute left-3 top-3.5 size-4 text-muted-foreground/60" />
+                      <input
+                        type="text"
+                        placeholder="Search by name, email or UTR..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full bg-card border border-border/60 rounded-xl py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-azure transition-all"
+                      />
+                    </div>
+
+                    {/* Submissions Table */}
+                    {(() => {
+                      const q = searchTerm.toLowerCase();
+                      const filtered = payments.filter(
+                        (p) =>
+                          p.name.toLowerCase().includes(q) ||
+                          p.email.toLowerCase().includes(q) ||
+                          (p.upi_reference || "").toLowerCase().includes(q),
+                      );
+                      if (filtered.length === 0) {
+                        return (
+                          <div className="bg-card border border-border/60 rounded-xl p-12 text-center">
+                            <Wallet className="size-10 text-slate-700 mx-auto mb-3" />
+                            <p className="text-muted-foreground/60 font-mono text-sm">
+                              No payment submissions yet.
+                            </p>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="bg-card border border-border/60 rounded-xl overflow-hidden">
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse text-xs md:text-sm">
+                              <thead>
+                                <tr className="bg-muted/40 border-b border-border/60 text-muted-foreground font-mono uppercase tracking-wider">
+                                  <th className="p-4 font-semibold">Student</th>
+                                  <th className="p-4 font-semibold">Type</th>
+                                  <th className="p-4 font-semibold">Details</th>
+                                  <th className="p-4 font-semibold">Amount</th>
+                                  <th className="p-4 font-semibold">UTR</th>
+                                  <th className="p-4 font-semibold">Proof</th>
+                                  <th className="p-4 font-semibold">Status</th>
+                                  <th className="p-4 font-semibold text-right">Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-border/40">
+                                {filtered.map((p) => (
+                                  <tr key={p.id} className="hover:bg-muted/10 text-foreground/85">
+                                    <td className="p-4 font-semibold text-foreground">
+                                      <div>{p.name}</div>
+                                      <div className="font-mono text-[10px] text-muted-foreground/60">
+                                        {p.email}
+                                      </div>
+                                    </td>
+                                    <td className="p-4">
+                                      <span className="bg-azure/10 text-azure border border-azure/20 text-[8px] font-mono uppercase px-1.5 py-0.5 rounded tracking-wider">
+                                        {p.kind}
+                                      </span>
+                                    </td>
+                                    <td className="p-4 text-foreground/85">
+                                      {p.kind === "enrollment"
+                                        ? `${p.package_title ?? "—"}${p.instrument ? ` · ${p.instrument}` : ""}`
+                                        : `${p.day ?? "—"} · ${p.slot ?? "—"}`}
+                                    </td>
+                                    <td className="p-4 font-semibold text-emerald-400 font-mono">
+                                      Rs. {p.amount}
+                                    </td>
+                                    <td className="p-4 font-mono text-foreground/80">
+                                      {p.upi_reference || "—"}
+                                    </td>
+                                    <td className="p-4">
+                                      {p.screenshot_signed_url ? (
+                                        <a
+                                          href={p.screenshot_signed_url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-azure hover:underline font-mono text-[11px] inline-flex items-center gap-1"
+                                        >
+                                          <ExternalLink className="size-3" /> View
+                                        </a>
+                                      ) : (
+                                        <span className="text-muted-foreground/40">—</span>
+                                      )}
+                                    </td>
+                                    <td className="p-4">
+                                      <div className="flex flex-col items-start gap-1">
+                                        <span
+                                          className={`text-[9px] font-mono uppercase px-2 py-0.5 rounded tracking-wider border ${
+                                            p.status === "approved"
+                                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                              : p.status === "rejected"
+                                                ? "bg-red-500/10 text-red-400 border-red-500/20"
+                                                : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                                          }`}
+                                        >
+                                          {p.status}
+                                        </span>
+                                        {p.status === "approved" && p.verified_via && (
+                                          <span
+                                            className={`text-[8px] font-mono uppercase px-1.5 py-0.5 rounded tracking-wider ${
+                                              p.verified_via === "auto"
+                                                ? "text-emerald-400"
+                                                : "text-muted-foreground/60"
+                                            }`}
+                                          >
+                                            {p.verified_via === "auto" ? "⚡ auto" : "manual"}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="p-4 text-right">
+                                      {p.status === "pending" ? (
+                                        <div className="flex items-center justify-end gap-2">
+                                          <button
+                                            onClick={() => handleReviewPayment(p.id, "approve")}
+                                            disabled={reviewingId === p.id}
+                                            className="bg-emerald-500/10 hover:bg-emerald-500 border border-emerald-500/20 hover:border-emerald-500 text-emerald-400 hover:text-foreground font-bold uppercase tracking-wider text-[10px] px-3 py-1.5 rounded transition-all cursor-pointer whitespace-nowrap disabled:opacity-40"
+                                          >
+                                            Approve
+                                          </button>
+                                          <button
+                                            onClick={() => handleReviewPayment(p.id, "reject")}
+                                            disabled={reviewingId === p.id}
+                                            className="bg-red-500/10 hover:bg-red-500 border border-red-500/20 hover:border-red-500 text-red-400 hover:text-foreground font-bold uppercase tracking-wider text-[10px] px-3 py-1.5 rounded transition-all cursor-pointer whitespace-nowrap disabled:opacity-40"
+                                          >
+                                            Reject
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <span className="text-muted-foreground/40 font-mono text-[10px]">
+                                          {p.reviewed_at
+                                            ? new Date(p.reviewed_at).toLocaleDateString()
+                                            : "—"}
+                                        </span>
+                                      )}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Unmatched bank credits — money received that didn't auto-match a
+                        submission (wrong UTR typed, wrong amount, or paid outside the flow). */}
+                    {(() => {
+                      const unmatched = bankTxns.filter((t) => !t.matched_submission_id);
+                      if (unmatched.length === 0) return null;
+                      return (
+                        <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-5 space-y-3">
+                          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-amber-500 font-bold">
+                            Unmatched Bank Credits ({unmatched.length})
+                          </p>
+                          <p className="text-[11px] text-muted-foreground/70 font-light">
+                            Payments received into your account that didn't auto-match a submission
+                            (wrong UTR, wrong amount, or paid outside the flow). Reconcile manually.
+                          </p>
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse text-xs">
+                              <thead>
+                                <tr className="text-muted-foreground font-mono uppercase tracking-wider border-b border-border/40">
+                                  <th className="p-2 font-semibold">UTR</th>
+                                  <th className="p-2 font-semibold">Amount</th>
+                                  <th className="p-2 font-semibold">From</th>
+                                  <th className="p-2 font-semibold">Received</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-border/30">
+                                {unmatched.map((t) => (
+                                  <tr key={t.id} className="text-foreground/85">
+                                    <td className="p-2 font-mono">{t.utr}</td>
+                                    <td className="p-2 font-mono text-emerald-400">
+                                      Rs. {t.amount}
+                                    </td>
+                                    <td className="p-2 font-mono text-muted-foreground/70">
+                                      {t.sender || "—"}
+                                    </td>
+                                    <td className="p-2 font-mono text-muted-foreground/60">
+                                      {new Date(t.received_at).toLocaleString()}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+
                 {/* TAB CONTENT: LESSONS */}
                 {activeTab === "lessons" && (
                   <div className="space-y-6">
@@ -1387,7 +1741,7 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
                           });
                           setLessonModalOpen(true);
                         }}
-                        className="bg-azure hover:bg-azure/90 text-foreground font-bold uppercase tracking-wider text-xs px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all shadow-md shadow-azure/20"
+                        className="bg-azure hover:bg-azure/90 text-azure-foreground font-bold uppercase tracking-wider text-xs px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all shadow-md shadow-azure/20"
                       >
                         <Plus className="size-4" /> Add Lesson
                       </button>
@@ -1528,7 +1882,7 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
                           });
                           setFeeModalOpen(true);
                         }}
-                        className="bg-azure hover:bg-azure/90 text-foreground font-bold uppercase tracking-wider text-xs px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all shadow-md shadow-azure/20"
+                        className="bg-azure hover:bg-azure/90 text-azure-foreground font-bold uppercase tracking-wider text-xs px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all shadow-md shadow-azure/20"
                       >
                         <Plus className="size-4" /> Add Fee Package
                       </button>
@@ -1589,7 +1943,7 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
                                   <td className="p-4 text-muted-foreground">{fee.mode}</td>
                                   <td className="p-4">
                                     <span
-                                      className={`px-2 py-0.5 rounded text-[10px] font-mono uppercase font-bold ${fee.popular ? "bg-amber-500/10 text-amber-500 border border-amber-500/20" : "bg-muted text-muted-foreground border border-border/80/50"}`}
+                                      className={`px-2 py-0.5 rounded text-[10px] font-mono uppercase font-bold ${fee.popular ? "bg-amber-500/10 text-amber-500 border border-amber-500/20" : "bg-muted text-muted-foreground border border-border/50"}`}
                                     >
                                       {fee.popular ? "Yes" : "No"}
                                     </span>
@@ -1649,7 +2003,7 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
                           });
                           setPostModalOpen(true);
                         }}
-                        className="bg-azure hover:bg-azure/90 text-foreground font-bold uppercase tracking-wider text-xs px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all shadow-md shadow-azure/20"
+                        className="bg-azure hover:bg-azure/90 text-azure-foreground font-bold uppercase tracking-wider text-xs px-4 py-2.5 rounded-lg flex items-center gap-2 transition-all shadow-md shadow-azure/20"
                       >
                         <Plus className="size-4" /> Add Blog Post
                       </button>
@@ -1871,7 +2225,7 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
                 </div>
 
                 {/* Main Video URL (YouTube/Vimeo OR Upload) */}
-                <div className="grid gap-2 md:col-span-2 border border-border/60/80 bg-background/25 p-4 rounded-xl">
+                <div className="grid gap-2 md:col-span-2 border border-border/60 bg-background/25 p-4 rounded-xl">
                   <label className="font-mono text-[10px] uppercase tracking-widest text-azure flex items-center gap-1.5 font-bold">
                     <Video className="size-4" />
                     Course Intro Video
@@ -1940,7 +2294,7 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
                   </div>
 
                   {editingCourse.video_url && (
-                    <div className="mt-2 text-xs bg-muted/70/50 p-2.5 rounded border border-border/60 flex items-center justify-between">
+                    <div className="mt-2 text-xs bg-muted/40 p-2.5 rounded border border-border/60 flex items-center justify-between">
                       <div className="flex items-center gap-2 truncate">
                         <span className="font-mono text-[9px] text-azure font-bold border border-azure/20 bg-azure/5 px-1.5 py-0.5 rounded">
                           Active URL
@@ -1952,7 +2306,7 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
                       <button
                         type="button"
                         onClick={() => setEditingCourse({ ...editingCourse, video_url: "" })}
-                        className="text-red-455 text-red-400 hover:text-red-300 text-xs px-2 font-mono font-bold"
+                        className="text-red-400 hover:text-red-300 text-xs px-2 font-mono font-bold"
                       >
                         Clear
                       </button>
@@ -2074,7 +2428,7 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
                                   cur[tIdx].term = e.target.value;
                                   handleCurriculumChange(cur);
                                 }}
-                                className="bg-card border border-slate-850 focus:border-azure rounded px-3 py-1.5 text-xs text-foreground focus:outline-none w-[80%]"
+                                className="bg-card border border-border/60 focus:border-azure rounded px-3 py-1.5 text-xs text-foreground focus:outline-none w-[80%]"
                                 placeholder="e.g. Term 1: Foundations"
                               />
                             </div>
@@ -2096,7 +2450,7 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
                                       cur[tIdx].topics[topIdx] = e.target.value;
                                       handleCurriculumChange(cur);
                                     }}
-                                    className="flex-1 bg-card border border-slate-850 focus:border-azure rounded px-3 py-1 text-xs text-foreground focus:outline-none"
+                                    className="flex-1 bg-card border border-border/60 focus:border-azure rounded px-3 py-1 text-xs text-foreground focus:outline-none"
                                     placeholder="e.g. Introduction to Major Keys"
                                   />
                                   <button
@@ -2151,7 +2505,7 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
                 </button>
                 <button
                   type="submit"
-                  className="bg-azure hover:bg-azure/90 text-foreground font-bold uppercase tracking-wider text-xs px-5 py-2.5 rounded-lg transition-all shadow-md shadow-azure/20"
+                  className="bg-azure hover:bg-azure/90 text-azure-foreground font-bold uppercase tracking-wider text-xs px-5 py-2.5 rounded-lg transition-all shadow-md shadow-azure/20"
                 >
                   Save Course
                 </button>
@@ -2213,7 +2567,7 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
               </div>
 
               {/* Video URL (YouTube OR Upload) */}
-              <div className="grid gap-2 border border-border/60/80 bg-background/20 p-4 rounded-xl">
+              <div className="grid gap-2 border border-border/60 bg-background/20 p-4 rounded-xl">
                 <label className="font-mono text-[10px] uppercase tracking-widest text-azure flex items-center gap-1.5 font-bold">
                   <Video className="size-4" />
                   Lesson Video
@@ -2279,7 +2633,7 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
                 </div>
 
                 {editingLesson.video_url && (
-                  <div className="mt-2 text-xs bg-muted/70/50 p-2.5 rounded border border-border/60 flex items-center justify-between">
+                  <div className="mt-2 text-xs bg-muted/40 p-2.5 rounded border border-border/60 flex items-center justify-between">
                     <div className="flex items-center gap-2 truncate">
                       <span className="font-mono text-[9px] text-azure font-bold border border-azure/20 bg-azure/5 px-1.5 py-0.5 rounded">
                         Active URL
@@ -2341,7 +2695,7 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
                 </button>
                 <button
                   type="submit"
-                  className="bg-azure hover:bg-azure/90 text-foreground font-bold uppercase tracking-wider text-xs px-4 py-2 rounded-lg transition-all shadow-md"
+                  className="bg-azure hover:bg-azure/90 text-azure-foreground font-bold uppercase tracking-wider text-xs px-4 py-2 rounded-lg transition-all shadow-md"
                 >
                   Save Lesson
                 </button>
@@ -2542,7 +2896,7 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
                 </button>
                 <button
                   type="submit"
-                  className="bg-azure hover:bg-azure/90 text-foreground font-bold uppercase tracking-wider text-xs px-4 py-2 rounded-lg transition-all shadow-md"
+                  className="bg-azure hover:bg-azure/90 text-azure-foreground font-bold uppercase tracking-wider text-xs px-4 py-2 rounded-lg transition-all shadow-md"
                 >
                   Save Fee Package
                 </button>
@@ -2616,7 +2970,7 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
                 <span className="font-mono text-[9px] text-muted-foreground/60 uppercase block mb-1">
                   Message Content
                 </span>
-                <div className="bg-background border border-slate-850 p-4 rounded-lg text-foreground/85 font-sans whitespace-pre-wrap">
+                <div className="bg-background border border-border/60 p-4 rounded-lg text-foreground/85 font-sans whitespace-pre-wrap">
                   {leadDetail.message || (
                     <span className="italic text-muted-foreground/60">No message provided.</span>
                   )}
@@ -2763,7 +3117,7 @@ export function AdminDashboard({ email, signOut }: { email: string; signOut: () 
                 </button>
                 <button
                   type="submit"
-                  className="bg-azure hover:bg-azure/90 text-foreground font-bold uppercase tracking-wider text-xs px-4 py-2 rounded-lg transition-all shadow-md"
+                  className="bg-azure hover:bg-azure/90 text-azure-foreground font-bold uppercase tracking-wider text-xs px-4 py-2 rounded-lg transition-all shadow-md"
                 >
                   Save Post
                 </button>
